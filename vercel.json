@@ -10,7 +10,7 @@
             "headers": [
                 {
                     "key": "Content-Type",
-                    "value": "text/javascript; charset=utf-8"
+                    "value": "application/javascript; charset=utf-8"
                 },
                 {
                     "key": "X-Content-Type-Options",
@@ -27,7 +27,7 @@
             "headers": [
                 {
                     "key": "Content-Type",
-                    "value": "text/javascript; charset=utf-8"
+                    "value": "application/javascript; charset=utf-8"
                 },
                 {
                     "key": "X-Content-Type-Options",
@@ -51,16 +51,21 @@
     ],
     "routes": [
         {
+            "src": "^/assets/(.*)\\.js$",
+            "dest": "/assets/$1.js",
+            "headers": {
+                "Content-Type": "application/javascript; charset=utf-8"
+            }
+        },
+        {
+            "src": "^/(.*)\\.js$",
+            "dest": "/$1.js",
+            "headers": {
+                "Content-Type": "application/javascript; charset=utf-8"
+            }
+        },
+        {
             "handle": "filesystem"
-        },
-        {
-            "src": "/assets/(.*)",
-            "dest": "/assets/$1",
-            "continue": true
-        },
-        {
-            "src": "/(.*)\\.js",
-            "dest": "/$1.js"
         },
         {
             "src": "/(.*)",

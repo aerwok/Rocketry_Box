@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: './',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -29,9 +29,7 @@ export default defineConfig({
     assetsDir: 'assets',
     emptyOutDir: true,
     target: 'esnext',
-    modulePreload: {
-      polyfill: true
-    },
+    modulePreload: false,
     cssCodeSplit: true,
     minify: 'terser',
     terserOptions: {
