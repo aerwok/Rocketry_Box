@@ -3,54 +3,59 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import MarketingLayout from "./layouts/marketing-layout";
 import ScrollToTop from "./components/shared/scroll-to-top";
 import "./styles/chart-fix.css";
-import { Suspense, lazy } from "react";
 
 // Marketing Pages
-const ContactPage = lazy(() => import("./pages/marketing/contact"));
-const FeaturesPage = lazy(() => import("./pages/marketing/features"));
-const HomePage = lazy(() => import("./pages/marketing/home"));
-const PricingPage = lazy(() => import("./pages/marketing/pricing"));
-const ServicesPage = lazy(() => import("./pages/marketing/services"));
-const SupportPage = lazy(() => import("./pages/marketing/support"));
-const TrackPage = lazy(() => import("./pages/marketing/track"));
-const FaqsPage = lazy(() => import("./pages/marketing/faqs"));
-const PrivacyPage = lazy(() => import("./pages/marketing/privacy"));
-const TermsPage = lazy(() => import("./pages/marketing/terms"));
+import ContactPage from "./pages/marketing/contact";
+import FeaturesPage from "./pages/marketing/features";
+import HomePage from "./pages/marketing/home";
+import PricingPage from "./pages/marketing/pricing";
+import ServicesPage from "./pages/marketing/services";
+import SupportPage from "./pages/marketing/support";
+import TrackPage from "./pages/marketing/track";
+import FaqsPage from "./pages/marketing/faqs";
+import PrivacyPage from "./pages/marketing/privacy";
+import TermsPage from "./pages/marketing/terms";
 
 // Customer Pages
-const CustomerLoginPage = lazy(() => import("./pages/customer/auth/login"));
-const CustomerRegisterPage = lazy(() => import("./pages/customer/auth/register"));
-const CustomerHomePage = lazy(() => import("./pages/customer/home"));
-const CustomerProfile = lazy(() => import("./pages/customer/profile"));
-const CustomerOrdersPage = lazy(() => import("./pages/customer/orders"));
-const CustomerCreateOrderPage = lazy(() => import("./pages/customer/create-order"));
-const CustomerPaymentPage = lazy(() => import("./pages/customer/payment"));
-const CustomerLayout = lazy(() => import("./layouts/customer-layout"));
-const OrderDetailsPage = lazy(() => import("./pages/customer/orders/[id]"));
-
-// Seller Pages
-const SellerLayout = lazy(() => import("./layouts/seller-layout"));
-const SellerLoginPage = lazy(() => import("./pages/seller/auth/login"));
-const SellerRegisterPage = lazy(() => import("./pages/seller/auth/register"));
-const SellerOTPPage = lazy(() => import("./pages/seller/auth/otp"));
-const SellerCompanyDetailsPage = lazy(() => import("./pages/seller/onboarding/company-details"));
-const SellerBankDetailsPage = lazy(() => import("./pages/seller/onboarding/bank-details"));
-const SellerDashboardPage = lazy(() => import("./pages/seller/dashboard/home"));
-const SellerDashboardLayout = lazy(() => import("./layouts/seller-dashboard-layout"));
-const SellerOrdersPage = lazy(() => import("./pages/seller/dashboard/orders"));
-const SellerNDRPage = lazy(() => import("./pages/seller/dashboard/ndr"));
-const SellerWeightDisputePage = lazy(() => import("./pages/seller/dashboard/disputes"));
-const SellerBillingPage = lazy(() => import("./pages/seller/dashboard/billing"));
-const SellerToolsPage = lazy(() => import("./pages/seller/dashboard/tools"));
-const SellerWarehousePage = lazy(() => import("./pages/seller/dashboard/warehouse"));
-const SellerServiceCheckPage = lazy(() => import("./pages/seller/dashboard/service-check"));
-const SellerProductsPage = lazy(() => import("./pages/seller/dashboard/products"));
-const SellerRateCalculatorPage = lazy(() => import("./pages/seller/dashboard/rate-calculator"));
-const SellerCODPage = lazy(() => import("./pages/seller/dashboard/cod"));
-const SellerProfilePage = lazy(() => import("./pages/seller/dashboard/profile"));
-const SellerSettingsPage = lazy(() => import("./pages/seller/dashboard/settings"));
-const SellerDisputePage = lazy(() => import("./pages/seller/dashboard/disputes"));
-const SellerNewOrderPage = lazy(() => import("./pages/seller/dashboard/new-order"));
+import CustomerLoginPage from "./pages/customer/auth/login";
+import CustomerRegisterPage from "./pages/customer/auth/register";
+import CustomerHomePage from "./pages/customer/home";
+import CustomerProfile from "./pages/customer/profile";
+import CustomerOrdersPage from "./pages/customer/orders";
+import CustomerCreateOrderPage from "./pages/customer/create-order";
+import CustomerPaymentPage from "./pages/customer/payment";
+import CustomerLayout from "./layouts/customer-layout";
+import OrderDetailsPage from "./pages/customer/orders/[id]";
+import SellerLayout from "./layouts/seller-layout";
+import SellerLoginPage from "./pages/seller/auth/login";
+import SellerRegisterPage from "./pages/seller/auth/register";
+import SellerOTPPage from "./pages/seller/auth/otp";
+import SellerCompanyDetailsPage from "./pages/seller/onboarding/company-details";
+import SellerBankDetailsPage from "./pages/seller/onboarding/bank-details";
+import SellerDashboardPage from "./pages/seller/dashboard/home";
+import SellerDashboardLayout from "./layouts/seller-dashboard-layout";
+import SellerOrdersPage from "./pages/seller/dashboard/orders";
+import SellerNDRPage from "./pages/seller/dashboard/ndr";
+import SellerWeightDisputePage from "./pages/seller/dashboard/disputes";
+import SellerBillingPage from "./pages/seller/dashboard/billing";
+import SellerToolsPage from "./pages/seller/dashboard/tools";
+import SellerWarehousePage from "./pages/seller/dashboard/warehouse";
+import SellerServiceCheckPage from "./pages/seller/dashboard/service-check";
+import SellerProductsPage from "./pages/seller/dashboard/products";
+import SellerRateCalculatorPage from "./pages/seller/dashboard/rate-calculator";
+import SellerCODPage from "./pages/seller/dashboard/cod";
+import SellerProfilePage from "./pages/seller/dashboard/profile";
+import SellerSettingsPage from "./pages/seller/dashboard/settings";
+import SellerDisputePage from "./pages/seller/dashboard/disputes";
+import SellerNewOrderPage from "./pages/seller/dashboard/new-order";
+import SellerManifestPage from "./pages/seller/dashboard/manifest";
+import SellerReceivedPage from "./pages/seller/dashboard/received";
+import SellerSupportPage from "./pages/seller/dashboard/support";
+import SellerShipmentsPage from "./pages/seller/dashboard/shipments";
+import SellerBulkOrdersPage from './pages/seller/dashboard/bulk-orders';
+import SellerOrderDetailsPage from "./pages/seller/dashboard/orders/[id]";
+import SellerNDRDetailsPage from "./pages/seller/dashboard/ndr/[id]";
+import SellerReportsPage from "./pages/seller/dashboard/reports";
 
 // Admin Pages
 import AdminPartnersPage from "./pages/admin/dashboard/partners";
@@ -102,67 +107,125 @@ const App = () => {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <Suspense fallback={<div>Loading...</div>}>
-        <Routes>
-          {/* Marketing Routes */}
-          <Route element={<MarketingLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path="contact" element={<ContactPage />} />
-            <Route path="features" element={<FeaturesPage />} />
-            <Route path="pricing" element={<PricingPage />} />
-            <Route path="services" element={<ServicesPage />} />
-            <Route path="support" element={<SupportPage />} />
-            <Route path="track" element={<TrackPage />} />
-            <Route path="faqs" element={<FaqsPage />} />
-            <Route path="privacy" element={<PrivacyPage />} />
-            <Route path="terms" element={<TermsPage />} />
-          </Route>
+      <Toaster richColors theme="light" position="top-center" />
+      <Routes>
+        {/* Marketing Routes */}
+        <Route element={<MarketingLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/track" element={<TrackPage />} />
+          <Route path="/faqs" element={<FaqsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+        </Route>
 
-          {/* Customer Routes */}
-          <Route element={<CustomerLayout />}>
-            <Route path="customer/login" element={<CustomerLoginPage />} />
-            <Route path="customer/register" element={<CustomerRegisterPage />} />
-            <Route path="customer/home" element={<CustomerHomePage />} />
-            <Route path="customer/profile" element={<CustomerProfile />} />
-            <Route path="customer/orders" element={<CustomerOrdersPage />} />
-            <Route path="customer/orders/:id" element={<OrderDetailsPage />} />
-            <Route path="customer/create-order" element={<CustomerCreateOrderPage />} />
-            <Route path="customer/payment" element={<CustomerPaymentPage />} />
-          </Route>
+        {/* Customer Routes */}
+        <Route path="/customer" element={<CustomerLayout />}>
+          <Route index element={<Navigate to="/customer/home" replace />} />
+          <Route path="home" element={<CustomerHomePage />} />
+          <Route path="login" element={<CustomerLoginPage />} />
+          <Route path="register" element={<CustomerRegisterPage />} />
+          <Route path="profile" element={<CustomerProfile />} />
+          <Route path="orders" element={<CustomerOrdersPage />} />
+          <Route path="orders/:id" element={<OrderDetailsPage />} />
+          <Route path="create-order" element={<CustomerCreateOrderPage />} />
+          <Route path="payment" element={<CustomerPaymentPage />} />
+        </Route>
 
-          {/* Seller Routes */}
-          <Route element={<SellerLayout />}>
-            <Route path="seller/login" element={<SellerLoginPage />} />
-            <Route path="seller/register" element={<SellerRegisterPage />} />
-            <Route path="seller/otp" element={<SellerOTPPage />} />
-            <Route path="seller/company-details" element={<SellerCompanyDetailsPage />} />
-            <Route path="seller/bank-details" element={<SellerBankDetailsPage />} />
+        {/* Seller Auth Routes */}
+        <Route path="/seller" element={<SellerLayout />}>
+          <Route index element={<Navigate to="/seller/login" replace />} />
+          <Route path="login" element={<SellerLoginPage />} />
+          <Route path="register" element={<SellerRegisterPage />} />
+          <Route path="otp" element={<SellerOTPPage />} />
+          <Route path="onboarding">
+            <Route path="company" element={<SellerCompanyDetailsPage />} />
+            <Route path="bank" element={<SellerBankDetailsPage />} />
           </Route>
+        </Route>
 
-          {/* Seller Dashboard Routes */}
-          <Route element={<SellerDashboardLayout />}>
-            <Route path="seller/dashboard" element={<SellerDashboardPage />} />
-            <Route path="seller/dashboard/orders" element={<SellerOrdersPage />} />
-            <Route path="seller/dashboard/ndr" element={<SellerNDRPage />} />
-            <Route path="seller/dashboard/disputes" element={<SellerWeightDisputePage />} />
-            <Route path="seller/dashboard/billing" element={<SellerBillingPage />} />
-            <Route path="seller/dashboard/tools" element={<SellerToolsPage />} />
-            <Route path="seller/dashboard/warehouse" element={<SellerWarehousePage />} />
-            <Route path="seller/dashboard/service-check" element={<SellerServiceCheckPage />} />
-            <Route path="seller/dashboard/products" element={<SellerProductsPage />} />
-            <Route path="seller/dashboard/rate-calculator" element={<SellerRateCalculatorPage />} />
-            <Route path="seller/dashboard/cod" element={<SellerCODPage />} />
-            <Route path="seller/dashboard/profile" element={<SellerProfilePage />} />
-            <Route path="seller/dashboard/settings" element={<SellerSettingsPage />} />
-            <Route path="seller/dashboard/disputes" element={<SellerDisputePage />} />
-            <Route path="seller/dashboard/new-order" element={<SellerNewOrderPage />} />
+        {/* Seller Dashboard Routes */}
+        <Route path="/seller/dashboard" element={<SellerDashboardLayout />}>
+          <Route index element={<SellerDashboardPage />} />
+          <Route path="orders" element={<SellerOrdersPage />} />
+          <Route path="orders/:id" element={<SellerOrderDetailsPage />} />
+          <Route path="shipments" element={<SellerShipmentsPage />} />
+          <Route path="shipments/:id" element={<SellerShipmentDetailsPage />} />
+          <Route path="received" element={<SellerReceivedPage />} />
+          <Route path="disputes" element={<SellerDisputePage />} />
+          <Route path="disputes/:id" element={<SellerDisputeDetailsPage />} />
+          <Route path="ndr" element={<SellerNDRPage />} />
+          <Route path="ndr/:id" element={<SellerNDRDetailsPage />} />
+          <Route path="weight-dispute" element={<SellerWeightDisputePage />} />
+          <Route path="billing" element={<SellerBillingPage />} />
+          <Route path="tools" element={<SellerToolsPage />} />
+          <Route path="warehouse" element={<SellerWarehousePage />} />
+          <Route path="service-check" element={<SellerServiceCheckPage />} />
+          <Route path="products" element={<SellerProductsPage />} />
+          <Route path="rate-calculator" element={<SellerRateCalculatorPage />} />
+          <Route path="cod" element={<SellerCODPage />} />
+          <Route path="profile" element={<SellerProfilePage />} />
+          <Route path="new-order" element={<SellerNewOrderPage />} />
+          <Route path="settings" element={<SellerSettingsPage />} />
+          <Route path="settings/manage-store" element={<ManageStorePage />} />
+          <Route path="settings/couriers" element={<CouriersSettingsPage />} />
+          <Route path="settings/labels" element={<LabelSettingsPage />} />
+          <Route path="settings/users" element={<ManageUsersPage />} />
+          <Route path="settings/whatsapp" element={<WhatsAppSettingsPage />} />
+          <Route path="settings/api" element={<ApiSettingsPage />} />
+          <Route path="support" element={<SellerSupportPage />} />
+          <Route path="bulk-orders" element={<SellerBulkOrdersPage />} />
+          <Route path="reports" element={<SellerReportsPage />} />
+        </Route>
+
+        {/* Catch-all route - Redirect to home */}
+        {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/login" replace />} />
+          <Route path="login" element={<AdminLoginPage />} />
+          <Route path="register" element={<AdminRegisterPage />} />
+          <Route path="profile" element={<MyProfilePage />} />
+          <Route path="dashboard" element={<AdminDashboardLayout />}>
+            <Route index element={<AdminDashboardPage />} />
+            <Route path="customer" element={<AdminCustomerDashboardPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="users/:id" element={<AdminUserProfilePage />} />
+            <Route path="teams" element={<AdminTeamsPage />} />
+            <Route path="teams/:id" element={<AdminTeamProfilePage />} />
+            <Route path="partners" element={<AdminPartnersPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="orders/:id" element={<AdminOrderDetailsPage />} />
+            <Route path="shipments" element={<AdminShipmentsPage />} />
+            <Route path="shipments/:id" element={<AdminShipmentDetailsPage />} />
+            <Route path="tickets" element={<AdminTicketsPage />} />
+            <Route path="ndr" element={<AdminNDRPage />} />
+            <Route path="ndr/:id" element={<AdminNDRDetailsPage />} />
+            <Route path="billing" element={<AdminBillingPage />} />
+            <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="escalation" element={<AdminEscalationLayout />}>
+              <Route path="search" element={<AdminEscalationSearchPage />} />
+              <Route path="statistics" element={<AdminEscalationStatisticsPage />} />
+              <Route path="pickups" element={<AdminEscalationPickupsPage />} />
+              <Route path="shipments" element={<AdminEscalationShipmentsPage />} />
+              <Route path="billing" element={<AdminEscalationBillingPage />} />
+              <Route path="weight-issues" element={<AdminEscalationWeightIssuesPage />} />
+              <Route path="tech-issues" element={<AdminEscalationTechIssuesPage />} />
+            </Route>
+            <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="settings/system" element={<SystemSettings />} />
+            <Route path="settings/notification" element={<NotificationSettings />} />
+            <Route path="settings/policy" element={<PolicySettings />} />
+            <Route path="settings/policy/:slug/edit" element={<PolicyEditPage />} />
+            <Route path="settings/maintenance" element={<MaintenanceSettings />} />
           </Route>
-
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-      <Toaster />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 };

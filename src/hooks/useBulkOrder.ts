@@ -42,10 +42,7 @@ export const useBulkOrder = (orderId?: string): UseBulkOrderReturn => {
 
             // Upload file
             const response = await bulkOrderService.uploadBulkOrder(file);
-            setOrderStatus({
-                ...response.data,
-                progress: 0
-            });
+            setOrderStatus(response.data);
             toast.success('File uploaded successfully');
 
             // Start polling for status
