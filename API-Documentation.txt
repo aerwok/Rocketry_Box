@@ -1,0 +1,1450 @@
+# Rocketry Box - API Documentation
+
+## Table of Contents
+1. API Overview
+2. Authentication
+3. API Endpoints
+4. Data Models
+5. Error Handling
+6. Rate Limiting
+7. WebSocket Events
+8. File Upload
+9. Testing
+
+## API Overview
+
+### Base URL
+Development: http://localhost:8000
+Production: https://api.rocketrybox.com
+
+### API Version
+All endpoints are prefixed with `/api/v1/`
+
+### Content Type
+All requests and responses use `application/json`
+
+### Authentication
+All authenticated endpoints require a Bearer token in the Authorization header:
+```
+Authorization: Bearer <token>
+```
+
+## Authentication
+
+### Login
+Request Type: POST
+Endpoint: /api/v1/auth/login
+Headers: {
+  "Content-Type": "application/json"
+}
+Request Body: {
+  emailOrPhone: string,    // Email or 10-digit phone number
+  password: string,        // Password
+  otp: string,            // Optional, required for forgot password
+  rememberMe: boolean     // Optional, defaults to false
+}
+Response: {
+  token: string,
+  user: {
+    id: string,
+    name: string,
+    email: string,
+    phone: string,
+    role: "customer" | "seller" | "admin"
+  }
+}
+
+### Register
+Request Type: POST
+Endpoint: /api/v1/auth/register
+Headers: {
+  "Content-Type": "application/json"
+}
+Request Body: {
+  name: string,          // min 2 characters
+  mobile: string,        // exactly 10 digits
+  mobileOtp: string,     // exactly 6 digits
+  email: string,         // valid email format
+  emailOtp: string,      // exactly 6 digits
+  password: string,      // see password rules below
+  confirmPassword: string,// must match password
+  address1: string,      // required
+  address2: string,      // optional
+  city: string,         // required
+  state: string,        // required
+  pincode: string,      // exactly 6 digits
+  acceptTerms: boolean   // must be true
+}
+Response: {
+  token: string,
+  user: {
+    id: string,
+    name: string,
+    email: string,
+    phone: string,
+    role: "customer" | "seller" | "admin"
+  }
+}
+
+### Password Rules
+{
+  minLength: 8,
+  requirements: [
+    "At least one uppercase letter",
+    "At least one lowercase letter",
+    "At least one number",
+    "At least one special character"
+  ]
+}
+
+### OTP Endpoints
+// Send Mobile OTP
+Request Type: POST
+Endpoint: /api/v1/auth/send-mobile-otp
+Headers: {
+  "Content-Type": "application/json"
+}
+Request Body: {
+  mobile: string
+}
+
+// Send Email OTP
+Request Type: POST
+Endpoint: /api/v1/auth/send-email-otp
+Headers: {
+  "Content-Type": "application/json"
+}
+Request Body: {
+  email: string
+}
+
+// Verify OTP
+Request Type: POST
+Endpoint: /api/v1/auth/verify-otp
+Headers: {
+  "Content-Type": "application/json"
+}
+Request Body: {
+  phoneOrEmail: string,
+  otp: string,      // 6 digits
+  type: "mobile" | "email"
+}
+
+## API Endpoints
+
+### Customer Endpoints
+
+#### Profile Management
+// Get Profile
+Request Type: GET
+Endpoint: /api/v1/customer/profile
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  id: string,
+  name: string,
+  email: string,
+  phone: string,
+  address: {
+    street: string,
+    city: string,
+    state: string,
+    pincode: string,
+    country: string
+  }
+}
+
+// Update Profile
+Request Type: PUT
+Endpoint: /api/v1/customer/profile
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  name: string,
+  phone: string,
+  address: {
+    street: string,
+    city: string,
+    state: string,
+    pincode: string,
+    country: string
+  },
+  email: string,
+  password: {
+    current: string,
+    new: string
+  }
+}
+
+#### Orders
+// Create Order
+Request Type: POST
+Endpoint: /api/v1/customer/orders
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  pickupAddress: {
+    street: string,
+    city: string,
+    state: string,
+    pincode: string,
+    country: string,
+    contactName: string,
+    contactPhone: string
+  },
+  deliveryAddress: {
+    street: string,
+    city: string,
+    state: string,
+    pincode: string,
+    country: string,
+    contactName: string,
+    contactPhone: string
+  },
+  package: {
+    weight: number,  // in kg
+    length: number,  // in cm
+    width: number,   // in cm
+    height: number,  // in cm
+    items: Array<{
+      name: string,
+      quantity: number,
+      value: number
+    }>,
+    totalValue: number
+  },
+  serviceType: "express" | "standard",
+  paymentMethod: "prepaid" | "cod"
+}
+
+// List Orders
+Request Type: GET
+Endpoint: /api/v1/customer/orders
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  page: number,
+  limit: number,
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled"
+}
+
+// Order Details
+Request Type: GET
+Endpoint: /api/v1/customer/orders/:orderId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+
+### Seller Endpoints
+
+#### Profile Management
+// Get Profile
+Request Type: GET
+Endpoint: /api/v1/seller/profile
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  id: string,
+  name: string,
+  email: string,
+  phone: string,
+  companyName: string,
+  businessType: string,
+  gstin: string,
+  pan: string,
+  address: {
+    street: string,
+    city: string,
+    state: string,
+    pincode: string,
+    country: string
+  },
+  documents: Array<{
+    type: string,
+    url: string,
+    status: string
+  }>,
+  settings: {
+    notifications: {
+      email: boolean,
+      sms: boolean,
+      push: boolean
+    },
+    autoAcceptOrders: boolean,
+    defaultServiceType: string,
+    defaultPaymentMethod: string
+  }
+}
+
+### Admin Endpoints
+
+#### User Management
+// List Users
+Request Type: GET
+Endpoint: /api/v1/admin/users
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  page: number,
+  limit: number,
+  role: "customer" | "seller" | "admin",
+  status: "active" | "inactive" | "suspended"
+}
+
+// User Details
+Request Type: GET
+Endpoint: /api/v1/admin/users/:userId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+
+// Update User Status
+Request Type: PUT
+Endpoint: /api/v1/admin/users/:userId/status
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  status: "active" | "inactive" | "suspended",
+  reason: string
+}
+
+#### Order Management
+// List Orders
+Request Type: GET
+Endpoint: /api/v1/admin/orders
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  page: number,
+  limit: number,
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled",
+  dateRange: {
+    start: string,  // ISO date
+    end: string     // ISO date
+  }
+}
+
+// Order Details
+Request Type: GET
+Endpoint: /api/v1/admin/orders/:orderId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+
+// Update Order Status
+Request Type: PUT
+Endpoint: /api/v1/admin/orders/:orderId/status
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  status: "processing" | "shipped" | "delivered" | "cancelled",
+  location: string,
+  notes: string
+}
+
+## Data Models
+
+### User Model
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: "customer" | "seller" | "admin";
+  status: "active" | "inactive" | "suspended";
+  createdAt: string;
+  updatedAt: string;
+}
+
+### Order Model
+interface Order {
+  id: string;
+  trackingId: string;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  createdAt: string;
+  updatedAt: string;
+  pickupAddress: Address;
+  deliveryAddress: Address;
+  package: PackageDetails;
+  timeline: Array<{
+    status: string;
+    location: string;
+    timestamp: string;
+    description: string;
+  }>;
+  payment: {
+    status: string;
+    method: string;
+    amount: number;
+  };
+}
+
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  contactName: string;
+  contactPhone: string;
+}
+
+interface PackageDetails {
+  weight: number;
+  length: number;
+  width: number;
+  height: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+    value: number;
+  }>;
+  totalValue: number;
+}
+
+## Error Handling
+
+### Error Response Format
+{
+  status: number,
+  message: string,
+  errors: {
+    [key: string]: string[]
+  }
+}
+
+### Common Error Codes
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 422: Validation Error
+- 429: Too Many Requests
+- 500: Internal Server Error
+
+### Validation Error Example
+{
+  status: 422,
+  message: "Validation failed",
+  errors: {
+    email: ["Invalid email format"],
+    password: ["Password must be at least 8 characters"]
+  }
+}
+
+## Rate Limiting
+
+### Rate Limits
+- 100 requests per minute per IP
+- 1000 requests per hour per user
+- 10,000 requests per day per user
+
+### Rate Limit Headers
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1623456789
+
+## WebSocket Events
+
+### Connection
+ws://api.rocketrybox.com/ws
+Headers: {
+  "Authorization": "Bearer <token>"
+}
+
+### Events
+// Order Status Update
+{
+  type: "order_status_update",
+  data: {
+    orderId: string,
+    status: string,
+    location: string,
+    timestamp: string
+  }
+}
+
+// Notification
+{
+  type: "notification",
+  data: {
+    id: string,
+    title: string,
+    message: string,
+    type: "info" | "success" | "warning" | "error",
+    timestamp: string
+  }
+}
+
+## File Upload
+
+### Upload Endpoint
+Request Type: POST
+Endpoint: /api/v1/upload
+Content-Type: multipart/form-data
+
+Request: {
+  file: File
+}
+
+Response: {
+  url: string,
+  filename: string,
+  size: number,
+  mimeType: string
+}
+
+### Bulk Order Endpoints
+
+#### Create Bulk Order
+Request Type: POST
+Endpoint: /api/v1/seller/bulk-orders
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  orders: Array<{
+    pickupAddress: {
+      street: string,
+      city: string,
+      state: string,
+      pincode: string,
+      country: string,
+      contactName: string,
+      contactPhone: string
+    },
+    deliveryAddress: {
+      street: string,
+      city: string,
+      state: string,
+      pincode: string,
+      country: string,
+      contactName: string,
+      contactPhone: string
+    },
+    package: {
+      weight: number,
+      length: number,
+      width: number,
+      height: number,
+      items: Array<{
+        name: string,
+        quantity: number,
+        value: number
+      }>,
+      totalValue: number
+    },
+    serviceType: "express" | "standard",
+    paymentMethod: "prepaid" | "cod"
+  }>,
+  template: {
+    name: string,
+    description: string,
+    isDefault: boolean
+  }
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    templateId: string,
+    orders: Array<{
+      id: string,
+      trackingId: string,
+      status: string
+    }>
+  }
+}
+
+### Wallet Service Endpoints
+
+#### Wallet Management
+// Get Wallet Balance
+Request Type: GET
+Endpoint: /api/v1/wallet/balance
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  balance: number,
+  currency: string,
+  lastUpdated: string
+}
+
+// Get Wallet Transactions
+Request Type: GET
+Endpoint: /api/v1/wallet/transactions
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  page: number,
+  limit: number,
+  type: "credit" | "debit",
+  dateRange: {
+    start: string,
+    end: string
+  }
+}
+
+Response: {
+  transactions: Array<{
+    id: string,
+    type: "credit" | "debit",
+    amount: number,
+    description: string,
+    timestamp: string,
+    status: "completed" | "pending" | "failed",
+    reference: string
+  }>,
+  total: number,
+  page: number,
+  limit: number
+}
+
+#### Wallet Operations
+// Add Money
+Request Type: POST
+Endpoint: /api/v1/wallet/add-money
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  amount: number,
+  paymentMethod: "card" | "upi" | "netbanking",
+  paymentDetails: {
+    cardNumber: string,    // for card
+    upiId: string,        // for upi
+    bankCode: string      // for netbanking
+  }
+}
+
+// Withdraw Money
+Request Type: POST
+Endpoint: /api/v1/wallet/withdraw
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  amount: number,
+  bankDetails: {
+    accountNumber: string,
+    ifscCode: string,
+    accountName: string
+  }
+}
+
+// Transfer Money
+Request Type: POST
+Endpoint: /api/v1/wallet/transfer
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  amount: number,
+  recipientId: string,
+  recipientType: "seller" | "customer",
+  note: string
+}
+
+### Common Response Types
+
+#### Pagination Response
+interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+#### Success Response
+interface SuccessResponse<T> {
+  success: boolean;
+  message: string;
+  data?: T;
+}
+
+### Order Tracking
+
+#### Track Order
+Request Type: GET
+Endpoint: /api/v1/orders/track/:trackingId
+Response: {
+  trackingId: string,
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled",
+  currentLocation: string,
+  estimatedDelivery: string,
+  timeline: Array<{
+    status: string,
+    location: string,
+    timestamp: string,
+    description: string
+  }>,
+  package: {
+    weight: number,
+    dimensions: {
+      length: number,
+      width: number,
+      height: number
+    }
+  },
+  addresses: {
+    pickup: Address,
+    delivery: Address
+  }
+}
+
+### Document Verification
+
+#### Upload Document
+Request Type: POST
+Endpoint: /api/v1/documents/upload
+Content-Type: multipart/form-data
+
+Request: {
+  file: File,
+  type: "gstin" | "pan" | "cin" | "tradeLicense" | "msmeRegistration" | "aadhaar",
+  description: string
+}
+
+Response: {
+  id: string,
+  name: string,
+  type: string,
+  url: string,
+  status: "pending",
+  uploadedAt: string
+}
+
+#### Get Document Status
+Request Type: GET
+Endpoint: /api/v1/documents/:documentId/status
+Response: {
+  id: string,
+  name: string,
+  type: string,
+  url: string,
+  status: "verified" | "pending" | "rejected",
+  verifiedAt: string,
+  rejectionReason: string,
+  verifiedBy: string
+}
+
+### Support Tickets
+
+#### Create Ticket
+Request Type: POST
+Endpoint: /api/v1/support/tickets
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  subject: string,
+  description: string,
+  priority: "low" | "medium" | "high",
+  category: "order" | "payment" | "technical" | "other",
+  orderId: string,  // optional
+  attachments: Array<{
+    name: string,
+    url: string,
+    type: string
+  }>
+}
+
+Response: {
+  id: string,
+  ticketNumber: string,
+  status: "open" | "in_progress" | "resolved" | "closed",
+  createdAt: string,
+  updatedAt: string
+}
+
+#### List Tickets
+Request Type: GET
+Endpoint: /api/v1/support/tickets
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  page: number,
+  limit: number,
+  status: "open" | "in_progress" | "resolved" | "closed",
+  priority: "low" | "medium" | "high",
+  category: "order" | "payment" | "technical" | "other"
+}
+
+Response: PaginatedResponse<Ticket>
+
+### Analytics
+
+#### Dashboard Analytics
+Request Type: GET
+Endpoint: /api/v1/analytics/dashboard
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  startDate: string,  // ISO date
+  endDate: string     // ISO date
+}
+
+Response: {
+  orders: {
+    total: number,
+    pending: number,
+    processing: number,
+    shipped: number,
+    delivered: number,
+    cancelled: number,
+    revenue: number
+  },
+  shipments: {
+    total: number,
+    byStatus: {
+      pending: number,
+      processing: number,
+      shipped: number,
+      delivered: number,
+      cancelled: number
+    },
+    byService: {
+      express: number,
+      standard: number
+    }
+  },
+  revenue: {
+    total: number,
+    byPaymentMethod: {
+      prepaid: number,
+      cod: number
+    },
+    byService: {
+      express: number,
+      standard: number
+    }
+  }
+}
+
+### Additional Data Models
+
+#### Support Ticket Model
+interface Ticket {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+  category: "order" | "payment" | "technical" | "other";
+  status: "open" | "in_progress" | "resolved" | "closed";
+  orderId?: string;
+  attachments: Array<{
+    name: string;
+    url: string;
+    type: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  assignedTo?: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  comments: Array<{
+    id: string;
+    content: string;
+    createdAt: string;
+    createdBy: {
+      id: string;
+      name: string;
+      role: string;
+    };
+  }>;
+}
+
+#### Analytics Model
+interface Analytics {
+  orders: {
+    total: number;
+    pending: number;
+    processing: number;
+    shipped: number;
+    delivered: number;
+    cancelled: number;
+    revenue: number;
+  };
+  shipments: {
+    total: number;
+    byStatus: {
+      pending: number;
+      processing: number;
+      shipped: number;
+      delivered: number;
+      cancelled: number;
+    };
+    byService: {
+      express: number;
+      standard: number;
+    };
+  };
+  revenue: {
+    total: number;
+    byPaymentMethod: {
+      prepaid: number;
+      cod: number;
+    };
+    byService: {
+      express: number;
+      standard: number;
+    };
+  };
+  trends: {
+    daily: Array<{
+      date: string;
+      orders: number;
+      revenue: number;
+    }>;
+    weekly: Array<{
+      week: string;
+      orders: number;
+      revenue: number;
+    }>;
+    monthly: Array<{
+      month: string;
+      orders: number;
+      revenue: number;
+    }>;
+  };
+}
+
+### Profile Service Endpoints
+
+#### Update Profile Settings
+Request Type: PUT
+Endpoint: /api/v1/profile/settings
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  notifications: {
+    email: {
+      orderUpdates: boolean,
+      promotions: boolean,
+      newsletter: boolean
+    },
+    sms: {
+      orderUpdates: boolean,
+      promotions: boolean
+    },
+    push: {
+      orderUpdates: boolean,
+      promotions: boolean
+    }
+  },
+  preferences: {
+    language: "en" | "hi",
+    currency: "INR" | "USD",
+    timezone: string,
+    theme: "light" | "dark" | "system"
+  }
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    notifications: {
+      email: {
+        orderUpdates: boolean,
+        promotions: boolean,
+        newsletter: boolean
+      },
+      sms: {
+        orderUpdates: boolean,
+        promotions: boolean
+      },
+      push: {
+        orderUpdates: boolean,
+        promotions: boolean
+      }
+    },
+    preferences: {
+      language: string,
+      currency: string,
+      timezone: string,
+      theme: string
+    }
+  }
+}
+
+#### Get Profile Settings
+Request Type: GET
+Endpoint: /api/v1/profile/settings
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  success: boolean,
+  data: {
+    notifications: {
+      email: {
+        orderUpdates: boolean,
+        promotions: boolean,
+        newsletter: boolean
+      },
+      sms: {
+        orderUpdates: boolean,
+        promotions: boolean
+      },
+      push: {
+        orderUpdates: boolean,
+        promotions: boolean
+      }
+    },
+    preferences: {
+      language: string,
+      currency: string,
+      timezone: string,
+      theme: string
+    }
+  }
+}
+
+### Notification Endpoints
+
+#### Get Notifications
+Request Type: GET
+Endpoint: /api/v1/notifications
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  page: number,
+  limit: number,
+  type: "order" | "system" | "promotion",
+  read: boolean
+}
+
+Response: PaginatedResponse<Notification>
+
+#### Mark Notifications as Read
+Request Type: PUT
+Endpoint: /api/v1/notifications/read
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  notificationIds: string[]  // Array of notification IDs to mark as read
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    markedAsRead: number  // Number of notifications marked as read
+  }
+}
+
+#### Delete Notifications
+Request Type: DELETE
+Endpoint: /api/v1/notifications
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  notificationIds: string[]  // Array of notification IDs to delete
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    deleted: number  // Number of notifications deleted
+  }
+}
+
+### Additional Data Models
+
+#### Notification Model
+interface Notification {
+  id: string;
+  type: "order" | "system" | "promotion";
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  data?: {
+    orderId?: string;
+    trackingId?: string;
+    status?: string;
+    [key: string]: any;
+  };
+  action?: {
+    type: "view_order" | "track_shipment" | "view_promotion";
+    data: {
+      [key: string]: any;
+    };
+  };
+}
+
+#### Profile Settings Model
+interface ProfileSettings {
+  notifications: {
+    email: {
+      orderUpdates: boolean;
+      promotions: boolean;
+      newsletter: boolean;
+    };
+    sms: {
+      orderUpdates: boolean;
+      promotions: boolean;
+    };
+    push: {
+      orderUpdates: boolean;
+      promotions: boolean;
+    };
+  };
+  preferences: {
+    language: "en" | "hi";
+    currency: "INR" | "USD";
+    timezone: string;
+    theme: "light" | "dark" | "system";
+  };
+}
+
+### System Management Endpoints
+
+#### Maintenance Mode
+Request Type: GET
+Endpoint: /api/v1/system/maintenance
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  isMaintenanceMode: boolean,
+  message: string,
+  startTime: string,
+  endTime: string,
+  affectedServices: string[]
+}
+
+Request Type: PUT
+Endpoint: /api/v1/system/maintenance
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  isMaintenanceMode: boolean,
+  message: string,
+  startTime: string,
+  endTime: string,
+  affectedServices: string[]
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    isMaintenanceMode: boolean,
+    message: string,
+    startTime: string,
+    endTime: string,
+    affectedServices: string[]
+  }
+}
+
+#### Policy Management
+Request Type: GET
+Endpoint: /api/v1/system/policies
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  type: "privacy" | "terms" | "shipping" | "refund",
+  version: string
+}
+
+Response: {
+  success: boolean,
+  data: {
+    id: string,
+    type: string,
+    version: string,
+    content: string,
+    lastUpdated: string,
+    effectiveFrom: string,
+    isActive: boolean
+  }
+}
+
+### Agreement Management
+
+#### Get Agreements
+Request Type: GET
+Endpoint: /api/v1/agreements
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  type: "seller" | "customer",
+  version: string
+}
+
+Response: {
+  success: boolean,
+  data: {
+    id: string,
+    type: string,
+    version: string,
+    content: string,
+    lastUpdated: string,
+    effectiveFrom: string,
+    isActive: boolean
+  }
+}
+
+#### Update Agreement
+Request Type: PUT
+Endpoint: /api/v1/agreements/:agreementId
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  content: string,
+  effectiveFrom: string,
+  isActive: boolean
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    id: string,
+    type: string,
+    version: string,
+    content: string,
+    lastUpdated: string,
+    effectiveFrom: string,
+    isActive: boolean
+  }
+}
+
+### Order Actions
+
+#### Order Status Updates
+Request Type: PUT
+Endpoint: /api/v1/orders/:orderId/status
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  status: "processing" | "shipped" | "delivered" | "cancelled",
+  location: string,
+  notes: string,
+  attachments: Array<{
+    name: string,
+    url: string,
+    type: string
+  }>
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    orderId: string,
+    status: string,
+    location: string,
+    notes: string,
+    attachments: Array<{
+      name: string,
+      url: string,
+      type: string
+    }>,
+    updatedAt: string
+  }
+}
+
+#### Order Notes
+Request Type: POST
+Endpoint: /api/v1/orders/:orderId/notes
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  content: string,
+  type: "internal" | "customer",
+  attachments: Array<{
+    name: string,
+    url: string,
+    type: string
+  }>
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    id: string,
+    orderId: string,
+    content: string,
+    type: string,
+    attachments: Array<{
+      name: string,
+      url: string,
+      type: string
+    }>,
+    createdBy: {
+      id: string,
+      name: string,
+      role: string
+    },
+    createdAt: string
+  }
+}
+
+### Additional Data Models
+
+#### Maintenance Mode Model
+interface MaintenanceMode {
+  isMaintenanceMode: boolean;
+  message: string;
+  startTime: string;
+  endTime: string;
+  affectedServices: string[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    role: string;
+  };
+}
+
+#### Policy Model
+interface Policy {
+  id: string;
+  type: "privacy" | "terms" | "shipping" | "refund";
+  version: string;
+  content: string;
+  lastUpdated: string;
+  effectiveFrom: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    role: string;
+  };
+}
+
+#### System Settings Model
+interface SystemSettings {
+  general: {
+    siteName: string;
+    siteDescription: string;
+    contactEmail: string;
+    supportPhone: string;
+    timezone: string;
+    currency: string;
+  };
+  shipping: {
+    defaultWeightUnit: "kg";
+    defaultDimensionUnit: "cm";
+    maxWeight: number;
+    maxDimension: number;
+    restrictedItems: string[];
+  };
+  payment: {
+    supportedMethods: string[];
+    minAmount: number;
+    maxAmount: number;
+    codEnabled: boolean;
+    codMinAmount: number;
+    codMaxAmount: number;
+  };
+  notifications: {
+    emailEnabled: boolean;
+    smsEnabled: boolean;
+    pushEnabled: boolean;
+    defaultTemplates: {
+      orderConfirmation: string;
+      orderUpdate: string;
+      paymentConfirmation: string;
+    };
+  };
+}
+
+#### Agreement Model
+interface Agreement {
+  id: string;
+  type: "seller" | "customer";
+  version: string;
+  content: string;
+  lastUpdated: string;
+  effectiveFrom: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    role: string;
+  };
+}
+
+#### Order Note Model
+interface OrderNote {
+  id: string;
+  orderId: string;
+  content: string;
+  type: "internal" | "customer";
+  attachments: Array<{
+    name: string;
+    url: string;
+    type: string;
+  }>;
+  createdBy: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+} 
