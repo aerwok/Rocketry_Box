@@ -485,7 +485,18 @@ const OrdersTable = ({ data }: { data: OrderData[] }) => {
                     }}
                     orderNumber={singleOrderId || selectedOrders[0]}
                     weight={100}
+                    paymentType="cod"
                     onShipSelected={handleShipSelected}
+                    deliveryAddress={{
+                        pincode: "201307",
+                        city: "Noida",
+                        state: "Uttar Pradesh"
+                    }}
+                    sellerAddress={{
+                        pincode: "201307",
+                        city: "Noida",
+                        state: "Uttar Pradesh"
+                    }}
                 />
             )}
         </>
