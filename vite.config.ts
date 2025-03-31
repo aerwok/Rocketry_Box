@@ -29,7 +29,7 @@ export default defineConfig({
     assetsDir: 'assets',
     emptyOutDir: true,
     target: 'esnext',
-    modulePreload: true,
+    modulePreload: { polyfill: false },
     cssCodeSplit: true,
     minify: 'terser',
     terserOptions: {
@@ -41,5 +41,8 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    headers: {
+      'Content-Type': 'application/javascript'
+    }
   },
 })

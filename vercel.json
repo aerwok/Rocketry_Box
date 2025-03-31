@@ -30,6 +30,16 @@
     ],
     "routes": [
         {
+            "src": "^/assets/(.*)\\.js$",
+            "headers": { "Content-Type": "application/javascript; charset=utf-8" },
+            "dest": "/assets/$1.js"
+        },
+        {
+            "src": "^/(.*)\\.js$",
+            "headers": { "Content-Type": "application/javascript; charset=utf-8" },
+            "dest": "/$1.js"
+        },
+        {
             "handle": "filesystem"
         },
         {
