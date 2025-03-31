@@ -20,16 +20,18 @@ export default defineConfig({
           'vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-select'],
         },
-        entryFileNames: 'assets/[name].[hash].js',
-        chunkFileNames: 'assets/[name].[hash].js',
-        assetFileNames: 'assets/[name].[hash].[ext]'
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]'
       },
     },
     chunkSizeWarningLimit: 1000,
     assetsDir: 'assets',
     emptyOutDir: true,
     target: 'esnext',
-    modulePreload: true,
+    modulePreload: {
+      polyfill: true
+    },
     cssCodeSplit: true,
     minify: 'terser',
     terserOptions: {
@@ -38,9 +40,6 @@ export default defineConfig({
       },
     },
     reportCompressedSize: false,
-    commonjsOptions: {
-      include: [/node_modules/],
-    },
   },
   server: {
     port: 3000,
