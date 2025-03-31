@@ -20,14 +20,17 @@ export default defineConfig({
           'vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-select'],
         },
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
       },
     },
     chunkSizeWarningLimit: 1000,
     assetsDir: 'assets',
     emptyOutDir: true,
+    target: 'esnext',
+    modulePreload: true,
+    cssCodeSplit: true,
   },
   server: {
     port: 3000,
