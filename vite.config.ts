@@ -37,6 +37,10 @@ export default defineConfig({
         comments: false,
       },
     },
+    reportCompressedSize: false,
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
   },
   server: {
     port: 3000,
