@@ -31,6 +31,12 @@ export default defineConfig({
     target: 'esnext',
     modulePreload: true,
     cssCodeSplit: true,
+    minify: 'terser',
+    terserOptions: {
+      format: {
+        comments: false,
+      },
+    },
   },
   server: {
     port: 3000,
