@@ -19,8 +19,8 @@
             ]
         }
     ],
-    "buildCommand": "node build-windows.cjs",
+    "buildCommand": "npm run build --legacy-peer-deps",
     "outputDirectory": "dist",
     "framework": "vite",
-    "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund"
+    "installCommand": "npm install --legacy-peer-deps"
 }

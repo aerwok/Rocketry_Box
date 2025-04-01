@@ -391,8 +391,3 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
 ```env
 VITE_API_URL=http://localhost:8000  # Base URL for API calls
 ```
-
-## Latest Updates
-- Fixed issues in Create Order, New Order, Weight Dispute, and Admin Login pages
-- Updated API documentation
-- Improved Vercel deployment configuration
