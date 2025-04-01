@@ -26,8 +26,18 @@ const CustomerNavbar = () => {
         const isAuthenticated = localStorage.getItem('customer_token');
         const isAuthPage = location.pathname === "/customer/login" || location.pathname === "/customer/register";
         
+        // TEMPORARY BYPASS: Comment this out before deployment
+        // This bypass allows access to customer sections without authentication
+        /*
         if (!isAuthenticated && !isAuthPage) {
             navigate('/customer/login');
+        }
+        */
+        
+        // TEMPORARY: Set a dummy token for development
+        if (!isAuthenticated && !isAuthPage) {
+            localStorage.setItem('customer_token', 'DEVELOPMENT_BYPASS_TOKEN');
+            console.warn('⚠️ DEVELOPMENT MODE: Using authentication bypass for customer. REMOVE BEFORE DEPLOYMENT!');
         }
     }, [navigate, location.pathname]);
 

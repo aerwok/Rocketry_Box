@@ -1447,4 +1447,271 @@ interface OrderNote {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+### Rate Calculator Endpoints
+
+#### Calculate Shipping Rates
+Request Type: POST
+Endpoint: /api/v1/shipping/calculate-rates
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  originPincode: string,
+  destinationPincode: string,
+  weight: number,  // in kg
+  dimensions: {
+    length: number,  // in cm
+    width: number,   // in cm
+    height: number,  // in cm
+  },
+  value: number,     // declared value
+  serviceType: "Express" | "Standard",
+  paymentMethod: "prepaid" | "cod"
+}
+
+Response: {
+  success: boolean,
+  data: Array<{
+    courier: string,
+    serviceType: string,
+    deliveryTime: string,
+    baseRate: number,
+    weightCharge: number,
+    fuelSurcharge: number,
+    codCharge: number,
+    gst: number,
+    totalCharge: number,
+    isRecommended: boolean
+  }>
+}
+
+#### Get Service Availability
+Request Type: GET
+Endpoint: /api/v1/shipping/service-check
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  originPincode: string,
+  destinationPincode: string
+}
+
+Response: {
+  success: boolean,
+  data: {
+    available: boolean,
+    serviceTypes: Array<string>,
+    estimatedDelivery: {
+      express: string,  // e.g., "1-2 days"
+      standard: string  // e.g., "3-5 days"
+    },
+    restrictions: Array<string> // Any service restrictions
+  }
+}
+
+### Webhook Endpoints
+
+#### Register Webhook
+Request Type: POST
+Endpoint: /api/v1/webhooks/register
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  url: string,         // Your webhook URL
+  secret: string,      // Secret key for verifying webhook signatures
+  events: Array<string> // Events to subscribe to, e.g., ["order.created", "order.status_updated"]
+}
+
+Response: {
+  success: boolean,
+  data: {
+    id: string,
+    url: string,
+    events: Array<string>,
+    createdAt: string
+  }
+}
+
+#### List Webhooks
+Request Type: GET
+Endpoint: /api/v1/webhooks
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+
+Response: {
+  success: boolean,
+  data: Array<{
+    id: string,
+    url: string,
+    events: Array<string>,
+    createdAt: string,
+    lastTriggered: string,
+    active: boolean
+  }>
+}
+
+#### Update Webhook
+Request Type: PUT
+Endpoint: /api/v1/webhooks/:webhookId
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  url: string,
+  secret: string,
+  events: Array<string>,
+  active: boolean
+}
+
+Response: {
+  success: boolean,
+  data: {
+    id: string,
+    url: string,
+    events: Array<string>,
+    active: boolean,
+    updatedAt: string
+  }
+}
+
+#### Delete Webhook
+Request Type: DELETE
+Endpoint: /api/v1/webhooks/:webhookId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+
+Response: {
+  success: boolean,
+  message: string
+}
+
+#### Webhook Events
+The following events are available for subscription:
+- order.created: When a new order is created
+- order.status_updated: When an order's status changes
+- order.delivered: When an order is delivered
+- shipment.created: When a shipment is created
+- shipment.in_transit: When a shipment starts moving
+- shipment.exception: When a delivery exception occurs
+- shipment.out_for_delivery: When a shipment is out for delivery
+- return.initiated: When a return is initiated
+- return.processed: When a return is processed
+- payment.received: When a payment is received
+- payment.failed: When a payment fails
+
+### WhatsApp Notification Endpoints
+
+#### Configure WhatsApp Settings
+Request Type: PUT
+Endpoint: /api/v1/notifications/whatsapp/settings
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  enabled: boolean,
+  business: {
+    phoneNumber: string,
+    displayName: string
+  },
+  templates: Array<{
+    id: string,
+    name: string,
+    enabled: boolean
+  }>,
+  notificationTypes: {
+    orderConfirmation: boolean,
+    orderPacked: boolean,
+    outForDelivery: boolean,
+    deliveryConfirmation: boolean,
+    deliveryFailed: boolean,
+    returnInitiated: boolean,
+    returnPicked: boolean,
+    returnDelivered: boolean
+  }
+}
+
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    enabled: boolean,
+    business: {
+      phoneNumber: string,
+      displayName: string
+    },
+    templates: Array<{
+      id: string,
+      name: string,
+      enabled: boolean
+    }>,
+    notificationTypes: {
+      orderConfirmation: boolean,
+      orderPacked: boolean,
+      outForDelivery: boolean,
+      deliveryConfirmation: boolean,
+      deliveryFailed: boolean,
+      returnInitiated: boolean,
+      returnPicked: boolean,
+      returnDelivered: boolean
+    }
+  }
+}
+
+#### Get WhatsApp Settings
+Request Type: GET
+Endpoint: /api/v1/notifications/whatsapp/settings
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+
+Response: {
+  success: boolean,
+  data: {
+    enabled: boolean,
+    business: {
+      phoneNumber: string,
+      displayName: string
+    },
+    templates: Array<{
+      id: string,
+      name: string,
+      enabled: boolean
+    }>,
+    notificationTypes: {
+      orderConfirmation: boolean,
+      orderPacked: boolean,
+      outForDelivery: boolean,
+      deliveryConfirmation: boolean,
+      deliveryFailed: boolean,
+      returnInitiated: boolean,
+      returnPicked: boolean,
+      returnDelivered: boolean
+    }
+  }
+}
+
+#### Send WhatsApp Test Message
+Request Type: POST
+Endpoint: /api/v1/notifications/whatsapp/test
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer ${token}"
+}
+Request Body: {
+  phoneNumber: string,
+  templateId: string
+}
+
+Response: {
+  success: boolean,
+  message: string
 } 
