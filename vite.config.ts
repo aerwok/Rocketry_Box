@@ -9,6 +9,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Add explicit handling for directory imports
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json']
   },
   // Ensure proper base path handling for Vercel and other deployments
   base: '/',
@@ -18,9 +20,29 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@/components/ui', 'lucide-react'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
         }
       }
+    },
+    // Add build options to help with troubleshooting
+    sourcemap: true,
+    chunkSizeWarningLimit: 1600,
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    }
+  },
+  // Configure server for Windows compatibility
+  server: {
+    fs: {
+      // Allow serving files from one level up to the project root
+      allow: ['..'],
+    },
+  },
+  // Handle Windows path issues
+  optimizeDeps: {
+    force: true,
+    esbuildOptions: {
+      platform: 'browser'
     }
   }
 })
