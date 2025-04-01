@@ -10,4 +10,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Ensure proper base path handling for Vercel and other deployments
+  base: '/',
+  build: {
+    // Generate a 404.html file that redirects to index.html for SPA routing
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@/components/ui', 'lucide-react'],
+        }
+      }
+    }
+  }
 })

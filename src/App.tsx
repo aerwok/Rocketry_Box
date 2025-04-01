@@ -4,6 +4,7 @@ import MarketingLayout from "./layouts/marketing-layout";
 import ScrollToTop from "./components/shared/scroll-to-top";
 import "./styles/chart-fix.css";
 import MockApiIndicator from "./components/shared/mock-api-indicator";
+import AdminRegisterHandler from "./pages/admin/dashboard/teams/handler";
 
 // Marketing Pages
 import ContactPage from "./pages/marketing/contact";
@@ -192,6 +193,7 @@ const App = () => {
           <Route index element={<Navigate to="/admin/login" replace />} />
           <Route path="login" element={<AdminLoginPage />} />
           <Route path="register" element={<AdminRegisterPage />} />
+          <Route path="auth/register" element={<AdminRegisterPage />} />
           <Route path="profile" element={<MyProfilePage />} />
           <Route path="dashboard" element={<AdminDashboardLayout />}>
             <Route index element={<AdminDashboardPage />} />
@@ -200,6 +202,7 @@ const App = () => {
             <Route path="users/:id" element={<AdminUserProfilePage />} />
             <Route path="teams" element={<AdminTeamsPage />} />
             <Route path="teams/:id" element={<AdminTeamProfilePage />} />
+            <Route path="teams/handler" element={<AdminRegisterHandler />} />
             <Route path="partners" element={<AdminPartnersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="orders/:id" element={<AdminOrderDetailsPage />} />

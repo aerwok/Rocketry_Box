@@ -239,7 +239,7 @@ const TeamsTable = ({ data, loading, onStatusUpdate }: {
         return (
             <div className="flex flex-col items-center justify-center h-[400px] border rounded-lg">
                 <p className="text-muted-foreground mb-4">No team members found</p>
-                <Link to="/admin/register">
+                <Link to="/admin/dashboard/teams/handler">
                     <Button variant="outline" size="sm">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Team Member
@@ -480,7 +480,7 @@ const AdminTeamsPage = () => {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Link to="/admin/register">
+                    <Link to="/admin/dashboard/teams/handler">
                         <Button variant="purple">
                             <Plus className="size-4 mr-2" />
                             Add Team Member

@@ -3,9 +3,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, } from 
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Check, ChevronsUpDown, EyeIcon, EyeOffIcon, UserIcon, FileText, UploadCloud, Loader2, AlertCircle, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { adminRegisterSchema, type AdminRegisterInput } from "@/lib/validations/admin";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -725,6 +725,22 @@ const AdminRegisterPage = () => {
             </div>
         </div>
     );
+};
+
+// This is a fallback redirect component that ensures compatibility
+// between local development and Vercel deployment for admin registration
+const AdminRegisterRedirect = () => {
+    useEffect(() => {
+        // Try to clear the localStorage flag if it exists
+        try {
+            localStorage.removeItem('adminRegistrationRedirect');
+        } catch (error) {
+            console.error('Failed to clear redirect flag', error);
+        }
+    }, []);
+
+    // Simply redirect to the main admin registration page
+    return <Navigate to="/admin/register" replace />;
 };
 
 export default AdminRegisterPage; 
