@@ -1,3 +1,117 @@
+# Rocketry Box
+
+A modern e-commerce platform optimized for rocket parts and accessories.
+
+## Overview
+
+Rocketry Box is a specialized e-commerce platform built with React and TypeScript, designed specifically for rocket enthusiasts. The platform offers a comprehensive shopping experience with features tailored to both customers and sellers of rocket parts and accessories.
+
+## Features
+
+- **Customer Portal**: Browse products, manage orders, track shipments
+- **Seller Dashboard**: Manage inventory, track sales, process orders
+- **Admin Panel**: Moderate users, handle disputes, manage platform settings
+- **Responsive Design**: Optimized for desktop and mobile devices
+- **Mock API Mode**: Development and demonstration without backend dependencies
+
+## Tech Stack
+
+- **Frontend**: React, TypeScript, Vite
+- **Styling**: Tailwind CSS
+- **State Management**: React Query, Context API
+- **Routing**: React Router
+- **Testing**: Jest, React Testing Library
+- **Deployment**: Vercel
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v16 or newer)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/rocketrybox.git
+   cd rocketrybox
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. Open [http://localhost:5173](http://localhost:5173) in your browser
+
+## Development
+
+### Environment Variables
+
+Create a `.env.local` file in the root directory with:
+
+```
+VITE_USE_MOCK_API=true
+VITE_API_URL=
+```
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build locally
+- `npm run test` - Run tests
+- `npm run lint` - Run linter
+
+## Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+## Project Structure
+
+```
+├── public/             # Static assets
+├── src/
+│   ├── assets/         # Images, fonts, etc.
+│   ├── components/     # Reusable UI components
+│   ├── config/         # Application configuration
+│   ├── features/       # Feature-specific components and logic
+│   ├── hooks/          # Custom React hooks
+│   ├── layouts/        # Page layout components
+│   ├── lib/            # Utility libraries
+│   ├── pages/          # Page components
+│   ├── providers/      # Context providers
+│   ├── services/       # API services
+│   ├── store/          # State management
+│   ├── styles/         # Global styles
+│   ├── types/          # TypeScript type definitions
+│   ├── utils/          # Utility functions
+│   ├── App.tsx         # Main application component
+│   └── main.tsx        # Application entry point
+├── .env.production     # Production environment variables
+├── vercel.json         # Vercel deployment configuration
+└── vite.config.ts      # Vite configuration
+```
+
+## License
+
+[MIT](LICENSE)
+
+## Documentation
+
+- [API Documentation](./FRONTEND-API-DOCUMENTATION.md)
+- [Deployment Guide](./DEPLOYMENT.md)
+
 # Rocketry Box - Frontend to Backend Integration Guide
 
 ## Marketing Section API Integration

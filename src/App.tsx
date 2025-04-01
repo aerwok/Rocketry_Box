@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import MarketingLayout from "./layouts/marketing-layout";
 import ScrollToTop from "./components/shared/scroll-to-top";
 import "./styles/chart-fix.css";
+import MockApiIndicator from "./components/shared/mock-api-indicator";
 
 // Marketing Pages
 import ContactPage from "./pages/marketing/contact";
@@ -108,6 +109,7 @@ const App = () => {
     <BrowserRouter>
       <ScrollToTop />
       <Toaster richColors theme="light" position="top-center" />
+      <MockApiIndicator />
       <Routes>
         {/* Marketing Routes */}
         <Route element={<MarketingLayout />}>
