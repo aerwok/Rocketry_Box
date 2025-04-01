@@ -22,5 +22,15 @@
     "buildCommand": "npm run build --legacy-peer-deps",
     "outputDirectory": "dist",
     "framework": "vite",
-    "installCommand": "npm install --legacy-peer-deps"
+    "installCommand": "npm install --legacy-peer-deps",
+    "build": {
+        "env": {
+            "SKIP_CACHE": "true",
+            "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+        }
+    },
+    "github": {
+        "enabled": true,
+        "silent": false
+    }
 }
