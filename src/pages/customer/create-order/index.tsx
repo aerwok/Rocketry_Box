@@ -186,12 +186,12 @@ export default function CustomerCreateOrderPage() {
             receiverState: "",
             receiverPincode: "",
             saveDeliveryAddress: false,
-            weight: 0.5,
-            length: 0,
-            width: 0,
-            height: 0,
+            weight: undefined,
+            length: undefined,
+            width: undefined,
+            height: undefined,
             packageContent: "",
-            packageValue: 0,
+            packageValue: undefined,
             securePackage: false,
             packagingType: "Pouch",
             pickupDate: new Date(),
@@ -227,9 +227,27 @@ export default function CustomerCreateOrderPage() {
     const handleGetRates = async () => {
         const formData = form.getValues();
         
-        // Validate required fields
-        if (!formData.weight || !formData.length || !formData.width || !formData.height) {
-            form.trigger(["weight", "length", "width", "height"]);
+        // Validate required fields for dimensions, weight, and package value
+        let missingFields = [];
+
+        if (!formData.weight || formData.weight <= 0) missingFields.push("weight");
+        if (!formData.length || formData.length <= 0) missingFields.push("length");
+        if (!formData.width || formData.width <= 0) missingFields.push("width");
+        if (!formData.height || formData.height <= 0) missingFields.push("height");
+        if (!formData.packageValue || formData.packageValue <= 0) missingFields.push("package value");
+        
+        if (missingFields.length > 0) {
+            await form.trigger(["weight", "length", "width", "height", "packageValue"] as const);
+            toast.error(`Please enter valid ${missingFields.join(", ")}`);
+            return;
+        }
+
+        // Validate address fields
+        const addressResult = await form.trigger(["senderName", "senderMobile", "senderAddress1", "senderPincode", "senderCity", "senderState"] as const);
+        const deliveryResult = await form.trigger(["receiverName", "receiverMobile", "receiverAddress1", "receiverPincode", "receiverCity", "receiverState"] as const);
+        
+        if (!addressResult || !deliveryResult) {
+            toast.error("Please fill all required address fields");
             return;
         }
 
@@ -264,6 +282,18 @@ export default function CustomerCreateOrderPage() {
     };
 
     const handleConfirmOrder = async () => {
+        if (!selectedPartner) {
+            toast.error("Please select a courier partner first");
+            return;
+        }
+        
+        // Validate all form fields
+        const isValid = await form.trigger();
+        if (!isValid) {
+            toast.error("Please fill all required fields");
+            return;
+        }
+        
         try {
             const formData = form.getValues();
             
@@ -695,16 +725,23 @@ export default function CustomerCreateOrderPage() {
                                             name="weight"
                                             render={({ field }) => (
                                                 <FormItem>
-                                            <FormLabel>Weight (kg)</FormLabel>
+                                                    <FormLabel>Weight (kg)</FormLabel>
                                                     <FormControl>
                                                         <Input
-                                                    type="number"
-                                                    step="0.1"
+                                                            type="number"
+                                                            step="0.01"
                                                             placeholder="Enter weight"
                                                             {...field}
-                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                field.onChange(value);
+                                                            }}
                                                         />
                                                     </FormControl>
+                                                    <FormDescription className="text-xs text-gray-500">
+                                                        Enter the actual weight of your package
+                                                    </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -729,15 +766,22 @@ export default function CustomerCreateOrderPage() {
                                     name="packageValue"
                                             render={({ field }) => (
                                                 <FormItem>
-                                            <FormLabel>Package Value (₹)</FormLabel>
+                                                    <FormLabel>Package Value (₹)</FormLabel>
                                                     <FormControl>
                                                         <Input
-                                                    type="number"
+                                                            type="number"
                                                             placeholder="Enter package value"
                                                             {...field}
-                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                field.onChange(value);
+                                                            }}
                                                         />
                                                     </FormControl>
+                                                    <FormDescription className="text-xs text-gray-500">
+                                                        Declare the actual value of package contents
+                                                    </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -754,9 +798,14 @@ export default function CustomerCreateOrderPage() {
                                                     <FormControl>
                                                         <Input
                                                             type="number"
+                                                            step="0.1"
                                                             placeholder="Enter length"
                                                             {...field}
-                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                field.onChange(value);
+                                                            }}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -773,9 +822,14 @@ export default function CustomerCreateOrderPage() {
                                                     <FormControl>
                                                         <Input
                                                             type="number"
+                                                            step="0.1"
                                                             placeholder="Enter width"
                                                             {...field}
-                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                field.onChange(value);
+                                                            }}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -792,9 +846,14 @@ export default function CustomerCreateOrderPage() {
                                                     <FormControl>
                                                         <Input
                                                             type="number"
+                                                            step="0.1"
                                                             placeholder="Enter height"
                                                             {...field}
-                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                field.onChange(value);
+                                                            }}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />

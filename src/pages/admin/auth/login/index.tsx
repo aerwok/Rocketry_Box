@@ -153,14 +153,11 @@ const AdminLoginPage = () => {
                                 </Button>
 
                                 <div className="text-center text-sm">
-                                    <span className="text-muted-foreground">
-                                        Don't have an account?{" "}
-                                    </span>
                                     <Link
-                                        to="/admin/register"
+                                        to="/admin/forgot-password"
                                         className="font-medium text-primary hover:underline"
                                     >
-                                        Register here
+                                        Forgot your password?
                                     </Link>
                                 </div>
                             </form>

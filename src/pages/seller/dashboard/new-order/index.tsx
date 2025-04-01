@@ -79,17 +79,17 @@ const SellerNewOrderPage = () => {
             sku: "",
             itemName: "",
             quantity: 1,
-            itemWeight: 0.5,
-            itemPrice: 0,
+            itemWeight: undefined,
+            itemPrice: undefined,
             collectibleAmount: undefined,
             shippingCharge: 0,
             codCharge: 0,
             taxAmount: 0,
             discount: 0,
-            length: 0,
-            width: 0,
-            height: 0,
-            weight: 0.5,
+            length: undefined,
+            width: undefined,
+            height: undefined,
+            weight: undefined,
             totalAmount: 0,
         },
     });
@@ -111,7 +111,7 @@ const SellerNewOrderPage = () => {
         }
 
         // Set actual weight
-        const newActualWeight = itemWeight * quantity;
+        const newActualWeight = (itemWeight || 0) * quantity;
         setActualWeight(newActualWeight);
 
         // Use the higher weight for shipping calculations
@@ -135,7 +135,7 @@ const SellerNewOrderPage = () => {
     };
 
     const handlePriceChange = (type: 'increase' | 'decrease') => {
-        const currentPrice = form.getValues('itemPrice');
+        const currentPrice = form.getValues('itemPrice') || 0;
         const newPrice = type === 'increase' ? currentPrice + 100 : Math.max(0, currentPrice - 100);
         form.setValue('itemPrice', newPrice);
         
@@ -157,19 +157,32 @@ const SellerNewOrderPage = () => {
     const handleCheckRates = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
 
-        // Check if dimensions are filled
+        // Check if dimensions and weight are filled
         const length = form.getValues('length');
         const width = form.getValues('width');
         const height = form.getValues('height');
         const itemWeight = form.getValues('itemWeight');
+        const itemPrice = form.getValues('itemPrice');
+        const pincode = form.getValues('pincode');
+        const city = form.getValues('city');
+        const state = form.getValues('state');
 
-        if (!length || !width || !height) {
-            toast.error("Please fill in all package dimensions");
+        // Validate all required fields
+        let missingFields = [];
+
+        if (!length || length <= 0) missingFields.push("length");
+        if (!width || width <= 0) missingFields.push("width");
+        if (!height || height <= 0) missingFields.push("height");
+        if (!itemWeight || itemWeight <= 0) missingFields.push("item weight");
+        if (!itemPrice || itemPrice <= 0) missingFields.push("item price");
+        
+        if (missingFields.length > 0) {
+            toast.error(`Please enter valid ${missingFields.join(", ")} values`);
             return;
         }
 
-        if (!itemWeight) {
-            toast.error("Please enter the actual weight");
+        if (!pincode || !city || !state) {
+            toast.error("Please fill in all delivery address details");
             return;
         }
 
@@ -228,6 +241,13 @@ const SellerNewOrderPage = () => {
 
         if (!selectedShipping) {
             toast.error("Please select shipping rates first");
+            return;
+        }
+
+        // Ensure item price is set
+        const itemPrice = form.getValues('itemPrice');
+        if (!itemPrice || itemPrice <= 0) {
+            toast.error("Please set a valid item price");
             return;
         }
 
@@ -596,19 +616,19 @@ const SellerNewOrderPage = () => {
                                             <FormControl>
                                                 <Input
                                                     type="number"
-                                                    step="0.1"
-                                                    min="0.5"
-                                                    placeholder="Enter weight"
+                                                    step="0.01"
+                                                    placeholder="Enter item weight"
                                                     {...field}
+                                                    value={field.value || ''}
                                                     onChange={(e) => {
-                                                        const value = Number(e.target.value);
-                                                        field.onChange(value < 0.5 ? 0.5 : value);
+                                                        const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                        field.onChange(value);
                                                     }}
                                                     className="mt-1"
                                                 />
                                             </FormControl>
                                             <FormDescription className="text-xs text-gray-500">
-                                                Minimum weight: 0.5 kg
+                                                Weight of a single item in kg
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -629,7 +649,11 @@ const SellerNewOrderPage = () => {
                                                         type="number"
                                                         placeholder="Enter price"
                                                         {...field}
-                                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                            field.onChange(value);
+                                                        }}
                                                     />
                                                 </FormControl>
                                                 <div className="flex gap-1">
@@ -727,9 +751,14 @@ const SellerNewOrderPage = () => {
                                                 <FormControl>
                                                     <Input
                                                         type="number"
+                                                        step="0.1"
                                                         placeholder="Enter length"
                                                         {...field}
-                                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                            field.onChange(value);
+                                                        }}
                                                         className="mt-1"
                                                     />
                                                 </FormControl>
@@ -749,9 +778,14 @@ const SellerNewOrderPage = () => {
                                                 <FormControl>
                                                     <Input
                                                         type="number"
+                                                        step="0.1"
                                                         placeholder="Enter width"
                                                         {...field}
-                                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                            field.onChange(value);
+                                                        }}
                                                         className="mt-1"
                                                     />
                                                 </FormControl>
@@ -771,9 +805,14 @@ const SellerNewOrderPage = () => {
                                                 <FormControl>
                                                     <Input
                                                         type="number"
+                                                        step="0.1"
                                                         placeholder="Enter height"
                                                         {...field}
-                                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                            field.onChange(value);
+                                                        }}
                                                         className="mt-1"
                                                     />
                                                 </FormControl>
@@ -790,15 +829,15 @@ const SellerNewOrderPage = () => {
                                             <div className="grid grid-cols-1 gap-4 p-4 bg-gray-50 rounded-lg">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-sm text-gray-600">Volumetric Weight:</span>
-                                                    <span className="font-medium">{volumetricWeight.toFixed(2)} kg</span>
+                                                    <span className="font-medium">{volumetricWeight ? volumetricWeight.toFixed(2) : '-'} {volumetricWeight ? 'kg' : ''}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-sm text-gray-600">Item Weight:</span>
-                                                    <span className="font-medium">{actualWeight.toFixed(2)} kg</span>
+                                                    <span className="font-medium">{actualWeight ? actualWeight.toFixed(2) : '-'} {actualWeight ? 'kg' : ''}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center pt-2 border-t">
                                                     <span className="text-sm font-medium text-gray-900">Chargeable Weight:</span>
-                                                    <span className="font-semibold text-purple-600">{calculatedWeight.toFixed(2)} kg</span>
+                                                    <span className="font-semibold text-purple-600">{calculatedWeight ? calculatedWeight.toFixed(2) : '-'} {calculatedWeight ? 'kg' : ''}</span>
                                                 </div>
                                             </div>
 

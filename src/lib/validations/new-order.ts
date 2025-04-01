@@ -21,7 +21,7 @@ export const newOrderSchema = z.object({
     sku: z.string().optional().or(z.literal("")),
     itemName: z.string().min(1, "Item name is required"),
     quantity: z.number().min(1, "Quantity must be at least 1"),
-    itemWeight: z.number().min(0.1, "Weight must be at least 0.1"),
+    itemWeight: z.number().min(0.1, "Weight must be at least 0.1").optional(),
     itemPrice: z.number().min(1, "Price must be at least 1"),
 
     // Charges
@@ -32,10 +32,10 @@ export const newOrderSchema = z.object({
     collectibleAmount: z.number().min(0).optional(),
 
     // Package Dimensions
-    length: z.number().optional().or(z.number().min(0)),
-    width: z.number().optional().or(z.number().min(0)),
-    height: z.number().optional().or(z.number().min(0)),
-    weight: z.number().min(0.1, "Weight must be at least 0.1"),
+    length: z.number().min(0.1, "Length must be at least 0.1").optional(),
+    width: z.number().min(0.1, "Width must be at least 0.1").optional(),
+    height: z.number().min(0.1, "Height must be at least 0.1").optional(),
+    weight: z.number().min(0.1, "Weight must be at least 0.1").optional(),
     totalAmount: z.number().min(0),
 });
 

@@ -5,8 +5,21 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { FileDown, X } from "lucide-react";
+import { 
+    CheckCircle2, 
+    FileDown, 
+    FileSpreadsheet, 
+    FileText, 
+    X 
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface BulkDisputeUploadModalProps {
     open: boolean;
@@ -16,13 +29,14 @@ interface BulkDisputeUploadModalProps {
 const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) => {
     
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState<boolean>(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && file.size <= 10 * 1024 * 1024) { // 10MB limit
             setSelectedFile(file);
-        } else {
-            alert("File size should be less than 10MB");
+        } else if (file) {
+            toast.error("File size should be less than 10MB");
         }
     };
 
@@ -30,6 +44,7 @@ const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) 
         if (!selectedFile) return;
 
         try {
+            setIsUploading(true);
             const formData = new FormData();
             formData.append("file", selectedFile);
 
@@ -43,10 +58,41 @@ const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) 
             //     onClose();
             // }
 
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             // For now, just close the modal
+            toast.success("Dispute report uploaded successfully!");
             onClose();
         } catch (error) {
             console.error("Error uploading file:", error);
+            toast.error("Failed to upload dispute report");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleDownloadSample = (format: 'csv' | 'excel') => {
+        try {
+            // Create a link element to trigger download
+            const link = document.createElement('a');
+            
+            if (format === 'csv') {
+                link.href = '/docs/weight_dispute_template.csv';
+                link.download = 'weight_dispute_template.csv';
+            } else {
+                link.href = '/docs/weight_dispute_template.xlsx';
+                link.download = 'weight_dispute_template.xlsx';
+            }
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            toast.success(`${format.toUpperCase()} template downloaded`);
+        } catch (error) {
+            console.error("Download error:", error);
+            toast.error("Failed to download sample template");
         }
     };
 
@@ -68,6 +114,10 @@ const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) 
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
+                    <div className="text-sm text-gray-600">
+                        <p>Upload a file containing weight disputes for processing. Download a sample template to ensure your data is in the correct format.</p>
+                    </div>
+                    
                     <div className="space-y-2">
                         <div className="flex items-baseline justify-between">
                             <label className="text-base font-medium">
@@ -96,16 +146,33 @@ const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) 
                                 onChange={handleFileChange}
                             />
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Supported file formats: .xlsx, .xls, .csv
+                        </p>
                     </div>
 
                     <div className="flex justify-end gap-3">
-                        <Button
-                            variant="outline"
-                            className="flex items-center gap-2"
-                        >
-                            <FileDown className="h-4 w-4" />
-                            Sample file
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="flex items-center gap-2"
+                                >
+                                    <FileDown className="h-4 w-4" />
+                                    Sample file
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleDownloadSample('csv')}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    <span>CSV Format</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDownloadSample('excel')}>
+                                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                    <span>Excel Format</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button
                             variant="outline"
                             onClick={onClose}
@@ -116,9 +183,20 @@ const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) 
                         <Button
                             variant="purple"
                             onClick={handleSave}
-                            disabled={!selectedFile}
+                            disabled={!selectedFile || isUploading}
+                            className="flex items-center gap-2"
                         >
-                            Upload Dispute
+                            {isUploading ? (
+                                <>
+                                    <span className="animate-spin h-4 w-4 border-2 border-white border-opacity-50 border-t-transparent rounded-full" />
+                                    Uploading...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Upload Dispute
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>
