@@ -243,6 +243,141 @@ Headers: {
 
 ### Seller Endpoints
 
+#### Dashboard API Endpoints
+// Get Dashboard Stats
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/stats
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  orders: {
+    total: number,
+    pending: number,
+    processing: number,
+    shipped: number,
+    delivered: number,
+    cancelled: number,
+    todayCount: number
+  },
+  shipments: {
+    total: number,
+    todayCount: number
+  },
+  delivery: {
+    total: number,
+    todayCount: number
+  },
+  cod: {
+    expected: number,
+    totalDue: number
+  },
+  revenue: {
+    total: number,
+    dailyGrowth: number
+  },
+  ndr: {
+    pending: number,
+    actionRequired: number
+  }
+}
+
+// Get Dashboard Chart Data
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/charts
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  from: string,           // ISO date string
+  to: string,             // ISO date string
+  timeFilter: "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL"
+}
+Response: {
+  orderStatusDistribution: {
+    delivered: number,
+    inTransit: number,
+    pending: number
+  },
+  shipmentTrends: Array<{
+    day: string,
+    current: number,
+    previous: number
+  }>,
+  revenueTrends: Array<{
+    month: string,
+    value: number
+  }>,
+  topProducts: Array<{
+    month: string,
+    desktop: number
+  }>,
+  deliveryPerformance: Array<{
+    month: string,
+    desktop: number
+  }>,
+  courierData: Array<CourierData>,
+  productData: Array<ProductData>
+}
+
+// Get Courier Performance
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/courier-performance
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: Array<{
+  courier: string,
+  total: number,
+  notShipped: number,
+  pendingPickup: number,
+  inTransit: number,
+  ofd: number,
+  delivered: {
+    count: number,
+    percentage: string
+  },
+  cancelled: {
+    count: number,
+    percentage: string
+  },
+  exception: {
+    count: number,
+    percentage: string
+  },
+  rto: number,
+  lostDamage: number
+}>
+
+// Get Top Products
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/top-products
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: Array<{
+  productName: string,
+  quantity: number,
+  totalShipments: number,
+  notShipped: number,
+  cancelled: number,
+  pendingPickup: number,
+  inTransit: number,
+  delivered: number,
+  rto: number
+}>
+
+// Download Dashboard Report
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/report
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  format: "csv" | "pdf"
+}
+Response: Blob (File Download)
+
 #### Profile Management
 // Get Profile
 Request Type: GET
@@ -284,6 +419,125 @@ Response: {
 }
 
 ### Admin Endpoints
+
+#### Dashboard API Endpoints
+// Get Dashboard Stats
+Request Type: GET
+Endpoint: /api/v1/admin/dashboard/stats
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  dateRange: {
+    from: string,  // ISO date
+    to: string     // ISO date
+  },
+  status: string,
+  search: string
+}
+Response: {
+  totalSellers: number,
+  activeSellers: number,
+  totalOrders: number,
+  totalShipments: number,
+  totalRevenue: number,
+  averageOrderValue: number,
+  todayOrders: number,
+  todayRevenue: number,
+  weeklyGrowth: number,
+  monthlyGrowth: number
+}
+
+// Get Recent Orders
+Request Type: GET
+Endpoint: /api/v1/admin/dashboard/orders
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  dateRange: {
+    from: string,  // ISO date
+    to: string     // ISO date
+  },
+  status: string,
+  search: string
+}
+Response: Array<{
+  id: string,
+  orderId: string,
+  customer: string,
+  date: string,
+  amount: number,
+  status: string,
+  paymentStatus: string
+}>
+
+// Get Shipments
+Request Type: GET
+Endpoint: /api/v1/admin/dashboard/shipments
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  dateRange: {
+    from: string,  // ISO date
+    to: string     // ISO date
+  },
+  status: string,
+  search: string
+}
+Response: Array<{
+  id: string,
+  trackingId: string,
+  seller: string,
+  date: string,
+  destination: string,
+  amount: number,
+  status: string
+}>
+
+// Get Revenue Data
+Request Type: GET
+Endpoint: /api/v1/admin/dashboard/revenue
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  timeFilter: "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL"
+}
+Response: Array<{
+  time: string,
+  revenue: number
+}>
+
+// Get Delivery Partner Shares
+Request Type: GET
+Endpoint: /api/v1/admin/dashboard/delivery-partner-shares
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  fromDate: string,  // ISO date
+  toDate: string     // ISO date
+}
+Response: Array<{
+  name: string,
+  value: number,
+  fill: string
+}>
+
+// Download Dashboard Report
+Request Type: GET
+Endpoint: /api/v1/admin/dashboard/report
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  fromDate: string,  // ISO date
+  toDate: string,    // ISO date
+  format: "csv" | "pdf"
+}
+Response: Blob (File Download)
 
 #### User Management
 // List Users
@@ -356,6 +610,133 @@ Request Body: {
 }
 
 ## Data Models
+
+### Dashboard Models
+interface DashboardStats {
+  orders: {
+    total: number;
+    pending: number;
+    processing: number;
+    shipped: number;
+    delivered: number;
+    cancelled: number;
+    todayCount: number;
+  };
+  shipments: {
+    total: number;
+    todayCount: number;
+  };
+  delivery: {
+    total: number;
+    todayCount: number;
+  };
+  cod: {
+    expected: number;
+    totalDue: number;
+  };
+  revenue: {
+    total: number;
+    dailyGrowth: number;
+  };
+  ndr: {
+    pending: number;
+    actionRequired: number;
+  };
+}
+
+interface OrderStatusDistribution {
+  delivered: number;
+  inTransit: number;
+  pending: number;
+}
+
+interface ShipmentTrend {
+  day: string;
+  current: number;
+  previous: number;
+}
+
+interface RevenueTrend {
+  month: string;
+  value: number;
+}
+
+interface CourierData {
+  courier: string;
+  total: number;
+  notShipped: number;
+  pendingPickup: number;
+  inTransit: number;
+  ofd: number;
+  delivered: { count: number; percentage: string };
+  cancelled: { count: number; percentage: string };
+  exception: { count: number; percentage: string };
+  rto: number;
+  lostDamage: number;
+}
+
+interface ProductData {
+  productName: string;
+  quantity: number;
+  totalShipments: number;
+  notShipped: number;
+  cancelled: number;
+  pendingPickup: number;
+  inTransit: number;
+  delivered: number;
+  rto: number;
+}
+
+interface DashboardChartData {
+  orderStatusDistribution: OrderStatusDistribution;
+  shipmentTrends: ShipmentTrend[];
+  revenueTrends: RevenueTrend[];
+  topProducts: TopProduct[];
+  deliveryPerformance: DeliveryPerformance[];
+  courierData: CourierData[];
+  productData: ProductData[];
+}
+
+interface DateRangeFilter {
+  from: Date;
+  to: Date;
+}
+
+interface DashboardFilters {
+  dateRange?: DateRangeFilter;
+  timeFilter?: "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
+}
+
+interface AdminDashboardStats {
+  totalSellers: number;
+  activeSellers: number;
+  totalOrders: number;
+  totalShipments: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  todayOrders: number;
+  todayRevenue: number;
+  weeklyGrowth: number;
+  monthlyGrowth: number;
+}
+
+interface ReportStats {
+  totalRevenue: number;
+  totalOrders: number;
+  totalShipments: number;
+  conversionRate: number;
+}
+
+interface ReportChartData {
+  time: string;
+  revenue: number;
+}
+
+interface DeliveryPartnerShare {
+  name: string;
+  value: number;
+  fill: string;
+}
 
 ### User Model
 interface User {
@@ -1714,4 +2095,69 @@ Request Body: {
 Response: {
   success: boolean,
   message: string
-} 
+}
+
+#### Reports API Endpoints
+// Get Report Stats
+Request Type: GET
+Endpoint: /api/v1/admin/reports/stats
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  fromDate: string,  // ISO date
+  toDate: string     // ISO date
+}
+Response: {
+  totalRevenue: number,
+  totalOrders: number,
+  totalShipments: number,
+  conversionRate: number
+}
+
+// Get Revenue Data
+Request Type: GET
+Endpoint: /api/v1/admin/reports/revenue-data
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  fromDate: string,           // ISO date string
+  toDate: string,             // ISO date string
+  timeFilter: "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL"
+}
+Response: Array<{
+  time: string,
+  revenue: number
+}>
+
+// Get Delivery Partner Shares
+Request Type: GET
+Endpoint: /api/v1/admin/reports/delivery-partner-shares
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  fromDate: string,  // ISO date
+  toDate: string     // ISO date
+}
+Response: Array<{
+  name: string,
+  value: number,
+  fill: string
+}>
+
+// Download Report
+Request Type: GET
+Endpoint: /api/v1/admin/reports/download
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  fromDate: string,  // ISO date
+  toDate: string,    // ISO date
+  format: "csv" | "pdf"
+}
+Response: Blob (File Download)
+
+#### User Management 

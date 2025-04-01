@@ -246,7 +246,7 @@ const SellerNewOrderPage = () => {
             // const response = await createShipment(shipmentData);
             
             toast.success(`Order shipped with ${selectedShipping.courier}`);
-            navigate('/seller/dashboard/shipments');
+            navigate('/seller/dashboard/orders');
         } catch (error) {
             console.error("Error creating shipment:", error);
             toast.error("Failed to create shipment");
@@ -949,7 +949,7 @@ const SellerNewOrderPage = () => {
                         orderNumber={form.getValues('orderNumber') || "New Order"}
                         weight={calculatedWeight}
                         paymentType={form.getValues('paymentType').toLowerCase() as 'cod' | 'paid'}
-                        onShipSelected={handleShipSelected}
+                        onCourierSelected={handleShipSelected}
                         deliveryAddress={{
                             pincode: form.getValues('pincode'),
                             city: form.getValues('city'),

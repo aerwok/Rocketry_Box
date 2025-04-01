@@ -1,51 +1,62 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp } from "lucide-react";
+import { DollarSign, PackageCheck, ShoppingBag, TrendingUp } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Label, Pie, PieChart, XAxis } from "recharts";
-
-const pieChartData = [
-    { browser: "chrome", visitors: 0, fill: "hsl(var(--chart-1))" },
-    { browser: "safari", visitors: 0, fill: "hsl(var(--chart-2))" },
-    { browser: "firefox", visitors: 0, fill: "hsl(var(--chart-3))" },
-    { browser: "edge", visitors: 0, fill: "hsl(var(--chart-4))" },
-    { browser: "other", visitors: 0, fill: "hsl(var(--chart-5))" },
-];
-
-const barChartData = [
-    { month: "January", desktop: 0, mobile: 0 },
-    { month: "February", desktop: 0, mobile: 0 },
-    { month: "March", desktop: 0, mobile: 0 },
-    { month: "April", desktop: 0, mobile: 0 },
-    { month: "May", desktop: 0, mobile: 0 },
-    { month: "June", desktop: 0, mobile: 0 },
-];
-
-const pieChartConfig = {
-    visitors: { label: "Visitors" },
-    chrome: { label: "Chrome", color: "hsl(var(--chart-1))" },
-    safari: { label: "Safari", color: "hsl(var(--chart-2))" },
-    firefox: { label: "Firefox", color: "hsl(var(--chart-3))" },
-    edge: { label: "Edge", color: "hsl(var(--chart-4))" },
-    other: { label: "Other", color: "hsl(var(--chart-5))" },
-} as const;
-
-const barChartConfig = {
-    desktop: {
-        label: "Desktop",
-        color: "hsl(var(--chart-1))",
-    },
-    mobile: {
-        label: "Mobile",
-        color: "hsl(var(--chart-2))",
-    },
-} as const;
+import { useReports } from "../../../hooks/useReports";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ReportsOverview = () => {
-    const totalVisitors = pieChartData.reduce((acc, curr) => acc + curr.visitors, 0);
+    const { stats, statsLoading, deliveryPartners } = useReports();
+
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(value);
+    };
+
+    const totalShipments = stats?.totalShipments || 0;
+    const deliveredPercent = 85; // Mock data - would come from API
+    const inTransitPercent = 10;
+    const pendingPercent = 5;
+
+    const totalPartnerShare = deliveryPartners.reduce((acc, curr) => acc + curr.value, 0);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Total Revenue Card */}
+            <Card className="h-full flex-1 flex flex-col">
+                <CardHeader>
+                    <CardTitle>
+                        Total Revenue
+                    </CardTitle>
+                    <CardDescription>
+                        Last 30 days
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 mt-auto flex flex-col justify-end">
+                    {statsLoading ? (
+                        <div className="space-y-2">
+                            <Skeleton className="h-8 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="text-3xl font-semibold flex items-center">
+                                <DollarSign className="h-6 w-6 mr-1 text-blue-500" />
+                                {stats ? formatCurrency(stats.totalRevenue) : '₹0'}
+                            </div>
+                            <p className="text-main mt-2 flex items-center">
+                                <TrendingUp className="h-4 w-4 mr-1 text-green-500" />
+                                {stats && stats.totalRevenue > 0 ? "12% from last month" : "No change"}
+                            </p>
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+
             {/* Total Shipments Card */}
             <Card className="h-full flex-1 flex flex-col">
                 <CardHeader>
@@ -57,12 +68,23 @@ const ReportsOverview = () => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 mt-auto flex flex-col justify-end">
-                    <div className="text-3xl font-semibold">
-                        0
-                    </div>
-                    <p className="text-main mt-2">
-                        0% from last month
-                    </p>
+                    {statsLoading ? (
+                        <div className="space-y-2">
+                            <Skeleton className="h-8 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="text-3xl font-semibold flex items-center">
+                                <PackageCheck className="h-6 w-6 mr-1 text-purple-500" />
+                                {stats ? stats.totalShipments.toLocaleString() : '0'}
+                            </div>
+                            <p className="text-main mt-2 flex items-center">
+                                <TrendingUp className="h-4 w-4 mr-1 text-green-500" />
+                                {stats && stats.totalShipments > 0 ? "8% from last month" : "No change"}
+                            </p>
+                        </>
+                    )}
                 </CardContent>
             </Card>
 
@@ -77,140 +99,125 @@ const ReportsOverview = () => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 flex-1 mt-auto flex flex-col justify-end">
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span>Delivered</span>
-                            <span>0%</span>
+                    {statsLoading ? (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-2 w-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-2 w-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-2 w-full" />
+                            </div>
                         </div>
-                        <Progress value={0} className="h-2" />
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span>In Transit</span>
-                            <span>0%</span>
-                        </div>
-                        <Progress value={0} className="h-2" />
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span>Pending</span>
-                            <span>0%</span>
-                        </div>
-                        <Progress value={0} className="h-2" />
-                    </div>
+                    ) : (
+                        <>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span>Delivered</span>
+                                    <span>{deliveredPercent}%</span>
+                                </div>
+                                <Progress value={deliveredPercent} className="h-2" />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span>In Transit</span>
+                                    <span>{inTransitPercent}%</span>
+                                </div>
+                                <Progress value={inTransitPercent} className="h-2" />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span>Pending</span>
+                                    <span>{pendingPercent}%</span>
+                                </div>
+                                <Progress value={pendingPercent} className="h-2" />
+                            </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
 
-            {/* Pie Chart Card */}
+            {/* Pie Chart Card for Delivery Partners */}
             <Card className="flex flex-col flex-1">
                 <CardHeader className="pb-0">
                     <CardTitle>
                         Courier Distribution
                     </CardTitle>
                     <CardDescription>
-                        January - June 2024
+                        Last 30 days
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pb-0">
-                    <ChartContainer
-                        config={pieChartConfig}
-                        className="mx-auto aspect-square max-h-[200px]"
-                    >
-                        <PieChart>
-                            <ChartTooltip
-                                cursor={false}
-                                content={<ChartTooltipContent hideLabel />}
-                            />
-                            <Pie
-                                data={pieChartData}
-                                dataKey="visitors"
-                                nameKey="browser"
-                                innerRadius={45}
-                                strokeWidth={8}
-                            >
-                                <Label
-                                    content={({ viewBox }) => {
-                                        if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                                            return (
-                                                <text
-                                                    x={viewBox.cx}
-                                                    y={viewBox.cy}
-                                                    textAnchor="middle"
-                                                    dominantBaseline="middle"
-                                                >
-                                                    <tspan
+                    {statsLoading ? (
+                        <div className="flex justify-center items-center h-[200px]">
+                            <Skeleton className="h-[200px] w-[200px] rounded-full" />
+                        </div>
+                    ) : (
+                        <ChartContainer
+                            config={{
+                                value: { label: "Share" },
+                                Bluedart: { label: "Bluedart", color: "#8D79F6" },
+                                Delhivery: { label: "Delhivery", color: "#4FBAF0" },
+                                DTDC: { label: "DTDC", color: "#FEBD38" },
+                                Ekart: { label: "Ekart", color: "#FF6B6B" }
+                            }}
+                            className="mx-auto aspect-square max-h-[200px]"
+                        >
+                            <PieChart>
+                                <ChartTooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent hideLabel />}
+                                />
+                                <Pie
+                                    data={deliveryPartners}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    innerRadius={45}
+                                    strokeWidth={8}
+                                >
+                                    <Label
+                                        content={({ viewBox }) => {
+                                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                                return (
+                                                    <text
                                                         x={viewBox.cx}
                                                         y={viewBox.cy}
-                                                        className="fill-foreground text-2xl font-semibold"
+                                                        textAnchor="middle"
+                                                        dominantBaseline="middle"
                                                     >
-                                                        {totalVisitors.toLocaleString()}
-                                                    </tspan>
-                                                    <tspan
-                                                        x={viewBox.cx}
-                                                        y={(viewBox.cy || 0) + 24}
-                                                        className="fill-muted-foreground"
-                                                    >
-                                                        Users
-                                                    </tspan>
-                                                </text>
-                                            );
-                                        }
-                                    }}
-                                />
-                            </Pie>
-                        </PieChart>
-                    </ChartContainer>
+                                                        <tspan
+                                                            x={viewBox.cx}
+                                                            y={viewBox.cy}
+                                                            className="fill-foreground text-2xl font-semibold"
+                                                        >
+                                                            {stats ? stats.totalShipments.toLocaleString() : '0'}
+                                                        </tspan>
+                                                        <tspan
+                                                            x={viewBox.cx}
+                                                            y={(viewBox.cy || 0) + 24}
+                                                            className="fill-muted-foreground"
+                                                        >
+                                                            Shipments
+                                                        </tspan>
+                                                    </text>
+                                                );
+                                            }
+                                        }}
+                                    />
+                                </Pie>
+                            </PieChart>
+                        </ChartContainer>
+                    )}
                 </CardContent>
                 <CardFooter className="flex-col gap-2 text-sm">
                     <div className="flex items-center gap-2 font-medium leading-none">
-                        No change this month
-                        <TrendingUp className="h-4 w-4" />
-                    </div>
-                </CardFooter>
-            </Card>
-
-            {/* Bar Chart Card */}
-            <Card className="h-full flex-1 flex flex-col">
-                <CardHeader>
-                    <CardTitle>
-                        Delivery Performance
-                    </CardTitle>
-                    <CardDescription>
-                        January - June 2024
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 mt-auto flex flex-col justify-end">
-                    <ChartContainer config={barChartConfig}>
-                        <BarChart data={barChartData}>
-                            <CartesianGrid vertical={false} />
-                            <XAxis
-                                dataKey="month"
-                                tickLine={false}
-                                tickMargin={10}
-                                axisLine={false}
-                                tickFormatter={(value) => value.slice(0, 3)}
-                            />
-                            <ChartTooltip
-                                cursor={false}
-                                content={<ChartTooltipContent indicator="dashed" />}
-                            />
-                            <Bar
-                                dataKey="desktop"
-                                fill="hsl(var(--chart-1))"
-                                radius={4}
-                            />
-                            <Bar
-                                dataKey="mobile"
-                                fill="hsl(var(--chart-2))"
-                                radius={4}
-                            />
-                        </BarChart>
-                    </ChartContainer>
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-2 text-sm">
-                    <div className="flex gap-2 font-medium leading-none">
-                        No change this month
-                        <TrendingUp className="h-4 w-4" />
+                        {stats && stats.totalShipments > 0 ? "10% increase this month" : "No change this month"}
+                        <TrendingUp className="h-4 w-4 text-green-500" />
                     </div>
                 </CardFooter>
             </Card>

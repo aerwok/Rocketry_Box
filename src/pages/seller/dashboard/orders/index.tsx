@@ -485,7 +485,7 @@ const OrdersTable = ({ data }: { data: OrderData[] }) => {
                     }}
                     orderNumber={singleOrderId || selectedOrders[0]}
                     weight={100}
-                    onShipSelected={handleShipSelected}
+                    onCourierSelected={handleShipSelected}
                     paymentType="cod"
                     deliveryAddress={{
                         pincode: "560001",

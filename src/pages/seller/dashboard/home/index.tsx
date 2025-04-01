@@ -4,26 +4,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, Box, IndianRupee, Package, TrendingUp, Truck, Download } from "lucide-react";
-import { useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import DateRangePicker from "@/components/admin/date-range-picker";
 import { DateRange } from "react-day-picker";
-
-const pieData = [
-    { name: "Delivered", value: 73, fill: "#8D79F6" },
-    { name: "In Transit", value: 15, fill: "#FEBD38" },
-    { name: "Pending", value: 12, fill: "#4FBAF0" },
-];
-
-const lineData = [
-    { month: "Jan", value: 1000 },
-    { month: "Feb", value: 2000 },
-    { month: "Mar", value: 1500 },
-    { month: "Apr", value: 3000 },
-    { month: "May", value: 2500 },
-    { month: "Jun", value: 4000 },
-    { month: "Jul", value: 3500 },
-];
+import useDashboardData from "@/hooks/useDashboardData";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const chartConfig = {
     current: {
@@ -58,507 +43,36 @@ const lineChartConfig = {
     },
 } satisfies ChartConfig;
 
-const courierData = [
-    {
-        courier: "Amazon",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "Bluedart",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "Delhivery",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "DTDC",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "EcomExpress",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "Ekart",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "Shadowfax",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "Smartr",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "Xpressbees",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-    {
-        courier: "Bluedart+",
-        total: 0,
-        notShipped: 0,
-        pendingPickup: 0,
-        inTransit: 0,
-        ofd: 0,
-        delivered: { count: 0, percentage: "0.0%" },
-        cancelled: { count: 0, percentage: "0.0%" },
-        exception: { count: 0, percentage: "0.0%" },
-        rto: 0,
-        lostDamage: 0,
-    },
-];
-
-const topProductsData = [
-    {
-        productName: "iPhone 15 Pro Max",
-        quantity: 250,
-        totalShipments: 230,
-        notShipped: 20,
-        cancelled: 5,
-        pendingPickup: 15,
-        inTransit: 80,
-        delivered: 110,
-        rto: 20
-    },
-    {
-        productName: "Samsung Galaxy S24 Ultra",
-        quantity: 200,
-        totalShipments: 180,
-        notShipped: 20,
-        cancelled: 8,
-        pendingPickup: 12,
-        inTransit: 60,
-        delivered: 85,
-        rto: 15
-    },
-    {
-        productName: "MacBook Pro M3",
-        quantity: 150,
-        totalShipments: 140,
-        notShipped: 10,
-        cancelled: 3,
-        pendingPickup: 7,
-        inTransit: 50,
-        delivered: 70,
-        rto: 10
-    },
-    {
-        productName: "AirPods Pro 2",
-        quantity: 300,
-        totalShipments: 280,
-        notShipped: 20,
-        cancelled: 10,
-        pendingPickup: 20,
-        inTransit: 100,
-        delivered: 130,
-        rto: 20
-    },
-    {
-        productName: "iPad Pro 12.9",
-        quantity: 180,
-        totalShipments: 160,
-        notShipped: 20,
-        cancelled: 5,
-        pendingPickup: 15,
-        inTransit: 55,
-        delivered: 75,
-        rto: 10
-    },
-    {
-        productName: "Apple Watch Series 9",
-        quantity: 220,
-        totalShipments: 200,
-        notShipped: 20,
-        cancelled: 7,
-        pendingPickup: 18,
-        inTransit: 70,
-        delivered: 95,
-        rto: 10
-    },
-    {
-        productName: "Sony WH-1000XM5",
-        quantity: 160,
-        totalShipments: 150,
-        notShipped: 10,
-        cancelled: 4,
-        pendingPickup: 11,
-        inTransit: 45,
-        delivered: 80,
-        rto: 10
-    },
-    {
-        productName: "Dell XPS 15",
-        quantity: 120,
-        totalShipments: 110,
-        notShipped: 10,
-        cancelled: 3,
-        pendingPickup: 8,
-        inTransit: 35,
-        delivered: 55,
-        rto: 9
-    },
-    {
-        productName: "Nintendo Switch OLED",
-        quantity: 140,
-        totalShipments: 130,
-        notShipped: 10,
-        cancelled: 4,
-        pendingPickup: 9,
-        inTransit: 40,
-        delivered: 67,
-        rto: 10
-    },
-    {
-        productName: "PS5 Digital Edition",
-        quantity: 170,
-        totalShipments: 160,
-        notShipped: 10,
-        cancelled: 5,
-        pendingPickup: 12,
-        inTransit: 58,
-        delivered: 75,
-        rto: 10
-    }
-];
-
-type TimeFilter = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
-
-const getFilteredData = (filter: TimeFilter, dateRange?: DateRange) => {
-    let result;
-
-    switch (filter) {
-        case "1D":
-            result = {
-                barData: [
-                    { day: "Today", current: 40, previous: 30 }
-                ],
-                pieData: [
-                    { name: "Delivered", value: 20, fill: "#8D79F6" },
-                    { name: "In Transit", value: 5, fill: "#FEBD38" },
-                    { name: "Pending", value: 3, fill: "#4FBAF0" }
-                ],
-                lineData: [{ month: "Today", value: 1000 }],
-                topProducts: [
-                    { month: "iPhone 15", desktop: 25 },
-                    { month: "MacBook Pro", desktop: 20 },
-                    { month: "AirPods Pro", desktop: 15 },
-                    { month: "iPad Pro", desktop: 12 },
-                    { month: "Apple Watch", desktop: 10 }
-                ],
-                deliveryPerformance: [
-                    { month: "Morning", desktop: 75 },
-                    { month: "Afternoon", desktop: 82 },
-                    { month: "Evening", desktop: 78 },
-                    { month: "Night", desktop: 70 }
-                ]
-            };
-            break;
-        case "1W":
-            result = {
-                barData: [
-                    { day: "Mon", current: 40, previous: 30 },
-                    { day: "Tue", current: 60, previous: 45 },
-                    { day: "Wed", current: 80, previous: 65 },
-                    { day: "Thu", current: 70, previous: 55 },
-                    { day: "Fri", current: 50, previous: 35 },
-                    { day: "Sat", current: 75, previous: 60 },
-                    { day: "Sun", current: 65, previous: 50 }
-                ],
-                pieData: [
-                    { name: "Delivered", value: 45, fill: "#8D79F6" },
-                    { name: "In Transit", value: 10, fill: "#FEBD38" },
-                    { name: "Pending", value: 8, fill: "#4FBAF0" }
-                ],
-                lineData: lineData.slice(-2),
-                topProducts: [
-                    { month: "iPhone 15", desktop: 120 },
-                    { month: "MacBook Pro", desktop: 98 },
-                    { month: "AirPods Pro", desktop: 86 },
-                    { month: "iPad Pro", desktop: 75 },
-                    { month: "Apple Watch", desktop: 64 }
-                ],
-                deliveryPerformance: [
-                    { month: "Mon", desktop: 85 },
-                    { month: "Tue", desktop: 75 },
-                    { month: "Wed", desktop: 90 },
-                    { month: "Thu", desktop: 70 },
-                    { month: "Fri", desktop: 85 },
-                    { month: "Sat", desktop: 95 },
-                    { month: "Sun", desktop: 88 }
-                ]
-            };
-            break;
-        case "1M":
-            result = {
-                barData: [
-                    { day: "Week 1", current: 120, previous: 90 },
-                    { day: "Week 2", current: 150, previous: 110 },
-                    { day: "Week 3", current: 180, previous: 140 },
-                    { day: "Week 4", current: 200, previous: 160 }
-                ],
-                pieData: [
-                    { name: "Delivered", value: 73, fill: "#8D79F6" },
-                    { name: "In Transit", value: 15, fill: "#FEBD38" },
-                    { name: "Pending", value: 12, fill: "#4FBAF0" }
-                ],
-                lineData: lineData.slice(-3),
-                topProducts: [
-                    { month: "iPhone 15", desktop: 450 },
-                    { month: "MacBook Pro", desktop: 380 },
-                    { month: "AirPods Pro", desktop: 320 },
-                    { month: "iPad Pro", desktop: 280 },
-                    { month: "Apple Watch", desktop: 250 }
-                ],
-                deliveryPerformance: [
-                    { month: "Week 1", desktop: 82 },
-                    { month: "Week 2", desktop: 88 },
-                    { month: "Week 3", desktop: 85 },
-                    { month: "Week 4", desktop: 92 }
-                ]
-            };
-            break;
-        case "3M":
-            result = {
-                barData: [
-                    { day: "Month 1", current: 450, previous: 380 },
-                    { day: "Month 2", current: 520, previous: 420 },
-                    { day: "Month 3", current: 600, previous: 480 }
-                ],
-                pieData: [
-                    { name: "Delivered", value: 85, fill: "#8D79F6" },
-                    { name: "In Transit", value: 20, fill: "#FEBD38" },
-                    { name: "Pending", value: 15, fill: "#4FBAF0" }
-                ],
-                lineData: lineData.slice(-4),
-                topProducts: [
-                    { month: "iPhone 15", desktop: 1200 },
-                    { month: "MacBook Pro", desktop: 980 },
-                    { month: "AirPods Pro", desktop: 860 },
-                    { month: "iPad Pro", desktop: 750 },
-                    { month: "Apple Watch", desktop: 640 }
-                ],
-                deliveryPerformance: [
-                    { month: "Month 1", desktop: 85 },
-                    { month: "Month 2", desktop: 88 },
-                    { month: "Month 3", desktop: 92 }
-                ]
-            };
-            break;
-        case "1Y":
-            result = {
-                barData: [
-                    { day: "Q1", current: 1500, previous: 1200 },
-                    { day: "Q2", current: 1800, previous: 1400 },
-                    { day: "Q3", current: 2100, previous: 1700 },
-                    { day: "Q4", current: 2400, previous: 2000 }
-                ],
-                pieData: [
-                    { name: "Delivered", value: 120, fill: "#8D79F6" },
-                    { name: "In Transit", value: 30, fill: "#FEBD38" },
-                    { name: "Pending", value: 25, fill: "#4FBAF0" }
-                ],
-                lineData: lineData,
-                topProducts: [
-                    { month: "iPhone 15", desktop: 4800 },
-                    { month: "MacBook Pro", desktop: 3900 },
-                    { month: "AirPods Pro", desktop: 3400 },
-                    { month: "iPad Pro", desktop: 3000 },
-                    { month: "Apple Watch", desktop: 2600 }
-                ],
-                deliveryPerformance: [
-                    { month: "Q1", desktop: 88 },
-                    { month: "Q2", desktop: 85 },
-                    { month: "Q3", desktop: 92 },
-                    { month: "Q4", desktop: 95 }
-                ]
-            };
-            break;
-        default:
-            result = {
-                barData: [
-                    { day: "2020", current: 5000, previous: 4000 },
-                    { day: "2021", current: 6500, previous: 5200 },
-                    { day: "2022", current: 8000, previous: 6500 },
-                    { day: "2023", current: 9500, previous: 7800 },
-                    { day: "2024", current: 11000, previous: 9000 }
-                ],
-                pieData,
-                lineData,
-                topProducts: [
-                    { month: "iPhone 15", desktop: 15000 },
-                    { month: "MacBook Pro", desktop: 12000 },
-                    { month: "AirPods Pro", desktop: 10000 },
-                    { month: "iPad Pro", desktop: 8500 },
-                    { month: "Apple Watch", desktop: 7000 }
-                ],
-                deliveryPerformance: [
-                    { month: "2020", desktop: 82 },
-                    { month: "2021", desktop: 85 },
-                    { month: "2022", desktop: 88 },
-                    { month: "2023", desktop: 92 },
-                    { month: "2024", desktop: 95 }
-                ]
-            };
-    }
-
-    if (dateRange?.from && dateRange?.to) {
-        const daysDiff = Math.floor((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
-
-        let filterLevel = 0;
-        if (daysDiff <= 7) filterLevel = 1;
-        else if (daysDiff <= 30) filterLevel = 2;
-        else if (daysDiff <= 90) filterLevel = 3;
-        else filterLevel = 4;
-
-        result.barData = result.barData.map(item => ({
-            ...item,
-            current: Math.round(item.current * (0.8 + (filterLevel * 0.1))),
-            previous: Math.round(item.previous * (0.8 + (filterLevel * 0.1)))
-        }));
-
-        result.pieData = result.pieData.map(item => ({
-            ...item,
-            value: Math.round(item.value * (0.9 + (filterLevel * 0.05)))
-        }));
-
-        result.topProducts = result.topProducts.map(item => ({
-            ...item,
-            desktop: Math.round(item.desktop * (0.85 + (filterLevel * 0.05)))
-        }));
-
-        result.deliveryPerformance = result.deliveryPerformance.map(item => ({
-            ...item,
-            desktop: Math.min(100, Math.round(item.desktop * (0.95 + (filterLevel * 0.02))))
-        }));
-    }
-
-    return result;
-};
-
 const SellerDashboardPage = () => {
-    
-    const [date, setDate] = useState<DateRange | undefined>({
-        from: new Date(2024, 0, 20),
-        to: new Date(2024, 1, 7),
-    });
-
-    const [bottomDate, setBottomDate] = useState<DateRange | undefined>({
-        from: new Date(2024, 0, 1),
-        to: new Date(2024, 1, 7),
-    });
-
-    const selectedFilter = "1M";
-    const bottomChartsFilter = "1M";
-
     const {
-        barData: filteredBarData,
-        pieData: filteredPieData,
-        lineData: filteredLineData,
-    } = getFilteredData(selectedFilter, date);
-
-    const {
-        topProducts: filteredTopProducts,
-        deliveryPerformance: filteredDeliveryPerformance
-    } = getFilteredData(bottomChartsFilter, bottomDate);
+        loading,
+        error,
+        stats,
+        chartData,
+        courierData,
+        topProducts,
+        filters,
+        updateDateRange,
+        updateTimeFilter,
+        downloadReport,
+        refresh
+    } = useDashboardData();
 
     const getBarChartTitle = () => {
         return "Monthly";
     };
 
     const getBarChartDescription = () => {
-        if (date?.from && date?.to) {
-            return `Current vs Previous Month (${date.from.toLocaleDateString()} - ${date.to.toLocaleDateString()})`;
+        if (filters.dateRange?.from && filters.dateRange?.to) {
+            return `Current vs Previous Month (${filters.dateRange.from.toLocaleDateString()} - ${filters.dateRange.to.toLocaleDateString()})`;
         }
         return "Current vs Previous Month";
     };
 
     const getTopProductsTitle = () => {
-        if (bottomDate?.from && bottomDate?.to) {
-            const fromMonth = bottomDate.from.toLocaleString('default', { month: 'short' });
-            const toMonth = bottomDate.to.toLocaleString('default', { month: 'short' });
+        if (filters.dateRange?.from && filters.dateRange?.to) {
+            const fromMonth = filters.dateRange.from.toLocaleString('default', { month: 'short' });
+            const toMonth = filters.dateRange.to.toLocaleString('default', { month: 'short' });
             if (fromMonth === toMonth) {
                 return `${fromMonth}'s`;
             }
@@ -580,6 +94,39 @@ const SellerDashboardPage = () => {
         return `${fromMonth}-${toMonth} ${dateObj.from.getFullYear()} Overview`;
     };
 
+    if (loading && !stats) {
+        return (
+            <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {Array(6).fill(0).map((_, i) => (
+                        <Skeleton key={i} className="h-32 rounded" />
+                    ))}
+                </div>
+                <Skeleton className="h-96 rounded" />
+                <Skeleton className="h-80 rounded" />
+                <Skeleton className="h-80 rounded" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[600px]">
+                <div className="text-red-500 text-xl mb-4">
+                    {error}
+                </div>
+                <Button onClick={refresh}>Retry</Button>
+            </div>
+        );
+    }
+
+    // Convert API data to chart format if needed
+    const pieData = chartData?.orderStatusDistribution ? [
+        { name: "Delivered", value: chartData.orderStatusDistribution.delivered, fill: "#8D79F6" },
+        { name: "In Transit", value: chartData.orderStatusDistribution.inTransit, fill: "#FEBD38" },
+        { name: "Pending", value: chartData.orderStatusDistribution.pending, fill: "#4FBAF0" },
+    ] : [];
+
     return (
         <div className="space-y-8">
             {/* Stats Cards */}
@@ -591,16 +138,16 @@ const SellerDashboardPage = () => {
                             <StatCard
                                 title="Orders"
                                 subtitle="Cancelled not included"
-                                value="0"
-                                todayValue="0"
+                                value={stats?.orders.total.toString() || "0"}
+                                todayValue={stats?.orders.todayCount.toString() || "0"}
                                 icon={Package}
                                 href="/seller/dashboard/orders"
                             />
                             <StatCard
                                 title="Shipments"
                                 subtitle="Cancelled not included"
-                                value="0"
-                                todayValue="0"
+                                value={stats?.shipments.total.toString() || "0"}
+                                todayValue={stats?.shipments.todayCount.toString() || "0"}
                                 icon={Truck}
                                 href="/seller/dashboard/shipments"
                             />
@@ -615,18 +162,18 @@ const SellerDashboardPage = () => {
                             <StatCard
                                 title="Delivered"
                                 subtitle="Successfully delivered orders"
-                                value="0"
-                                todayValue="0"
+                                value={stats?.delivery.total.toString() || "0"}
+                                todayValue={stats?.delivery.todayCount.toString() || "0"}
                                 icon={Box}
                                 href="/seller/dashboard/shipments?tab=delivered"
                             />
                             <StatCard
                                 title="Expected COD"
                                 subtitle="Pending cash on delivery"
-                                value="₹0.00"
+                                value={`₹${stats?.cod.expected.toFixed(2) || "0.00"}`}
                                 additionalValue={{
                                     label: "Total Due COD",
-                                    value: "₹0.00"
+                                    value: `₹${stats?.cod.totalDue.toFixed(2) || "0.00"}`
                                 }}
                                 icon={IndianRupee}
                                 href="/seller/dashboard/cod"
@@ -642,10 +189,10 @@ const SellerDashboardPage = () => {
                             <StatCard
                                 title="Total Revenue"
                                 subtitle="Total of Delivered Shipments"
-                                value="₹0.00"
+                                value={`₹${stats?.revenue.total.toFixed(2) || "0.00"}`}
                                 additionalValue={{
                                     label: "vs. Yesterday",
-                                    value: "14.0%"
+                                    value: `${stats?.revenue.dailyGrowth.toFixed(1) || "0.0"}%`
                                 }}
                                 icon={TrendingUp}
                                 href="/seller/dashboard/billing?tab=wallet-history"
@@ -653,10 +200,10 @@ const SellerDashboardPage = () => {
                             <StatCard
                                 title="Pending NDR"
                                 subtitle="Action required + Action requested"
-                                value="0"
+                                value={stats?.ndr.pending.toString() || "0"}
                                 additionalValue={{
                                     label: "Action required",
-                                    value: "0"
+                                    value: stats?.ndr.actionRequired.toString() || "0"
                                 }}
                                 icon={AlertTriangle}
                                 href="/seller/dashboard/ndr"
@@ -673,8 +220,8 @@ const SellerDashboardPage = () => {
                         Performance Overview
                     </h2>
                     <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                        <DateRangePicker date={date} setDate={setDate} className="w-20 md:w-auto" />
-                        <Button variant="outline" className="w-full md:w-auto">
+                        <DateRangePicker date={filters.dateRange} setDate={updateDateRange} className="w-20 md:w-auto" />
+                        <Button variant="outline" className="w-full md:w-auto" onClick={() => downloadReport('pdf')}>
                             <Download className="mr-2 h-4 w-4" />
                             Download
                         </Button>
@@ -694,7 +241,7 @@ const SellerDashboardPage = () => {
                         <CardContent className="p-2 md:p-4">
                             <ChartContainer config={chartConfig}>
                                 <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={filteredBarData}>
+                                    <BarChart data={chartData?.shipmentTrends || []}>
                                         <defs>
                                             <linearGradient id="previousGradient" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="0%" stopColor="#B09FFF" stopOpacity={0.4} />
@@ -752,7 +299,7 @@ const SellerDashboardPage = () => {
                                 Delivery Growth
                             </CardTitle>
                             <CardDescription>
-                                {getDateRangeText(date)}
+                                {getDateRangeText(filters.dateRange)}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 pb-0 p-2 md:p-4">
@@ -766,14 +313,14 @@ const SellerDashboardPage = () => {
                                         content={<ChartTooltipContent hideLabel />}
                                     />
                                     <Pie
-                                        data={filteredPieData}
+                                        data={pieData}
                                         dataKey="value"
                                         nameKey="name"
                                         innerRadius={60}
                                         outerRadius={80}
                                         fill="#8884d8"
                                     >
-                                        {filteredPieData.map((entry, index) => (
+                                        {pieData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.fill} />
                                         ))}
                                     </Pie>
@@ -797,14 +344,14 @@ const SellerDashboardPage = () => {
                                 Revenue Report
                             </CardTitle>
                             <CardDescription>
-                                {getDateRangeText(date)} revenue
+                                {getDateRangeText(filters.dateRange)} revenue
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-2 md:p-4">
                             <ChartContainer config={lineChartConfig}>
                                 <ResponsiveContainer width="100%" height={300}>
                                     <AreaChart
-                                        data={filteredLineData}
+                                        data={chartData?.revenueTrends || []}
                                         margin={{
                                             left: 12,
                                             right: 12,
@@ -850,8 +397,8 @@ const SellerDashboardPage = () => {
                                         Revenue up by 15% <TrendingUp className="h-4 w-4" />
                                     </div>
                                     <div className="leading-none text-muted-foreground">
-                                        {date?.from && date?.to
-                                            ? `${date.from.toLocaleDateString()} - ${date.to.toLocaleDateString()}`
+                                        {filters.dateRange?.from && filters.dateRange?.to
+                                            ? `${filters.dateRange.from.toLocaleDateString()} - ${filters.dateRange.to.toLocaleDateString()}`
                                             : "January - July 2024"
                                         }
                                     </div>
@@ -910,7 +457,7 @@ const SellerDashboardPage = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {courierData.map((row) => (
+                                {courierData?.map((row) => (
                                     <TableRow key={row.courier}>
                                         <TableCell className="font-medium">
                                             {row.courier}
@@ -960,8 +507,8 @@ const SellerDashboardPage = () => {
                         Product Analysis
                     </h2>
                     <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                        <DateRangePicker date={bottomDate} setDate={setBottomDate} className="w-20 md:w-auto" />
-                        <Button variant="outline" className="w-full md:w-auto">
+                        <DateRangePicker date={filters.dateRange} setDate={updateDateRange} className="w-20 md:w-auto" />
+                        <Button variant="outline" className="w-full md:w-auto" onClick={() => downloadReport('csv')}>
                             <Download className="mr-2 h-4 w-4" />
                             Download
                         </Button>
@@ -982,7 +529,7 @@ const SellerDashboardPage = () => {
                                 },
                             }}>
                                 <BarChart
-                                    data={filteredTopProducts}
+                                    data={chartData?.topProducts || []}
                                     accessibilityLayer
                                 >
                                     <CartesianGrid vertical={false} />
@@ -1019,7 +566,7 @@ const SellerDashboardPage = () => {
                     <Card className="p-2 md:p-4">
                         <CardHeader className="p-2 md:p-4">
                             <CardTitle>Delivery Performance</CardTitle>
-                            <CardDescription>{getDateRangeText(bottomDate)} performance</CardDescription>
+                            <CardDescription>{getDateRangeText(filters.dateRange)} performance</CardDescription>
                         </CardHeader>
                         <CardContent className="p-2 md:p-4">
                             <ChartContainer config={{
@@ -1029,7 +576,7 @@ const SellerDashboardPage = () => {
                                 }
                             }}>
                                 <LineChart
-                                    data={filteredDeliveryPerformance}
+                                    data={chartData?.deliveryPerformance || []}
                                     accessibilityLayer
                                     margin={{
                                         left: 12,
@@ -1112,7 +659,7 @@ const SellerDashboardPage = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {topProductsData.map((product) => (
+                                {topProducts?.map((product) => (
                                     <TableRow key={product.productName}>
                                         <TableCell className="font-medium">
                                             {product.productName}

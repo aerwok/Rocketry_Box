@@ -57,6 +57,9 @@ export interface ChartData {
 
 export interface DashboardState {
     loading: boolean;
+    statsLoading: boolean;
+    ordersLoading: boolean;
+    shipmentsLoading: boolean;
     error: string | null;
     stats: DashboardStats | null;
     filters: DashboardFilters;
