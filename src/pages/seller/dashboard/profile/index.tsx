@@ -1,9 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Link2Icon, User, Mail, Phone, Building2, CreditCard, FileText, MapPin } from "lucide-react";
+import { Camera, Link2Icon, User, Mail, Phone, Building2, CreditCard, FileText, MapPin, ScrollText } from "lucide-react";
 import { useState } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import Agreement from "./components/agreement";
 
 const STORE_LINKS = [
     { icon: "/icons/web.svg", label: "Website", placeholder: "Enter website URL" },
@@ -172,6 +173,13 @@ const SellerProfilePage = () => {
                                     >
                                         <CreditCard className="w-4 h-4 mr-2" />
                                         Bank
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="agreement"
+                                        className="h-full data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-black px-4"
+                                    >
+                                        <ScrollText className="w-4 h-4 mr-2" />
+                                        Agreement
                                     </TabsTrigger>
                                 </TabsList>
                             </div>
@@ -384,6 +392,19 @@ const SellerProfilePage = () => {
                                     ) : (
                                         <p className="text-gray-500">No bank details available</p>
                                     )}
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="agreement">
+                                <div className="bg-white rounded-lg p-6 shadow-sm border">
+                                    <div className="space-y-6">
+                                        <div className="bg-blue-50 p-4 rounded-lg">
+                                            <p className="text-sm text-blue-700">
+                                                View and manage your agreements with RocketryBox. You can view agreement details, download copies, and respond to new agreement requests.
+                                            </p>
+                                        </div>
+                                        <Agreement onSave={() => {}} />
+                                    </div>
                                 </div>
                             </TabsContent>
                         </div>

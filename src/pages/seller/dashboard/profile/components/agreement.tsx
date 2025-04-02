@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Check, X } from "lucide-react";
 import { useState } from "react";
 import AgreementModal from "./agreement-modal";
+import { toast } from "sonner";
 
 interface AgreementVersion {
     version: string;
@@ -11,14 +12,14 @@ interface AgreementVersion {
     acceptanceDate: string;
     publishedOn: string;
     ipAddress: string;
-    status: "Accepted" | "Pending";
+    status: "Accepted" | "Pending" | "Rejected";
 }
 
 interface AgreementProps {
     onSave: () => void;
 }
 
-const agreementVersions: AgreementVersion[] = [
+const initialAgreementVersions: AgreementVersion[] = [
     {
         version: "Seller Agreement 1.0",
         docLink: "View",
@@ -38,7 +39,7 @@ const agreementVersions: AgreementVersion[] = [
 ];
 
 const Agreement = ({ onSave }: AgreementProps) => {
-
+    const [agreementVersions, setAgreementVersions] = useState<AgreementVersion[]>(initialAgreementVersions);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedVersion, setSelectedVersion] = useState<AgreementVersion | null>(null);
     const [sortConfig, setSortConfig] = useState<{
@@ -49,6 +50,42 @@ const Agreement = ({ onSave }: AgreementProps) => {
     const handleView = (agreement: AgreementVersion) => {
         setSelectedVersion(agreement);
         setIsModalOpen(true);
+    };
+
+    const handleAccept = async (agreement: AgreementVersion) => {
+        try {
+            // TODO: Implement API call to accept agreement
+            // Update local state
+            setAgreementVersions(prevVersions => 
+                prevVersions.map(version => 
+                    version.version === agreement.version 
+                        ? { ...version, status: "Accepted", acceptanceDate: new Date().toLocaleDateString() }
+                        : version
+                )
+            );
+            toast.success("Agreement accepted successfully");
+            onSave();
+        } catch (error) {
+            toast.error("Failed to accept agreement");
+        }
+    };
+
+    const handleReject = async (agreement: AgreementVersion) => {
+        try {
+            // TODO: Implement API call to reject agreement
+            // Update local state
+            setAgreementVersions(prevVersions => 
+                prevVersions.map(version => 
+                    version.version === agreement.version 
+                        ? { ...version, status: "Rejected", acceptanceDate: new Date().toLocaleDateString() }
+                        : version
+                )
+            );
+            toast.success("Agreement rejected");
+            onSave();
+        } catch (error) {
+            toast.error("Failed to reject agreement");
+        }
     };
 
     const handleSort = (key: keyof AgreementVersion) => {
@@ -144,19 +181,30 @@ const Agreement = ({ onSave }: AgreementProps) => {
                                                 "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
                                                 agreement.status === "Accepted"
                                                     ? "bg-purple-100 text-purple-800"
+                                                    : agreement.status === "Rejected"
+                                                    ? "bg-red-100 text-red-800"
                                                     : "bg-yellow-100 text-yellow-800"
                                             )}>
                                                 {agreement.status}
                                             </span>
                                         </TableCell>
                                         <TableCell className="whitespace-nowrap">
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                onClick={handleDownload}
-                                            >
-                                                Download
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleView(agreement)}
+                                                >
+                                                    View
+                                                </Button>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={handleDownload}
+                                                >
+                                                    Download
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -170,6 +218,8 @@ const Agreement = ({ onSave }: AgreementProps) => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 agreement={selectedVersion}
+                onAccept={handleAccept}
+                onReject={handleReject}
             />
         </div>
     );

@@ -4,8 +4,11 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogFooter,
 } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface AgreementVersion {
     version: string;
@@ -13,17 +16,33 @@ interface AgreementVersion {
     acceptanceDate: string;
     publishedOn: string;
     ipAddress: string;
-    status: "Accepted" | "Pending";
+    status: "Accepted" | "Pending" | "Rejected";
 }
 
 interface AgreementModalProps {
     isOpen: boolean;
     onClose: () => void;
     agreement: AgreementVersion | null;
+    onAccept?: (agreement: AgreementVersion) => void;
+    onReject?: (agreement: AgreementVersion) => void;
 }
 
-const AgreementModal = ({ isOpen, onClose, agreement }: AgreementModalProps) => {
+const AgreementModal = ({ isOpen, onClose, agreement, onAccept, onReject }: AgreementModalProps) => {
     if (!agreement) return null;
+
+    const handleAccept = () => {
+        if (onAccept) {
+            onAccept(agreement);
+            onClose();
+        }
+    };
+
+    const handleReject = () => {
+        if (onReject) {
+            onReject(agreement);
+            onClose();
+        }
+    };
 
     return (
         <Dialog
@@ -115,6 +134,39 @@ const AgreementModal = ({ isOpen, onClose, agreement }: AgreementModalProps) => 
                         </ul>
                     </div>
                 </div>
+
+                <DialogFooter className="flex justify-between items-center">
+                    <div className="text-sm text-gray-500">
+                        Agreement Status: <span className={cn(
+                            agreement.status === "Accepted" ? "text-green-600" : 
+                            agreement.status === "Rejected" ? "text-red-600" : 
+                            "text-yellow-600"
+                        )}>{agreement.status}</span>
+                    </div>
+                    <div className="flex gap-2">
+                        {agreement.status === "Pending" && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+                                    onClick={handleAccept}
+                                >
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Accept Agreement
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleReject}
+                                >
+                                    Reject Agreement
+                                </Button>
+                            </>
+                        )}
+                        <Button variant="outline" onClick={onClose}>
+                            Close
+                        </Button>
+                    </div>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
