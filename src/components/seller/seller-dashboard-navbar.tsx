@@ -25,6 +25,7 @@ const SellerDashboardNavbar = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const toggleSidebar = useSidebarStore((state) => state.toggleSidebar);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         // Check if user is authenticated
@@ -73,6 +74,17 @@ const SellerDashboardNavbar = () => {
         setIsMenuOpen(false);
     };
 
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value;
+        setSearchQuery(query);
+        
+        // Dispatch custom event for search
+        const searchEvent = new CustomEvent('navbarSearch', {
+            detail: { query }
+        });
+        window.dispatchEvent(searchEvent);
+    };
+
     return (
         <header className="fixed top-0 left-0 right-0 border-b border-border z-50 bg-white h-16">
             <div className="px-4 h-full">
@@ -103,8 +115,10 @@ const SellerDashboardNavbar = () => {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                                 <Input
                                     type="search"
-                                    placeholder="Search..."
-                                    className="pl-10 bg-[#B5D7F6] border-0"
+                                    placeholder="Search by AWB number..."
+                                    className="pl-9 bg-[#F8F7FF] w-full"
+                                    value={searchQuery}
+                                    onChange={handleSearchChange}
                                 />
                             </div>
                         </div>
@@ -178,8 +192,10 @@ const SellerDashboardNavbar = () => {
                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                                             <Input
                                                 type="search"
-                                                placeholder="Search..."
-                                                className="pl-10 bg-[#B5D7F6] border-0"
+                                                placeholder="Search by AWB number..."
+                                                className="pl-9 bg-[#F8F7FF] w-full"
+                                                value={searchQuery}
+                                                onChange={handleSearchChange}
                                             />
                                         </div>
                                     </div>

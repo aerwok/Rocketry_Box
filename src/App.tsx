@@ -58,6 +58,7 @@ import SellerBulkOrdersPage from './pages/seller/dashboard/bulk-orders';
 import SellerOrderDetailsPage from "./pages/seller/dashboard/orders/[id]";
 import SellerNDRDetailsPage from "./pages/seller/dashboard/ndr/[id]";
 import SellerReportsPage from "./pages/seller/dashboard/reports";
+import EditOrderPage from "./pages/seller/dashboard/orders/edit/[id]";
 
 // Admin Pages
 import AdminPartnersPage from "./pages/admin/dashboard/partners";
@@ -156,6 +157,7 @@ const App = () => {
           <Route index element={<SellerDashboardPage />} />
           <Route path="orders" element={<SellerOrdersPage />} />
           <Route path="orders/:id" element={<SellerOrderDetailsPage />} />
+          <Route path="orders/edit/:id" element={<EditOrderPage />} />
           <Route path="shipments" element={<SellerShipmentsPage />} />
           <Route path="shipments/:id" element={<SellerShipmentDetailsPage />} />
           <Route path="received" element={<SellerReceivedPage />} />

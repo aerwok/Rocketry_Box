@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,12 +10,22 @@ import {
     ArrowLeftIcon,
     CopyIcon,
     PackageIcon,
-    ShoppingBagIcon
+    ShoppingBagIcon,
+    Edit,
+    Copy as Duplicate,
+    Printer,
+    FileText,
+    X,
+    Truck,
+    RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // Rating form schema
 const ratingSchema = z.object({
@@ -27,30 +37,20 @@ type RatingFormData = z.infer<typeof ratingSchema>;
 
 // Order details interface
 interface OrderDetails {
-    orderNo: string;
-    orderPlaced: string;
-    paymentType: string;
-    status: string;
-    estimatedDelivery: string;
-    currentLocation: {
-        lat: number;
-        lng: number;
-    };
-    trackingEvents: {
-        date: string;
-        time: string;
-        activity: string;
-        location: string;
-        status: string;
-    }[];
+    orderId: string;
+    date: string;
+    customer: string;
+    contact: string;
+    items: string;
+    amount: string;
+    payment: "COD" | "Prepaid";
+    chanel: "MANUAL" | "EXCEL" | "SHOPIFY" | "WOOCOMMERCE" | "AMAZON" | "FLIPKART" | "OPENCART" | "API";
+    shipmentType: "Forward" | "Reverse";
     weight: string;
-    dimensions: {
-        length: number;
-        width: number;
-        height: number;
-    };
-    volumetricWeight: string;
-    chargedWeight: string;
+    tags: string;
+    action: string;
+    whatsapp: string;
+    status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error";
     customerDetails: {
         name: string;
         address1: string;
@@ -80,11 +80,14 @@ interface OrderDetails {
 }
 
 const SellerOrderDetailsPage = () => {
-
     const { id } = useParams();
-
+    const navigate = useNavigate();
     const [selectedRating, setSelectedRating] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [isUpdateTrackingOpen, setIsUpdateTrackingOpen] = useState(false);
+    const [trackingNumber, setTrackingNumber] = useState("");
+    const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState("");
 
     const form = useForm<RatingFormData>({
         resolver: zodResolver(ratingSchema),
@@ -120,469 +123,434 @@ const SellerOrderDetailsPage = () => {
 
     // Mock order details data
     const orderDetails: OrderDetails = {
-        orderNo: id || "1740047589959",
-        orderPlaced: "20-02-2025",
-        paymentType: "COD",
-        status: "IN TRANSIT",
-        estimatedDelivery: "Tuesday, February 25",
-        currentLocation: {
-            lat: 19.0760,
-            lng: 72.8777
-        },
-        trackingEvents: [
-            {
-                date: "22 FEB",
-                time: "09:39 AM",
-                activity: "SHIPMENT OUTSCANNED TO NETWORK",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "21 FEB",
-                time: "02:00 AM",
-                activity: "COMM FLIGHT,VEH/TRAIN; DELAYED/CANCELLED",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "11:30 PM",
-                activity: "SHIPMENT RECEIVED AT FACILITY",
-                location: "MUMBAI HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "09:15 PM",
-                activity: "SHIPMENT PICKED UP",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "03:45 PM",
-                activity: "SHIPMENT CREATED",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            }
-        ],
-        weight: "324.00 Kg",
-        dimensions: {
-            length: 50,
-            width: 43,
-            height: 34
-        },
-        volumetricWeight: "0 Kg",
-        chargedWeight: "0 Kg",
+        orderId: id || "ORD-2024-001",
+        date: "2024-02-20",
+        customer: "Rahul Sharma",
+        contact: "9876543210",
+        items: "4",
+        amount: "97497.00",
+        payment: "COD",
+        chanel: "MANUAL",
+        shipmentType: "Forward",
+        weight: "2.5",
+        tags: "Gaming",
+        action: "Ship",
+        whatsapp: "9876543210",
+        status: "not-booked",
         customerDetails: {
-            name: "John Doe",
-            address1: "123 Main Street",
-            address2: "Apartment 4B",
-            city: "PUNE",
-            state: "MAHARASHTRA",
-            pincode: "412105",
+            name: "Rahul Sharma",
+            address1: "Flat 303, Tower B, Green Valley Apartments",
+            address2: "Sector 62, Noida",
+            city: "NOIDA",
+            state: "UTTAR PRADESH",
+            pincode: "201309",
             country: "India",
-            phone: "9348543598"
+            phone: "9876543210"
         },
         warehouseDetails: {
-            name: "Main Warehouse",
-            address1: "456 Storage Lane",
-            city: "Noida",
-            state: "UTTAR PRADESH",
-            pincode: "201307",
+            name: "RocketryBox Warehouse",
+            address1: "Plot No. 123, Industrial Area",
+            city: "PUNE",
+            state: "MAHARASHTRA",
+            pincode: "411014",
             country: "India",
-            phone: "9000000000"
+            phone: "020-12345678"
         },
         products: [
             {
-                name: "Premium Laptop",
-                sku: "LAP001",
+                name: "Gaming Laptop",
+                sku: "LAP-GAM-001",
                 quantity: 1,
-                price: 50.00,
-                image: "/product-image.jpg"
+                price: 89999.00,
+                image: "/images/products/laptop.jpg"
             },
             {
-                name: "Wireless Mouse",
-                sku: "MOU001",
+                name: "Gaming Mouse",
+                sku: "MOU-GAM-001",
+                quantity: 2,
+                price: 2499.00,
+                image: "/images/products/mouse.jpg"
+            },
+            {
+                name: "Gaming Headset",
+                sku: "HEA-GAM-001",
                 quantity: 1,
-                price: 1799.00,
-                image: "/mouse-image.jpg"
+                price: 4999.00,
+                image: "/images/products/headset.jpg"
             }
         ]
     };
 
+    // Default coordinates for Noida (customer location)
+    const defaultLocation = {
+        lat: 28.5355,
+        lng: 77.3910
+    };
+
+    const handleEdit = () => {
+        navigate(`/seller/dashboard/orders/edit/${id}`);
+        toast.success("Navigating to edit order");
+    };
+
+    const handleDuplicate = () => {
+        navigate('/seller/dashboard/new-order', {
+            state: { duplicateFrom: orderDetails }
+        });
+        toast.success("Order duplicated. Create a new order with the same details.");
+    };
+
+    const handlePrintLabel = () => {
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+            {
+                loading: 'Generating shipping label...',
+                success: 'Shipping label generated successfully',
+                error: 'Failed to generate shipping label'
+            }
+        );
+    };
+
+    const handlePrintInvoice = () => {
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+            {
+                loading: 'Generating invoice...',
+                success: 'Invoice generated successfully',
+                error: 'Failed to generate invoice'
+            }
+        );
+    };
+
+    const handleCancelOrder = () => {
+        setIsCancelDialogOpen(true);
+    };
+
+    const confirmCancelOrder = () => {
+        if (!cancelReason.trim()) {
+            toast.error("Please provide a reason for cancellation");
+            return;
+        }
+
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+            {
+                loading: 'Cancelling order...',
+                success: () => {
+                    setIsCancelDialogOpen(false);
+                    setCancelReason("");
+                    navigate("/seller/dashboard/orders");
+                    return 'Order cancelled successfully';
+                },
+                error: 'Failed to cancel order'
+            }
+        );
+    };
+
+    const handleMarkAsShipped = () => {
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+            {
+                loading: 'Updating order status...',
+                success: 'Order marked as shipped',
+                error: 'Failed to update order status'
+            }
+        );
+    };
+
+    const handleUpdateTracking = () => {
+        setIsUpdateTrackingOpen(true);
+    };
+
+    const confirmUpdateTracking = () => {
+        if (!trackingNumber.trim()) {
+            toast.error("Please provide a tracking number");
+            return;
+        }
+
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+            {
+                loading: 'Updating tracking number...',
+                success: () => {
+                    setIsUpdateTrackingOpen(false);
+                    setTrackingNumber("");
+                    return 'Tracking number updated successfully';
+                },
+                error: 'Failed to update tracking number'
+            }
+        );
+    };
+
     return (
-        <div className="container mx-auto py-4 w-full">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="space-y-6"
-            >
-                {/* Header with Back Button */}
-                <div className="flex items-center gap-4 mb-6">
-                    <Link to="/seller/dashboard/orders">
-                        <Button variant="outline" size="icon">
-                            <ArrowLeftIcon className="size-5" />
-                        </Button>
+        <div className="container mx-auto p-6 max-w-7xl">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <Link
+                        to="/seller/dashboard/orders"
+                        className="flex items-center justify-center size-10 rounded-lg border hover:bg-accent"
+                    >
+                        <ArrowLeftIcon className="size-6" />
                     </Link>
-                    <h1 className="text-xl font-medium">
-                        Order #{orderDetails.orderNo}
-                    </h1>
+                    <h1 className="text-2xl font-semibold">Order Details</h1>
                 </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={handleEdit}>
+                        <Edit className="size-4 mr-2" />
+                        Edit
+                    </Button>
+                    <Button variant="outline" onClick={handleDuplicate}>
+                        <Duplicate className="size-4 mr-2" />
+                        Duplicate
+                    </Button>
+                    <Button variant="outline" onClick={handlePrintLabel}>
+                        <Printer className="size-4 mr-2" />
+                        Print Label
+                    </Button>
+                    <Button variant="outline" onClick={handlePrintInvoice}>
+                        <FileText className="size-4 mr-2" />
+                        Print Invoice
+                    </Button>
+                    <Button variant="destructive" onClick={handleCancelOrder}>
+                        <X className="size-4 mr-2" />
+                        Cancel Order
+                    </Button>
+                    <Button variant="outline" onClick={handleMarkAsShipped}>
+                        <Truck className="size-4 mr-2" />
+                        Mark as Shipped
+                    </Button>
+                    <Button variant="outline" onClick={handleUpdateTracking}>
+                        <RefreshCw className="size-4 mr-2" />
+                        Update Tracking
+                    </Button>
+                </div>
+            </div>
 
-                {/* Top Section */}
-                <div className="grid lg:grid-cols-5 gap-6">
-                    {/* Delivery Status Box */}
-                    <div className="lg:col-span-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl shadow-lg shadow-neutral-400/20 p-8">
-                        <div className="flex justify-between items-start mb-6">
-                            <h2 className="text-lg font-medium">
-                                Estimated Delivery Date
-                            </h2>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-white hover:text-white hover:bg-white/10"
-                                onClick={() => handleCopy(orderDetails.estimatedDelivery)}
-                            >
-                                <CopyIcon className="size-5" />
-                            </Button>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="text-7xl font-bold tracking-tighter">
-                                25
-                            </div>
-                            <div className="text-xl">
-                                {orderDetails.estimatedDelivery}
-                            </div>
-                            <div className="text-sm opacity-80">
-                                On Time
+            {/* Order Info */}
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Order Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Order ID</p>
+                            <div className="flex items-center gap-2">
+                                <p className="font-medium">#{orderDetails.orderId}</p>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(orderDetails.orderId);
+                                        toast.success("Order ID copied to clipboard");
+                                    }}
+                                >
+                                    <CopyIcon className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
-                        <div className="mt-8">
-                            <div className="text-sm opacity-80">
-                                Status:
-                            </div>
-                            <div className="text-2xl font-medium mt-1">
-                                {orderDetails.status}
-                            </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Order Date</p>
+                            <p className="font-medium">{orderDetails.date}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Total Amount</p>
+                            <p className="font-medium">₹{orderDetails.amount}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Payment Type</p>
+                            <p className="font-medium">{orderDetails.payment}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Status</p>
+                            <p className="font-medium">{orderDetails.status}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Order Creation Type</p>
+                            <p className="font-medium">
+                                {orderDetails.chanel === "MANUAL" ? "Single (Manual) Order" : 
+                                 orderDetails.chanel === "EXCEL" ? "Multiple (Bulk) Order" : 
+                                 orderDetails.chanel}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Shipment Type</p>
+                            <p className="font-medium">{orderDetails.shipmentType} Shipment</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Weight</p>
+                            <p className="font-medium">{orderDetails.weight} kg</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Tags</p>
+                            <p className="font-medium">{orderDetails.tags}</p>
                         </div>
                     </div>
+                </CardContent>
+            </Card>
 
-                    {/* Right Section with Map and Timeline */}
-                    <div className="lg:col-span-3">
-                        <div className="grid lg:grid-cols-5 gap-6 h-full rounded-xl shadow-md shadow-neutral-400/20 p-4 border border-border/60">
-                            {/* Map */}
-                            <div className="lg:col-span-2 overflow-hidden">
-                                <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-                                    <GoogleMap
-                                        mapContainerStyle={{
-                                            width: '100%',
-                                            height: '100%',
-                                            minHeight: '250px',
-                                            maxHeight: '300px',
-                                            borderRadius: 10,
-                                        }}
-                                        center={orderDetails.currentLocation}
-                                        zoom={10}
-                                    >
-                                        <Marker position={orderDetails.currentLocation} />
-                                    </GoogleMap>
-                                </LoadScript>
-                            </div>
-
-                            {/* Tracking Timeline */}
-                            <div className="lg:col-span-3">
-                                {/* Courier Header */}
-                                <div className="px-4 pb-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="size-10 rounded-full flex items-center justify-center bg-neutral-100 border border-border">
-                                            <img
-                                                src="/images/company3.png"
-                                                alt="Blue Dart"
-                                                className="w-8 h-8 object-contain"
-                                            />
-                                        </div>
-                                        <span className="text-lg font-semibold">
-                                            Blue Dart
-                                        </span>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-sm text-gray-500">
-                                            Tracking ID
-                                        </div>
-                                        <div className="font-medium text-purple-500 cursor-pointer hover:underline">
-                                            81983530123
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Timeline */}
-                                <ScrollArea className="h-[240px]">
-                                    <div className="p-2 md:p-4 relative">
-                                        {orderDetails.trackingEvents.map((event, index) => (
-                                            <div key={index} className="relative">
-                                                <div className="flex gap-4 mb-6">
-                                                    {/* Date/Time Column */}
-                                                    <div className="w-12 md:w-24 flex flex-col text-sm">
-                                                        <span className="font-medium">
-                                                            {event.date}
-                                                        </span>
-                                                        <span className="text-sm">
-                                                            {event.time}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Timeline Dot and Line */}
-                                                    <div className="flex flex-col items-center relative">
-                                                        {index !== orderDetails.trackingEvents.length - 1 && (
-                                                            <div className="w-px h-[150%] border border-border border-dashed absolute" />
-                                                        )}
-                                                        <div className="size-3 rounded-full bg-neutral-400 z-10 relative">
-                                                            <div className="size-5 rounded-full bg-transparent border border-border z-10 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Activity Details */}
-                                                    <div className="flex-1">
-                                                        <p className="text-sm">
-                                                            <span className="font-medium">
-                                                                Activity:{" "}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                {event.activity}
-                                                            </span>
-                                                        </p>
-                                                        <div className="text-sm mt-2">
-                                                            <span className="font-medium">
-                                                                Location:{" "}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                {event.location}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-background via-background w-full"></div>
-                                </ScrollArea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Order and Product Details Section */}
-                <div className="grid lg:grid-cols-2 gap-6 w-full">
-                    <Card className="shadow-lg shadow-neutral-400/20 rounded-xl border border-border/60">
-                        <CardHeader className="border-b border-border/60">
-                            <CardTitle className="flex items-center gap-2">
-                                <PackageIcon className="size-5" />
-                                Order Details
-                            </CardTitle>
-                        </CardHeader>
-                        <div className="max-h-[400px] overflow-y-auto">
-                            <CardContent className="p-4 lg:p-6">
-                                <div className="space-y-4">
-                                    <div className="pb-4 border-b border-border/60">
-                                        <p className="text-sm text-muted-foreground mb-2">Order ID</p>
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-medium">#{orderDetails.orderNo}</p>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6"
-                                                onClick={() => handleCopy(orderDetails.orderNo)}
-                                            >
-                                                <CopyIcon className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <div className="pb-4 border-b border-border/60">
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Order Placed On
-                                        </p>
-                                        <p className="font-medium">
-                                            {orderDetails.orderPlaced}
-                                        </p>
-                                    </div>
-                                    <div className="pb-4 border-b border-border/60">
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Order Total
-                                        </p>
-                                        <p className="text-xl font-semibold">
-                                            ₹1579.15
-                                        </p>
-                                    </div>
-                                    <div className="pb-4 border-b border-border/60">
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Payment Method
-                                        </p>
-                                        <p className="font-medium">
-                                            {orderDetails.paymentType}
-                                        </p>
-                                    </div>
-                                    <div className="pb-4 border-b border-border/60">
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Customer Name
-                                        </p>
-                                        <p className="font-medium">
-                                            {orderDetails.customerDetails.name}
-                                        </p>
-                                    </div>
-                                    <div className="pb-4">
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Customer Phone
-                                        </p>
-                                        <p className="font-medium">
-                                            {orderDetails.customerDetails.phone}
-                                        </p>
-                                    </div>
-                                    <div className="pb-4 border-b border-border/60">
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Shipping Address
-                                        </p>
-                                        <div className="space-y-1">
-                                            <p className="font-medium">
-                                                {orderDetails.customerDetails.address1}
-                                            </p>
-                                            <p>
-                                                {orderDetails.customerDetails.address2}
-                                            </p>
-                                            <p>
-                                                {orderDetails.customerDetails.city}, {orderDetails.customerDetails.state} {orderDetails.customerDetails.pincode}
-                                            </p>
-                                            <p>
-                                                {orderDetails.customerDetails.country}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Warehouse Details
-                                        </p>
-                                        <div className="space-y-1">
-                                            <p className="font-medium">
-                                                {orderDetails.warehouseDetails.name}
-                                            </p>
-                                            <p>
-                                                {orderDetails.warehouseDetails.address1}
-                                            </p>
-                                            <p>
-                                                {orderDetails.warehouseDetails.city}, {orderDetails.warehouseDetails.state} {orderDetails.warehouseDetails.pincode}
-                                            </p>
-                                            <p>
-                                                {orderDetails.warehouseDetails.country}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </div>
-                    </Card>
-
-                    {/* Product Details Card */}
-                    <Card className="shadow-lg shadow-neutral-400/20 rounded-xl border border-border/60">
-                        <CardHeader className="border-b border-border/60">
-                            <CardTitle className="flex items-center gap-2">
-                                <ShoppingBagIcon className="size-5" />
-                                Product Details
-                            </CardTitle>
-                        </CardHeader>
-                        <div className="max-h-[400px] max-w-[calc(100dvw-2rem)]">
-                            <CardContent className="p-4 lg:p-6 overflow-hidden">
-                                <div className="relative overflow-auto w-full">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-border/60">
-                                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
-                                                    Product Name
-                                                </th>
-                                                <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
-                                                    Qty
-                                                </th>
-                                                <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
-                                                    Unit Price
-                                                </th>
-                                                <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
-                                                    Sub Total
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {orderDetails.products.map((product, index) => (
-                                                <tr key={index} className={cn(
-                                                    "border-b border-border/60",
-                                                    index === orderDetails.products.length - 1 ? "border-b-0" : ""
-                                                )}>
-                                                    <td className="py-3 px-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="size-10 lg:size-16 flex-shrink-0 rounded-lg border border-border/60 p-2">
-                                                                <img
-                                                                    src={product.image}
-                                                                    alt={product.name}
-                                                                    className="w-full h-full object-contain"
-                                                                />
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <p className="font-medium line-clamp-1">
-                                                                    {product.name}
-                                                                </p>
-                                                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                                                    {product.sku}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                                                        {product.quantity}
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                                                        ₹{product.price.toFixed(2)}
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                                                        ₹{(product.price * product.quantity).toFixed(2)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Seller Actions Card */}
-                <Card className="shadow-lg shadow-neutral-400/20 rounded-xl border border-border/60">
-                    <CardHeader className="border-b border-border/60">
-                        <CardTitle className="flex items-center gap-2">
-                            Order Actions
-                        </CardTitle>
+            {/* Customer & Warehouse Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Customer Details</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="flex flex-wrap gap-4">
-                            <Button variant="outline">
-                                Print Label
-                            </Button>
-                            <Button variant="outline">
-                                Print Invoice
-                            </Button>
-                            <Button variant="outline">
-                                Cancel Order
-                            </Button>
-                            <Button variant="outline">
-                                Mark as Shipped
-                            </Button>
-                            <Button className="bg-violet-600 hover:bg-violet-700 text-white">
-                                Update Tracking
-                            </Button>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Name</p>
+                                <p className="font-medium">{orderDetails.customerDetails.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Address</p>
+                                <p className="font-medium">{orderDetails.customerDetails.address1}</p>
+                                <p className="font-medium">{orderDetails.customerDetails.address2}</p>
+                                <p className="font-medium">
+                                    {orderDetails.customerDetails.city}, {orderDetails.customerDetails.state} {orderDetails.customerDetails.pincode}
+                                </p>
+                                <p className="font-medium">{orderDetails.customerDetails.country}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                                <p className="font-medium">{orderDetails.customerDetails.phone}</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
-            </motion.div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Warehouse Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Name</p>
+                                <p className="font-medium">{orderDetails.warehouseDetails.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Address</p>
+                                <p className="font-medium">{orderDetails.warehouseDetails.address1}</p>
+                                <p className="font-medium">
+                                    {orderDetails.warehouseDetails.city}, {orderDetails.warehouseDetails.state} {orderDetails.warehouseDetails.pincode}
+                                </p>
+                                <p className="font-medium">{orderDetails.warehouseDetails.country}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                                <p className="font-medium">{orderDetails.warehouseDetails.phone}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Products */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Products</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="relative overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs uppercase bg-muted">
+                                <tr>
+                                    <th className="px-6 py-3">Product</th>
+                                    <th className="px-6 py-3">SKU</th>
+                                    <th className="px-6 py-3">Quantity</th>
+                                    <th className="px-6 py-3">Price</th>
+                                    <th className="px-6 py-3">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {orderDetails.products.map((product, index) => (
+                                    <tr key={index} className="bg-white border-b">
+                                        <td className="px-6 py-4 font-medium">
+                                            <div className="flex items-center gap-3">
+                                                <img
+                                                    src={product.image}
+                                                    alt={product.name}
+                                                    className="size-12 rounded-lg object-cover"
+                                                />
+                                                <span>{product.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">{product.sku}</td>
+                                        <td className="px-6 py-4">{product.quantity}</td>
+                                        <td className="px-6 py-4">₹{product.price.toFixed(2)}</td>
+                                        <td className="px-6 py-4">₹{(product.price * product.quantity).toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                                <tr className="bg-muted">
+                                    <td colSpan={4} className="px-6 py-4 text-right font-medium">
+                                        Total Amount:
+                                    </td>
+                                    <td className="px-6 py-4 font-medium">
+                                        ₹{orderDetails.products.reduce((total, product) => total + (product.price * product.quantity), 0).toFixed(2)}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Cancel Order Dialog */}
+            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cancel Order</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="reason">Reason for Cancellation</Label>
+                            <Input
+                                id="reason"
+                                placeholder="Enter reason for cancellation"
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmCancelOrder}>
+                            Confirm Cancellation
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Update Tracking Dialog */}
+            <Dialog open={isUpdateTrackingOpen} onOpenChange={setIsUpdateTrackingOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Update Tracking Number</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="tracking">Tracking Number</Label>
+                            <Input
+                                id="tracking"
+                                placeholder="Enter tracking number"
+                                value={trackingNumber}
+                                onChange={(e) => setTrackingNumber(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsUpdateTrackingOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={confirmUpdateTracking}>
+                            Update Tracking
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

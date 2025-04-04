@@ -26,11 +26,11 @@ import {
 } from "@/components/ui/tooltip";
 import { NewOrderInput, newOrderSchema } from "@/lib/validations/new-order";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BoxesIcon, Info, MinusIcon, PlusIcon, Save, Truck, Package, CreditCard, MapPin, User, Calculator } from "lucide-react";
+import { BoxesIcon, Info, MinusIcon, PlusIcon, Save, Truck, Package, CreditCard, MapPin, User, Calculator, Printer, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from 'react-router-dom';
-import ShippingOptionsModal from "@/components/seller/shipping-options-modal";
+import { ShippingOptionsModal } from "@/components/seller/shipping-options-modal";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
@@ -39,7 +39,7 @@ const SellerNewOrderPage = () => {
     const [sameAsShipping, setSameAsShipping] = useState<boolean>(false);
     const [isDifferentAmount, setIsDifferentAmount] = useState<boolean>(false);
     const [file, setFile] = useState<File | null>(null);
-    const [isShippingModalOpen, setIsShippingModalOpen] = useState<boolean>(false);
+    const [shippingModalOpen, setShippingModalOpen] = useState<boolean>(false);
     const [calculatedWeight, setCalculatedWeight] = useState<number>(0);
     const [volumetricWeight, setVolumetricWeight] = useState<number>(0);
     const [actualWeight, setActualWeight] = useState<number>(0);
@@ -58,6 +58,7 @@ const SellerNewOrderPage = () => {
         city: "Noida",
         state: "Uttar Pradesh"
     });
+    const [orderId, setOrderId] = useState<string | null>(null);
 
     const form = useForm<NewOrderInput>({
         resolver: zodResolver(newOrderSchema),
@@ -65,7 +66,7 @@ const SellerNewOrderPage = () => {
         criteriaMode: "all",
         defaultValues: {
             orderNumber: "",
-            orderType: "FORWARD",
+            shipmentType: "FORWARD",
             paymentType: "COD",
             fullName: "",
             contactNumber: "",
@@ -91,6 +92,10 @@ const SellerNewOrderPage = () => {
             height: undefined,
             weight: undefined,
             totalAmount: 0,
+            courier: "",
+            warehouse: "",
+            rtoWarehouse: "",
+            shippingMode: "",
         },
     });
 
@@ -126,8 +131,15 @@ const SellerNewOrderPage = () => {
 
     const onSubmit = async (data: NewOrderInput) => {
         try {
+            // In a real application, this would be an API call to save the order
             console.log("Form submitted successfully:", data);
-            toast.success("Order saved successfully!");
+            
+            // Simulate API call delay and set a dummy order ID
+            setTimeout(() => {
+                const dummyOrderId = `ORD-${Date.now().toString().slice(-6)}`;
+                setOrderId(dummyOrderId);
+                toast.success(`Order saved successfully with ID: ${dummyOrderId}`);
+            }, 1000);
         } catch (error) {
             console.error("Error submitting form:", error);
             toast.error("Failed to save order");
@@ -190,7 +202,7 @@ const SellerNewOrderPage = () => {
             const result = await form.trigger(['pincode', 'city', 'state']);
 
             if (result) {
-                setIsShippingModalOpen(true);
+                setShippingModalOpen(true);
             } else {
                 const errors = form.formState.errors;
                 const errorFields = Object.keys(errors);
@@ -209,31 +221,23 @@ const SellerNewOrderPage = () => {
         }
     };
 
-    const handleShipSelected = (courier: string, warehouse: string, mode: string, charges: { shipping: number; cod: number; gst: number; total: number }) => {
+    const handleShipSelected = (options: {
+        warehouse: string;
+        rtoWarehouse: string;
+        shippingMode: string;
+        courier: string;
+    }) => {
         setSelectedShipping({
-            courier,
-            mode,
-            charges
+            courier: options.courier,
+            mode: options.shippingMode,
+            charges: {
+                shipping: 0,
+                cod: 0,
+                gst: 0,
+                total: 0
+            }
         });
-
-        // Update form with shipping charges
-        form.setValue('shippingCharge', charges.shipping);
-        form.setValue('codCharge', charges.cod);
-        form.setValue('taxAmount', charges.gst);
-
-        // Calculate and update total amount
-        const itemPrice = form.getValues('itemPrice');
-        const discount = form.getValues('discount') || 0;
-        const totalAmount = itemPrice + charges.total - discount;
-        form.setValue('totalAmount', totalAmount);
-
-        // If COD, update collectible amount if not manually set
-        if (form.getValues('paymentType') === 'COD' && !isDifferentAmount) {
-            form.setValue('collectibleAmount', totalAmount);
-        }
-
-        setIsShippingModalOpen(false);
-        toast.success(`Shipping rates applied for ${courier} - ${mode}`);
+        setShippingModalOpen(false);
     };
 
     const handleShipOrder = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -270,6 +274,74 @@ const SellerNewOrderPage = () => {
         } catch (error) {
             console.error("Error creating shipment:", error);
             toast.error("Failed to create shipment");
+        }
+    };
+
+    const handlePrintInvoice = async () => {
+        if (!orderId) {
+            toast.error("Please save the order first");
+            return;
+        }
+
+        try {
+            // In a real application, this would be an API call to generate and download the invoice
+            // For now, we'll simulate the download with a timeout
+            toast.info("Generating invoice...");
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // Create a dummy PDF blob (in a real app, this would come from the server)
+                const dummyPdfBlob = new Blob(["This is a dummy invoice PDF"], { type: "application/pdf" });
+                const url = URL.createObjectURL(dummyPdfBlob);
+                
+                // Create a temporary link and trigger download
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `invoice-${orderId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                toast.success("Invoice downloaded successfully");
+            }, 1500);
+        } catch (error) {
+            console.error("Error downloading invoice:", error);
+            toast.error("Failed to download invoice");
+        }
+    };
+
+    const handlePrintLabel = async () => {
+        if (!orderId) {
+            toast.error("Please save the order first");
+            return;
+        }
+
+        try {
+            // In a real application, this would be an API call to generate and download the shipping label
+            // For now, we'll simulate the download with a timeout
+            toast.info("Generating shipping label...");
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // Create a dummy PDF blob (in a real app, this would come from the server)
+                const dummyPdfBlob = new Blob(["This is a dummy shipping label PDF"], { type: "application/pdf" });
+                const url = URL.createObjectURL(dummyPdfBlob);
+                
+                // Create a temporary link and trigger download
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `shipping-label-${orderId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                toast.success("Shipping label downloaded successfully");
+            }, 1500);
+        } catch (error) {
+            console.error("Error downloading shipping label:", error);
+            toast.error("Failed to download shipping label");
         }
     };
 
@@ -315,23 +387,40 @@ const SellerNewOrderPage = () => {
                                 )}
                             />
 
+                            {/* Read-only Order Creation Type field */}
+                            <FormItem>
+                                <FormLabel className="text-sm font-medium">
+                                    Order Creation Type
+                                </FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        value="Single (Manual) Order"
+                                        disabled
+                                        className="mt-1 bg-gray-100"
+                                    />
+                                </FormControl>
+                                <FormDescription className="text-xs text-gray-500">
+                                    For multiple orders, use Bulk Order upload
+                                </FormDescription>
+                            </FormItem>
+
                             <FormField
                                 control={form.control}
-                                name="orderType"
+                                name="shipmentType"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-sm font-medium">
-                                            Order Type *
+                                            Shipment Type *
                                         </FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger className="mt-1">
-                                                    <SelectValue placeholder="Select order type" />
+                                                    <SelectValue placeholder="Select shipment type" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="FORWARD">Forward</SelectItem>
-                                                <SelectItem value="REVERSE">Reverse</SelectItem>
+                                                <SelectItem value="FORWARD">Forward Shipment</SelectItem>
+                                                <SelectItem value="REVERSE">Reverse Shipment</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -953,6 +1042,23 @@ const SellerNewOrderPage = () => {
                         </div>
                     </div>
 
+                    {/* Add read-only Order Creation Type field */}
+                    <FormItem>
+                        <FormLabel className="text-sm font-medium">
+                            Order Creation Type
+                        </FormLabel>
+                        <FormControl>
+                            <Input 
+                                value="Single (Manual) Order"
+                                disabled
+                                className="mt-1 bg-gray-100"
+                            />
+                        </FormControl>
+                        <FormDescription className="text-xs text-gray-500">
+                            For multiple orders, use Bulk Order upload
+                        </FormDescription>
+                    </FormItem>
+
                     {/* Action Buttons */}
                     <div className="flex justify-end gap-4">
                         <Button
@@ -973,6 +1079,26 @@ const SellerNewOrderPage = () => {
                         <Button
                             type="button"
                             variant="default"
+                            onClick={handlePrintInvoice}
+                            disabled={!orderId}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Print Invoice
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="default"
+                            onClick={handlePrintLabel}
+                            disabled={!orderId}
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print Label
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="default"
                             onClick={handleShipOrder}
                             disabled={!selectedShipping}
                             className="bg-green-600 hover:bg-green-700 text-white"
@@ -983,18 +1109,11 @@ const SellerNewOrderPage = () => {
                     </div>
 
                     <ShippingOptionsModal
-                        isOpen={isShippingModalOpen}
-                        onClose={() => setIsShippingModalOpen(false)}
-                        orderNumber={form.getValues('orderNumber') || "New Order"}
-                        weight={calculatedWeight}
-                        paymentType={form.getValues('paymentType').toLowerCase() as 'cod' | 'paid'}
-                        onCourierSelected={handleShipSelected}
-                        deliveryAddress={{
-                            pincode: form.getValues('pincode'),
-                            city: form.getValues('city'),
-                            state: form.getValues('state')
-                        }}
-                        sellerAddress={sellerAddress}
+                        open={shippingModalOpen}
+                        onOpenChange={(open) => setShippingModalOpen(open)}
+                        onSubmit={handleShipSelected}
+                        orderCount={1}
+                        singleOrderId={null}
                     />
                 </form>
             </Form>

@@ -2,7 +2,7 @@ import * as z from "zod";
 
 export const newOrderSchema = z.object({
     orderNumber: z.string().min(1, "Order number is required"),
-    orderType: z.enum(["FORWARD", "REVERSE"]),
+    shipmentType: z.enum(["FORWARD", "REVERSE"]),
     paymentType: z.enum(["COD", "PAID"]),
 
     // Shipping Details
@@ -37,6 +37,12 @@ export const newOrderSchema = z.object({
     height: z.number().min(0.1, "Height must be at least 0.1").optional(),
     weight: z.number().min(0.1, "Weight must be at least 0.1").optional(),
     totalAmount: z.number().min(0),
+
+    // Shipping Options
+    courier: z.string().optional(),
+    warehouse: z.string().optional(),
+    rtoWarehouse: z.string().optional(),
+    shippingMode: z.string().optional(),
 });
 
 export type NewOrderInput = z.infer<typeof newOrderSchema>; 
