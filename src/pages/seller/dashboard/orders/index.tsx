@@ -232,6 +232,7 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
         direction: 'asc' | 'desc';
     } | null>(null);
     const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+    const [selectedItems, setSelectedItems] = useState<Array<{orderId: string, itemIndex: number}>>([]);
     const [shippingModalOpen, setShippingModalOpen] = useState(false);
     const [addTagModalOpen, setAddTagModalOpen] = useState(false);
     const [tagInput, setTagInput] = useState('');
@@ -348,21 +349,24 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
         }
     };
 
-    const handleShipSelected = (options: {
-        warehouse: string;
-        rtoWarehouse: string;
-        shippingMode: string;
+    const handleShipSelected = (data: {
         courier: string;
+        mode: string;
+        charges: {
+            shippingCharge: number;
+            codCharge: number;
+            gst: number;
+            total: number;
+        };
     }) => {
         // Update shipping details for selected orders
-        const updatedOrders = data.map(order => {
+        const updatedOrders = allData.map((order: OrderData) => {
             if (selectedOrders.includes(order.orderId)) {
                 return {
                     ...order,
-                    courier: options.courier,
-                    warehouse: options.warehouse,
-                    rtoWarehouse: options.rtoWarehouse,
-                    shippingMode: options.shippingMode
+                    courier: data.courier,
+                    shippingMode: data.mode,
+                    charges: data.charges
                 };
             }
             return order;
@@ -629,6 +633,26 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
         toast.success(`${selectedOrders.length} orders exported successfully`);
     };
 
+    const handleSelectItem = (orderId: string, itemIndex: number, checked: boolean) => {
+        setSelectedItems(prev => {
+            if (checked) {
+                return [...prev, { orderId, itemIndex }];
+            } else {
+                return prev.filter(item => !(item.orderId === orderId && item.itemIndex === itemIndex));
+            }
+        });
+    };
+
+    const handleSelectOrder = (orderId: string, checked: boolean) => {
+        setSelectedOrders(prev => {
+            if (checked) {
+                return [...prev, orderId];
+            } else {
+                return prev.filter(id => id !== orderId);
+            }
+        });
+    };
+
     // Format date for display
     const formatDate = (dateString: string) => {
         try {
@@ -745,8 +769,7 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
                 open={shippingModalOpen}
                 onOpenChange={setShippingModalOpen}
                 onSubmit={handleShipSelected}
-                orderCount={selectedOrders.length}
-                singleOrderId={singleOrderId}
+                singleOrderId={singleOrderId || 'Selected Orders'}
             />
 
             {/* Filter Dialog */}
@@ -990,9 +1013,8 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
                                     <input
                                         type="checkbox"
                                         className="rounded border-gray-300"
-                                        checked={selectedOrders.includes(order.orderId)
-
-                                        }
+                                        checked={selectedOrders.includes(order.orderId)}
+                                        onChange={(e) => handleSelectOrder(order.orderId, e.target.checked)}
                                     />
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
@@ -1017,10 +1039,20 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
                                             <div className="absolute z-10 bg-white border rounded-md shadow-lg p-2 min-w-[200px]">
                                                 <div className="space-y-1">
                                                     {order.items.map((item, index) => (
-                                                        <div key={index} className="text-sm">
-                                                            <div className="font-medium">{item.name}</div>
-                                                            <div className="text-gray-500">
-                                                                SKU: {item.sku} | Qty: {item.quantity} | ₹{item.price.toFixed(2)}
+                                                        <div key={index} className="text-sm flex items-center gap-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="rounded border-gray-300"
+                                                                checked={selectedItems.some(
+                                                                    selected => selected.orderId === order.orderId && selected.itemIndex === index
+                                                                )}
+                                                                onChange={(e) => handleSelectItem(order.orderId, index, e.target.checked)}
+                                                            />
+                                                            <div>
+                                                                <div className="font-medium">{item.name}</div>
+                                                                <div className="text-gray-500">
+                                                                    SKU: {item.sku} | Qty: {item.quantity} | ₹{item.price.toFixed(2)}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}

@@ -1,134 +1,255 @@
-import { useState } from "react";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { calculateShippingRate, determineZone } from "@/lib/shipping-calculator";
+import { useState, useEffect } from "react";
+//import { RateData } from "@/types/shipping";
+// import { useQuery } from "@tanstack/react-query";
+import { mockRateCards } from "@/services/mock/rate-cards";
 
-export interface ShippingOptionsModalProps {
+interface ShippingOptionsModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSubmit: (options: {
-        warehouse: string;
-        rtoWarehouse: string;
-        shippingMode: string;
+    singleOrderId: string;
+    onSubmit: (data: {
         courier: string;
+        mode: string;
+        charges: {
+            shippingCharge: number;
+            codCharge: number;
+            gst: number;
+            total: number;
+        };
     }) => void;
-    orderCount?: number;
-    singleOrderId?: string | null;
+    isCOD?: boolean; // Add isCOD as an optional prop
 }
 
 export function ShippingOptionsModal({
     open,
     onOpenChange,
-    onSubmit
+    singleOrderId,
+    onSubmit,
+    isCOD = false // Default to false if not provided
 }: ShippingOptionsModalProps) {
-    const [selectedWarehouse, setSelectedWarehouse] = useState<string>("");
-    const [selectedRTOWarehouse, setSelectedRTOWarehouse] = useState<string>("");
-    const [selectedShippingMode, setSelectedShippingMode] = useState<string>("");
-    const [selectedCourier, setSelectedCourier] = useState<string>("");
+    const [warehouse, setWarehouse] = useState("400001"); // Mumbai pincode
+    const [rtoWarehouse, setRtoWarehouse] = useState("400001");
+    const [showAddress, setShowAddress] = useState(false);
+    const [selectedCourier, setSelectedCourier] = useState("");
+    const [selectedMode, setSelectedMode] = useState("");
+    const [courierRates, setCourierRates] = useState<any[]>([]);
+    const [currentZone, setCurrentZone] = useState("");
+    
+    // Sample destination pincode (should come from order details)
+    const destinationPincode = "110001"; // Delhi pincode
+    const weight = 0.5; // Sample weight in kg
+
+    // Comment out React Query code for now
+    /* const { data: rateData, isLoading } = useQuery<RateData[]>({
+        queryKey: ['rateCards'],
+        queryFn: async () => {
+            const response = await fetch('/api/rate-cards');
+            if (!response.ok) {
+                throw new Error('Failed to fetch rate cards');
+            }
+            return response.json();
+        }
+    }); */
+
+    useEffect(() => {
+        const calculateRates = async () => {
+            // Determine zone
+            const zone = determineZone(warehouse, destinationPincode);
+            setCurrentZone(zone);
+
+            // Calculate rates using mock data
+            const rates = await Promise.all(
+                mockRateCards.map(async rateCard => {
+                    try {
+                        const rates = await calculateShippingRate(
+                            warehouse,
+                            destinationPincode,
+                            weight,
+                            rateCard.mode,
+                            isCOD,
+                            mockRateCards
+                        );
+
+                        return {
+                            mode: rateCard.mode,
+                            courier: rateCard.mode.split(" ")[0],
+                            baseCharge: rates.baseCharge,
+                            additionalWeightCharge: rates.additionalWeightCharge,
+                            codCharge: isCOD ? rates.codCharge : 0,
+                            gst: rates.gst,
+                            total: rates.total,
+                            gstPercentage: rates.gstPercentage
+                        };
+                    } catch (error) {
+                        console.error(`Error calculating rates for ${rateCard.mode}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            // Filter out any failed calculations
+            const validRates = rates.filter(rate => rate !== null);
+            setCourierRates(validRates);
+        };
+
+        calculateRates();
+    }, [warehouse, destinationPincode, weight, isCOD]);
+
+    const handleCourierSelect = (rate: any) => {
+        setSelectedCourier(rate.courier);
+        setSelectedMode(rate.mode);
+    };
 
     const handleSubmit = () => {
-        if (!selectedWarehouse || !selectedRTOWarehouse || !selectedShippingMode || !selectedCourier) {
-            // Show error or handle validation
-            return;
-        }
+        if (selectedCourier && selectedMode) {
+            const selectedRate = courierRates.find(
+                rate => rate.courier === selectedCourier && rate.mode === selectedMode
+            );
 
-        onSubmit({
-            warehouse: selectedWarehouse,
-            rtoWarehouse: selectedRTOWarehouse,
-            shippingMode: selectedShippingMode,
-            courier: selectedCourier,
-        });
+            if (selectedRate) {
+                onSubmit({
+                    courier: selectedCourier,
+                    mode: selectedMode,
+                    charges: {
+                        shippingCharge: selectedRate.baseCharge + selectedRate.additionalWeightCharge,
+                        codCharge: selectedRate.codCharge,
+                        gst: selectedRate.gst,
+                        total: selectedRate.total
+                    }
+                });
+                onOpenChange(false);
+            }
+        }
     };
+
+    // Comment out loading state since we're using mock data
+    /* if (isLoading) {
+        return (
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="max-w-4xl">
+                    <div className="flex items-center justify-center p-8">
+                        Loading rate cards...
+                    </div>
+                </DialogContent>
+            </Dialog>
+        );
+    } */
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="max-w-4xl">
                 <DialogHeader>
-                    <DialogTitle>Shipping Options</DialogTitle>
-                    <DialogDescription>
-                        Select your preferred shipping options. These settings will be applied to your order.
-                    </DialogDescription>
+                    <DialogTitle>Select Shipping Options for Order #{singleOrderId}</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Select
-                            value={selectedWarehouse}
-                            onValueChange={setSelectedWarehouse}
-                        >
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select warehouse" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="warehouse1">Warehouse 1</SelectItem>
-                                <SelectItem value="warehouse2">Warehouse 2</SelectItem>
-                                {/* Add more warehouses as needed */}
-                            </SelectContent>
-                        </Select>
+                
+                <div className="space-y-6">
+                    {/* Warehouse Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Warehouse Pincode</label>
+                            <Input
+                                value={warehouse}
+                                onChange={(e) => setWarehouse(e.target.value)}
+                                placeholder="Enter warehouse pincode"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">RTO Warehouse Pincode</label>
+                            <Input
+                                value={rtoWarehouse}
+                                onChange={(e) => setRtoWarehouse(e.target.value)}
+                                placeholder="Enter RTO warehouse pincode"
+                            />
+                        </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Select
-                            value={selectedRTOWarehouse}
-                            onValueChange={setSelectedRTOWarehouse}
-                        >
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select RTO warehouse" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="rto1">RTO Warehouse 1</SelectItem>
-                                <SelectItem value="rto2">RTO Warehouse 2</SelectItem>
-                                {/* Add more RTO warehouses as needed */}
-                            </SelectContent>
-                        </Select>
+
+                    {/* Address Toggle */}
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="showAddress"
+                            checked={showAddress}
+                            onCheckedChange={(checked) => setShowAddress(checked as boolean)}
+                        />
+                        <label htmlFor="showAddress" className="text-sm font-medium">
+                            Show Address
+                        </label>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Select
-                            value={selectedShippingMode}
-                            onValueChange={setSelectedShippingMode}
-                        >
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select shipping mode" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="surface">Surface</SelectItem>
-                                <SelectItem value="air">Air</SelectItem>
-                            </SelectContent>
-                        </Select>
+
+                    {/* Zone and Weight Info */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm font-medium">Zone</p>
+                                <p className="text-sm text-gray-600 capitalize">
+                                    {currentZone ? currentZone.replace(/([A-Z])/g, ' $1').trim() : "Calculating..."}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium">Weight</p>
+                                <p className="text-sm text-gray-600">{weight} kg</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Select
-                            value={selectedCourier}
-                            onValueChange={setSelectedCourier}
+
+                    {/* Courier Rates Table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="px-4 py-2 text-left">Select</th>
+                                    <th className="px-4 py-2 text-left">Courier</th>
+                                    <th className="px-4 py-2 text-left">Mode</th>
+                                    {isCOD && <th className="px-4 py-2 text-right">COD</th>}
+                                    <th className="px-4 py-2 text-right">Shipping</th>
+                                    <th className="px-4 py-2 text-right">GST ({courierRates[0]?.gstPercentage || 18}%)</th>
+                                    <th className="px-4 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {courierRates.map((rate, index) => (
+                                    <tr
+                                        key={index}
+                                        className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} ${
+                                            selectedCourier === rate.courier && selectedMode === rate.mode
+                                                ? "bg-blue-50"
+                                                : ""
+                                        }`}
+                                    >
+                                        <td className="px-4 py-2">
+                                            <input
+                                                type="radio"
+                                                name="courier"
+                                                checked={selectedCourier === rate.courier && selectedMode === rate.mode}
+                                                onChange={() => handleCourierSelect(rate)}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2">{rate.courier}</td>
+                                        <td className="px-4 py-2">{rate.mode.split("-")[0].split(" ")[2]}</td>
+                                        {isCOD && <td className="px-4 py-2 text-right">₹{rate.codCharge.toFixed(2)}</td>}
+                                        <td className="px-4 py-2 text-right">₹{(rate.baseCharge + rate.additionalWeightCharge).toFixed(2)}</td>
+                                        <td className="px-4 py-2 text-right">₹{rate.gst.toFixed(2)}</td>
+                                        <td className="px-4 py-2 text-right font-medium">₹{rate.total.toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="flex justify-end">
+                        <button
+                            onClick={handleSubmit}
+                            disabled={!selectedCourier || !selectedMode}
+                            className="bg-primary text-white px-4 py-2 rounded-md disabled:opacity-50"
                         >
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select courier" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="delhivery">Delhivery</SelectItem>
-                                <SelectItem value="ekart">Ekart</SelectItem>
-                                {/* Add more couriers as needed */}
-                            </SelectContent>
-                        </Select>
+                            Confirm Selection
+                        </button>
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        Cancel
-                    </Button>
-                    <Button onClick={handleSubmit}>Save & Ship</Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

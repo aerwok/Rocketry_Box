@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useOrderData } from "@/hooks/useOrderData";
+import { Plus, Minus } from "lucide-react";
 
 interface OrderItem {
     sku: string;
@@ -192,12 +193,6 @@ const EditOrderPage = () => {
     }, [id, orders, form, navigate]);
 
     const addItem = () => {
-        const orderCreationType = form.getValues('orderCreationType');
-        if (orderCreationType === "Single") {
-            toast.error("Cannot add more items to a Single (Manual) Order");
-            return;
-        }
-        
         const newItems = [...items, { sku: "", name: "", quantity: 1, weight: 0, price: 0 }];
         setItems(newItems);
         form.setValue('items', newItems);
@@ -510,15 +505,21 @@ const EditOrderPage = () => {
                     <div className="border rounded-lg p-6 space-y-6">
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-semibold">Order Items</h2>
-                            {form.getValues('orderCreationType') === "Multiple" && (
-                                <Button type="button" onClick={addItem} variant="outline">
-                                    Add Item
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    type="button" 
+                                    onClick={addItem} 
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                >
+                                    <Plus className="h-4 w-4" />
                                 </Button>
-                            )}
+                            </div>
                         </div>
 
-                        {items.map((_, index) => (
-                            <div key={index} className="grid grid-cols-5 gap-4 items-end">
+                        {items.map((item, index) => (
+                            <div key={index} className="grid grid-cols-6 gap-4 items-end">
                                 <FormField
                                     control={form.control}
                                     name={`items.${index}.sku`}
@@ -526,7 +527,7 @@ const EditOrderPage = () => {
                                         <FormItem>
                                             <FormLabel>SKU*</FormLabel>
                                             <FormControl>
-                                                <Input {...field} placeholder="Autofill if exists" />
+                                                <Input {...field} defaultValue={item.sku} placeholder="Autofill if exists" />
                                             </FormControl>
                                         </FormItem>
                                     )}
@@ -539,7 +540,7 @@ const EditOrderPage = () => {
                                         <FormItem>
                                             <FormLabel>Item Name*</FormLabel>
                                             <FormControl>
-                                                <Input {...field} placeholder="Max. 100 Characters" />
+                                                <Input {...field} defaultValue={item.name} placeholder="Max. 100 Characters" />
                                             </FormControl>
                                         </FormItem>
                                     )}
@@ -555,6 +556,7 @@ const EditOrderPage = () => {
                                                 <Input 
                                                     type="number" 
                                                     {...field} 
+                                                    defaultValue={item.quantity}
                                                     onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
                                                 />
                                             </FormControl>
@@ -569,7 +571,7 @@ const EditOrderPage = () => {
                                         <FormItem>
                                             <FormLabel>Item Total Weight*</FormLabel>
                                             <FormControl>
-                                                <Input type="number" {...field} placeholder="Ex. 0.5kg" />
+                                                <Input type="number" {...field} defaultValue={item.weight} placeholder="Ex. 0.5kg" />
                                             </FormControl>
                                         </FormItem>
                                     )}
@@ -582,22 +584,21 @@ const EditOrderPage = () => {
                                         <FormItem>
                                             <FormLabel>Item Total Price* (₹)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" {...field} />
+                                                <Input type="number" {...field} defaultValue={item.price} />
                                             </FormControl>
                                         </FormItem>
                                     )}
                                 />
 
-                                {items.length > 1 && (
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        onClick={() => removeItem(index)}
-                                        className="mb-2"
-                                    >
-                                        Remove
-                                    </Button>
-                                )}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 mt-8"
+                                    onClick={() => removeItem(index)}
+                                >
+                                    <Minus className="h-4 w-4" />
+                                </Button>
                             </div>
                         ))}
                     </div>

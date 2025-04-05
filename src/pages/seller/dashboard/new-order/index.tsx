@@ -51,6 +51,13 @@ const SellerNewOrderPage = () => {
         };
     } | null>(null);
     const [orderId, setOrderId] = useState<string | null>(null);
+    const [items, setItems] = useState<Array<{
+        sku: string;
+        itemName: string;
+        quantity: number;
+        itemWeight: number;
+        itemPrice: number;
+    }>>([]);
 
     const form = useForm<NewOrderInput>({
         resolver: zodResolver(newOrderSchema),
@@ -69,6 +76,7 @@ const SellerNewOrderPage = () => {
             pincode: "",
             city: "",
             state: "",
+            items: [],
             sku: "",
             itemName: "",
             quantity: 1,
@@ -96,7 +104,7 @@ const SellerNewOrderPage = () => {
         const length = form.getValues('length');
         const width = form.getValues('width');
         const height = form.getValues('height');
-        const quantity = form.getValues('quantity');
+        const quantity = Number(form.getValues('quantity')) || 1;
         const itemWeight = form.getValues('itemWeight');
 
         // Calculate volumetric weight only if all dimensions are provided
@@ -123,10 +131,13 @@ const SellerNewOrderPage = () => {
 
     const onSubmit = async (data: NewOrderInput) => {
         try {
-            // In a real application, this would be an API call to save the order
+            if (data.items.length === 0) {
+                toast.error("Please add at least one item");
+                return;
+            }
+
             console.log("Form submitted successfully:", data);
             
-            // Simulate API call delay and set a dummy order ID
             setTimeout(() => {
                 const dummyOrderId = `ORD-${Date.now().toString().slice(-6)}`;
                 setOrderId(dummyOrderId);
@@ -135,20 +146,6 @@ const SellerNewOrderPage = () => {
         } catch (error) {
             console.error("Error submitting form:", error);
             toast.error("Failed to save order");
-        }
-    };
-
-    const handlePriceChange = (type: 'increase' | 'decrease') => {
-        const currentPrice = form.getValues('itemPrice') || 0;
-        const newPrice = type === 'increase' ? currentPrice + 100 : Math.max(0, currentPrice - 100);
-        form.setValue('itemPrice', newPrice);
-        
-        // If payment type is COD and collectible amount is not set, update it too
-        const paymentType = form.getValues('paymentType');
-        const collectibleAmount = form.getValues('collectibleAmount');
-        
-        if (paymentType === 'COD' && (collectibleAmount === undefined || collectibleAmount === 0)) {
-            form.setValue('collectibleAmount', newPrice);
         }
     };
 
@@ -208,21 +205,32 @@ const SellerNewOrderPage = () => {
     };
 
     const handleShipSelected = (options: {
-        warehouse: string;
-        rtoWarehouse: string;
-        shippingMode: string;
         courier: string;
+        mode: string;
+        charges: {
+            shippingCharge: number;
+            codCharge: number;
+            gst: number;
+            total: number;
+        };
     }) => {
         setSelectedShipping({
             courier: options.courier,
-            mode: options.shippingMode,
+            mode: options.mode,
             charges: {
-                shipping: 0,
-                cod: 0,
-                gst: 0,
-                total: 0
+                shipping: options.charges.shippingCharge,
+                cod: options.charges.codCharge,
+                gst: options.charges.gst,
+                total: options.charges.total
             }
         });
+
+        // Update form values with the charges
+        form.setValue('shippingCharge', options.charges.shippingCharge);
+        form.setValue('codCharge', options.charges.codCharge);
+        form.setValue('taxAmount', options.charges.gst);
+        form.setValue('totalAmount', options.charges.total);
+
         setShippingModalOpen(false);
     };
 
@@ -320,6 +328,43 @@ const SellerNewOrderPage = () => {
             console.error("Error downloading shipping label:", error);
             toast.error("Failed to download shipping label");
         }
+    };
+
+    const handleAddItem = () => {
+        const itemWeight = Number(form.getValues('itemWeight')) || 0;
+        const itemPrice = Number(form.getValues('itemPrice')) || 0;
+        const itemName = form.getValues('itemName');
+        
+        if (!itemName || itemWeight === 0 || itemPrice === 0) {
+            toast.error("Please fill in all item details");
+            return;
+        }
+
+        const newItem = {
+            sku: form.getValues('sku') || '',
+            itemName: itemName,
+            quantity: Number(form.getValues('quantity')) || 1,
+            itemWeight,
+            itemPrice
+        };
+        
+        // Update both the items state and form value
+        const updatedItems = [...items, newItem];
+        setItems(updatedItems);
+        form.setValue('items', updatedItems);
+        
+        // Reset item form fields
+        form.setValue('sku', '');
+        form.setValue('itemName', '');
+        form.setValue('quantity', 1);
+        form.setValue('itemWeight', undefined);
+        form.setValue('itemPrice', undefined);
+    };
+
+    const handleRemoveItem = (index: number) => {
+        const updatedItems = items.filter((_, i) => i !== index);
+        setItems(updatedItems);
+        form.setValue('items', updatedItems);
     };
 
     return (
@@ -613,6 +658,36 @@ const SellerNewOrderPage = () => {
                             </h2>
                         </div>
                         <div className="p-4 space-y-6">
+                            {/* Added Items List */}
+                            {items.length > 0 && (
+                                <div className="border rounded-lg p-4 mb-4">
+                                    <h3 className="text-sm font-medium mb-3">Added Items</h3>
+                                    <div className="space-y-3">
+                                        {items.map((item, index) => (
+                                            <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                                <div className="flex-1 grid grid-cols-5 gap-4">
+                                                    <span>{item.itemName}</span>
+                                                    <span>SKU: {item.sku}</span>
+                                                    <span>Qty: {item.quantity}</span>
+                                                    <span>Weight: {item.itemWeight}kg</span>
+                                                    <span>₹{item.itemPrice}</span>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleRemoveItem(index)}
+                                                    className="text-red-500 hover:text-red-700"
+                                                >
+                                                    <MinusIcon className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Item Input Form */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                                 <FormField
                                     control={form.control}
@@ -709,44 +784,46 @@ const SellerNewOrderPage = () => {
                                             <FormLabel className="text-sm font-medium">
                                                 Item Price (₹) *
                                             </FormLabel>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="Enter price"
-                                                        {...field}
-                                                        value={field.value || ''}
-                                                        onChange={(e) => {
-                                                            const value = e.target.value === '' ? undefined : Number(e.target.value);
-                                                            field.onChange(value);
-                                                        }}
-                                                    />
-                                                </FormControl>
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className="bg-red-500 text-white hover:bg-red-400 border-none hover:text-white"
-                                                        onClick={() => handlePriceChange('decrease')}
-                                                    >
-                                                        <MinusIcon className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className="bg-green-500 text-white hover:bg-green-400 border-none hover:text-white"
-                                                        onClick={() => handlePriceChange('increase')}
-                                                    >
-                                                        <PlusIcon className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Enter price"
+                                                    {...field}
+                                                    value={field.value || ''}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                        field.onChange(value);
+                                                    }}
+                                                    className="mt-1"
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+
+                            {/* Replace Add Item Button with Plus/Minus Buttons */}
+                            <div className="flex justify-end mt-4 gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handleRemoveItem(items.length - 1)}
+                                    disabled={items.length === 0}
+                                    className="bg-red-500 text-white hover:bg-red-600"
+                                >
+                                    <MinusIcon className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handleAddItem}
+                                    className="bg-green-500 text-white hover:bg-green-600"
+                                >
+                                    <PlusIcon className="h-4 w-4" />
+                                </Button>
                             </div>
 
                             {/* Collectible Amount Section */}
@@ -1089,8 +1166,8 @@ const SellerNewOrderPage = () => {
                         open={shippingModalOpen}
                         onOpenChange={(open) => setShippingModalOpen(open)}
                         onSubmit={handleShipSelected}
-                        orderCount={1}
-                        singleOrderId={null}
+                        singleOrderId={form.getValues('orderNumber') || 'New Order'}
+                        isCOD={form.getValues('paymentType') === 'COD'}
                     />
                 </form>
             </Form>

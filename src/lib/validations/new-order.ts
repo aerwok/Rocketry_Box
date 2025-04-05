@@ -1,5 +1,13 @@
 import * as z from "zod";
 
+const itemSchema = z.object({
+    sku: z.string().optional().or(z.literal("")),
+    itemName: z.string().min(1, "Item name is required"),
+    quantity: z.number().min(1, "Quantity must be at least 1"),
+    itemWeight: z.number().min(0.1, "Weight must be at least 0.1"),
+    itemPrice: z.number().min(1, "Price must be at least 1"),
+});
+
 export const newOrderSchema = z.object({
     orderNumber: z.string().min(1, "Order number is required"),
     shipmentType: z.enum(["FORWARD", "REVERSE"]),
@@ -17,12 +25,15 @@ export const newOrderSchema = z.object({
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
 
-    // Item Details
+    // Item Details - now supports multiple items
+    items: z.array(itemSchema),
+
+    // Form fields for current item being added
     sku: z.string().optional().or(z.literal("")),
-    itemName: z.string().min(1, "Item name is required"),
-    quantity: z.number().min(1, "Quantity must be at least 1"),
-    itemWeight: z.number().min(0.1, "Weight must be at least 0.1").optional(),
-    itemPrice: z.number().min(1, "Price must be at least 1"),
+    itemName: z.string().optional().or(z.literal("")),
+    quantity: z.number().optional(),
+    itemWeight: z.number().optional(),
+    itemPrice: z.number().optional(),
 
     // Charges
     shippingCharge: z.number().min(0),
