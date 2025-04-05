@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useState } from "react";
 import {
     Dialog,
@@ -33,9 +32,7 @@ export interface ShippingOptionsModalProps {
 export function ShippingOptionsModal({
     open,
     onOpenChange,
-    onSubmit,
-    orderCount = 1,
-    singleOrderId = null,
+    onSubmit
 }: ShippingOptionsModalProps) {
     const [selectedWarehouse, setSelectedWarehouse] = useState<string>("");
     const [selectedRTOWarehouse, setSelectedRTOWarehouse] = useState<string>("");

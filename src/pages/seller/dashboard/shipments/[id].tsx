@@ -1,26 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
-import { motion } from "framer-motion";
-import { ArrowLeftIcon, CopyIcon, ExternalLinkIcon, PackageIcon, ShoppingBagIcon } from "lucide-react";
+import { ArrowLeftIcon, CopyIcon, ExternalLinkIcon} from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { z } from "zod";
 import TrackingResult from "@/components/shared/tracking-result";
 import { TrackingInfo } from "@/components/shared/track-order-form";
 import { fetchTrackingInfo } from "@/lib/api/tracking";
-
-const ratingSchema = z.object({
-    rating: z.number().min(1, "Please select a rating").max(10),
-    remarks: z.string().max(250, "Remarks must be less than 250 characters"),
-});
-
-type RatingFormData = z.infer<typeof ratingSchema>;
 
 interface OrderDetails {
     orderNo: string;
@@ -79,21 +65,10 @@ interface OrderDetails {
 const SellerShipmentDetailsPage = () => {
 
     const { id } = useParams();
-
-    const [selectedRating, setSelectedRating] = useState<number | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [isLoadingTracking, setIsLoadingTracking] = useState(false);
     const [trackingInfo, setTrackingInfo] = useState<TrackingInfo | null>(null);
     const [trackingError, setTrackingError] = useState<string | null>(null);
     const [showFullTracking, setShowFullTracking] = useState(false);
-
-    const form = useForm<RatingFormData>({
-        resolver: zodResolver(ratingSchema),
-        defaultValues: {
-            rating: 0,
-            remarks: "",
-        },
-    });
 
     // Mock order details data
     const orderDetails: OrderDetails = {
