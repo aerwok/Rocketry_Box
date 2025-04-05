@@ -13,24 +13,24 @@ const Footer = () => {
             { to: "/pricing", label: "Coupons" }
         ],
         features: [
-            { to: "/features", label: "Cash on Delivery" },
-            { to: "/features", label: "Serviceable Pin Codes" },
-            { to: "/features", label: "API Integration" },
-            { to: "/features", label: "Multiple Pickup Locations" },
-            { to: "/features", label: "Print Shipping Labels" },
-            { to: "/features", label: "Email & SMS Notifications" },
+            { to: "/features/cod", label: "Cash on Delivery" },
+            { to: "/features/pincodes", label: "Serviceable Pin Codes" },
+            { to: "/features/api", label: "API Integration" },
+            { to: "/features/pickup", label: "Multiple Pickup Locations" },
+            { to: "/features/labels", label: "Print Shipping Labels" },
+            { to: "/features/notifications", label: "Email & SMS Notifications" },
             { to: "/features", label: "All Features" }
         ],
         partner: [
-            { to: "/contact", label: "Carrier" },
+            { to: "/partner/carrier", label: "Carrier" },
             { to: "https://www.aerwok.com/", label: "Technology" },
-            { to: "/contact", label: "Become a Partner" }
+            { to: "/partner/join", label: "Become a Partner" }
         ],
         support: [
             { to: "/pricing", label: "Pricing" },
             { to: "/faqs", label: "FAQs" },
-            { to: "/contact", label: "Contact us" },
-            { to: "/contact", label: "Help Center" },
+            { to: "/contact/support", label: "Contact us" },
+            { to: "/contact/help", label: "Help Center" },
             { to: "/policy", label: "Policy" }
         ]
     };
@@ -109,7 +109,7 @@ const Footer = () => {
                         <ul className="space-y-2">
                             {footerLinks.resources.map((link, index) => (
                                 <motion.li
-                                    key={link.to}
+                                    key={`${link.to}-${link.label}`}
                                     initial={{ opacity: 0, x: -20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     viewport={{ once: true }}
@@ -137,7 +137,7 @@ const Footer = () => {
                         <ul className="space-y-2">
                             {footerLinks.features.map((link, index) => (
                                 <motion.li
-                                    key={link.to}
+                                    key={`${link.to}-${link.label}`}
                                     initial={{ opacity: 0, x: -20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     viewport={{ once: true }}
@@ -165,7 +165,7 @@ const Footer = () => {
                         <ul className="space-y-2">
                             {footerLinks.partner.map((link, index) => (
                                 <motion.li
-                                    key={link.to}
+                                    key={`${link.to}-${link.label}`}
                                     initial={{ opacity: 0, x: -20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     viewport={{ once: true }}
@@ -193,7 +193,7 @@ const Footer = () => {
                         <ul className="space-y-2">
                             {footerLinks.support.map((link, index) => (
                                 <motion.li
-                                    key={link.to}
+                                    key={`${link.to}-${link.label}`}
                                     initial={{ opacity: 0, x: -20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     viewport={{ once: true }}
