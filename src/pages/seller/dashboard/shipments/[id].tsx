@@ -214,25 +214,6 @@ const SellerShipmentDetailsPage = () => {
         toast.success("The text has been copied to your clipboard.");
     };
 
-    const onSubmit = async (data: RatingFormData) => {
-        try {
-            setIsSubmitting(true);
-            // TODO: Replace with your actual API call
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
-            console.log("Submitted data:", data);
-
-            toast.success("Thank you for your feedback!");
-
-            // Reset form
-            form.reset();
-            setSelectedRating(null);
-        } catch (error) {
-            toast.error("Failed to submit rating. Please try again.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     return (
         <div className="space-y-6">
             <Link 

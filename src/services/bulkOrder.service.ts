@@ -62,8 +62,6 @@ export interface BulkOrderStatus {
 
 class BulkOrderService extends ApiService {
     private static instance: BulkOrderService;
-    private readonly CACHE_KEY = 'bulk_order_status';
-    private readonly CACHE_DURATION = 5000; // 5 seconds
     private readonly MAX_RETRIES = 3;
     private readonly RETRY_DELAY = 1000;
 

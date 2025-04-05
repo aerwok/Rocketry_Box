@@ -119,10 +119,6 @@ export class MockApiService {
    * Simulate fetching user profile data
    */
   static async getUserProfile(role: string): Promise<ApiResponse<any>> {
-    interface ProfileData {
-      [key: string]: any;
-    }
-    
     const mockProfiles: Record<string, any> = {
       customer: {
         id: "cust1",

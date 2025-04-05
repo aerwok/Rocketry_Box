@@ -35,7 +35,6 @@ import {
     MessageSquare,
     HelpCircle,
     Clock,
-    CheckCircle2,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";

@@ -4,14 +4,6 @@ export const MIN_RECHARGE_AMOUNT = 100; // ₹100
 export const VALID_PAYMENT_METHODS = ['remittance', 'onlineBanking'] as const;
 
 // Validation functions
-export const validateAmount = (amount: number): boolean => {
-    return amount >= MIN_RECHARGE_AMOUNT && amount <= MAX_RECHARGE_AMOUNT;
-};
-
-export const validatePaymentMethod = (method: string): boolean => {
-    return VALID_PAYMENT_METHODS.includes(method as typeof VALID_PAYMENT_METHODS[number]);
-};
-
 export const validateTransactionId = (transactionId: string): boolean => {
     // UUID v4 format
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

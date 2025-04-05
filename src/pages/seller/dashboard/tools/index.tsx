@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { HandCoinsIcon, HeadphonesIcon, ScanBarcodeIcon, Warehouse, Calculator, FileText, Package, Truck, Settings, BarChart, Search, ClipboardList, FileSpreadsheet } from "lucide-react";
+import { HeadphonesIcon, Warehouse, Search, Package, FileSpreadsheet, Truck, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface ToolCard {
