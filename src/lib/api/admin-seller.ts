@@ -297,7 +297,6 @@ export const updateDocumentStatus = async (
   sellerId: string,
   documentType: "pan" | "gst" | "identity" | "bankDetails",
   status: "Verified" | "Rejected",
-  remarks?: string
 ): Promise<void> => {
   try {
     // Simulate API delay

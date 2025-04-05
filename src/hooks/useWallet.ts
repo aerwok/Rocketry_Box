@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { walletService, WalletBalance, WalletTransaction, WalletHistoryResponse } from '@/services/wallet.service';
+import { walletService, WalletBalance, WalletTransaction } from '@/services/wallet.service';
 import { toast } from 'sonner';
 import { ERROR_MESSAGES } from '@/utils/validation';
 

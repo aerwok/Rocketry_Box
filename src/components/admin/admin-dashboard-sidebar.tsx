@@ -2,7 +2,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/com
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/store/use-sidebar-store";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, UsersIcon, HeartHandshakeIcon, PackageIcon, ClipboardListIcon, SettingsIcon, AlertTriangleIcon, TruckIcon, ChevronDown, Store, User, Users2, MessageSquare, AlertCircle, WalletIcon } from "lucide-react";
+import { LayoutDashboard, UsersIcon, HeartHandshakeIcon, PackageIcon, ClipboardListIcon, SettingsIcon, AlertTriangleIcon, TruckIcon, Store, User, MessageSquare, AlertCircle, WalletIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useState } from "react";

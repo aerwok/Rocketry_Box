@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { profileService, ProfileData } from '@/services/profile.service';
-import { toast } from 'sonner';
 
 interface UseProfileReturn {
     profile: ProfileData | null;

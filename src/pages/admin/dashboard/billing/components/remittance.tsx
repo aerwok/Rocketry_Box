@@ -18,14 +18,11 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+    DialogTitle
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface RemittanceTransaction {
@@ -72,11 +69,6 @@ const Remittance = () => {
         from: new Date(2024, 2, 20),
         to: new Date(2024, 2, 26),
     });
-
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
-    const [paymentMethod, setPaymentMethod] = useState<string>("");
-    const [notes, setNotes] = useState<string>("");
 
     const [isInitiateDialogOpen, setIsInitiateDialogOpen] = useState(false);
     const [formData, setFormData] = useState({
@@ -306,9 +298,6 @@ const Remittance = () => {
             "Approval By"
         ];
 
-        const rowIndex = parseInt(transaction.id) - 1;
-        const dataIndex = (rowIndex >= 0 && rowIndex < 3) ? rowIndex : 0;
-
         const rowData = [
             transaction.transactionId,
             transaction.transactionType,
@@ -353,28 +342,6 @@ const Remittance = () => {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, `Transaction ${transaction.transactionId}`);
         XLSX.writeFile(wb, `remittance-${transaction.transactionId}-${new Date().toISOString().slice(0, 10)}.xlsx`);
-    };
-
-    const handleInitiateRemittance = () => {
-        if (selectedSellers.length === 0) {
-            toast.error("Please select at least one seller");
-            return;
-        }
-
-        if (!paymentMethod) {
-            toast.error("Please select a payment method");
-            return;
-        }
-
-        // Here you would typically make an API call to initiate the remittance
-        // For now, we'll just show a success message
-        toast.success("Remittance initiated successfully");
-        setIsDialogOpen(false);
-        
-        // Reset form
-        setSelectedSellers([]);
-        setPaymentMethod("");
-        setNotes("");
     };
 
     const handleInputChange = (field: string, value: string) => {

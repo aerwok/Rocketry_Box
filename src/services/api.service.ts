@@ -1,4 +1,3 @@
-import api from '@/config/api.config';
 import { secureStorage } from '@/utils/secureStorage';
 import { ERROR_MESSAGES } from '@/utils/validation';
 

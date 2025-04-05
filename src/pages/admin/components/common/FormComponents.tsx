@@ -78,7 +78,7 @@ interface FormSelectProps {
 }
 
 export const FormSelect = forwardRef<HTMLDivElement, FormSelectProps>(
-    ({ label, value, onValueChange, options, placeholder = "Select an option", error, className }, ref) => {
+    ({ label, value, onValueChange, options, placeholder = "Select an option", error, className }) => {
         return (
             <FormField label={label} error={error} className={className}>
                 <Select value={value} onValueChange={onValueChange}>

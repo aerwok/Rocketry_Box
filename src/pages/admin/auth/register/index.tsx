@@ -2,13 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Check, ChevronsUpDown, EyeIcon, EyeOffIcon, UserIcon, FileText, UploadCloud, Loader2, AlertCircle, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { CalendarIcon, EyeIcon, EyeOffIcon, UserIcon, FileText, UploadCloud, Loader2, AlertCircle, X } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, Navigate } from "react-router-dom";
 import { adminRegisterSchema, type AdminRegisterInput } from "@/lib/validations/admin";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -563,7 +561,7 @@ const AdminRegisterPage = () => {
                                             <FormField
                                                 control={form.control}
                                                 name="isSuperAdmin"
-                                                render={({ field }) => (
+                                                render={() => (
                                                     <FormItem className="flex flex-row items-center justify-between rounded-md border border-purple-200 bg-purple-50 p-4 hover:bg-purple-100 transition-colors">
                                                         <div className="space-y-0.5">
                                                             <FormLabel className="text-purple-800 font-medium cursor-pointer" onClick={() => handleSuperAdminToggle(!isSuperAdmin)}>
@@ -725,22 +723,6 @@ const AdminRegisterPage = () => {
             </div>
         </div>
     );
-};
-
-// This is a fallback redirect component that ensures compatibility
-// between local development and Vercel deployment for admin registration
-const AdminRegisterRedirect = () => {
-    useEffect(() => {
-        // Try to clear the localStorage flag if it exists
-        try {
-            localStorage.removeItem('adminRegistrationRedirect');
-        } catch (error) {
-            console.error('Failed to clear redirect flag', error);
-        }
-    }, []);
-
-    // Simply redirect to the main admin registration page
-    return <Navigate to="/admin/register" replace />;
 };
 
 export default AdminRegisterPage; 

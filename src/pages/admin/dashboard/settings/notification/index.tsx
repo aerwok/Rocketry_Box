@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { emailTemplateSchema, type EmailTemplateValues, smsTemplateSchema, type SMSTemplateValues, emailSettingsSchema, type EmailSettingsValues, smsSettingsSchema, type SMSSettingsValues, systemConfigSchema, type SystemConfigValues } from "@/lib/validations/notification";
+import { emailTemplateSchema, type EmailTemplateValues, smsTemplateSchema, type SMSTemplateValues, emailSettingsSchema, type EmailSettingsValues, smsSettingsSchema, type SMSSettingsValues, type SystemConfigValues } from "@/lib/validations/notification";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,15 +15,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const TEMPLATE_VARIABLES = [
-    { code: "{{fullname}}", description: "Full Name of User" },
-    { code: "{{username}}", description: "Username of User" },
-    { code: "{{message}}", description: "Message" },
-    { code: "{{site_name}}", description: "Name of your site" },
-    { code: "{{site_currency}}", description: "Currency of your site" },
-    { code: "{{currency_symbol}}", description: "Symbol of currency" },
-];
-
 const EMAIL_METHODS = [
     { value: "php", label: "PHP Mail" },
     { value: "smtp", label: "SMTP" },
@@ -31,7 +22,6 @@ const EMAIL_METHODS = [
     { value: "mailjet", label: "Mailjet" },
 ] as const;
 
-type EmailMethod = typeof EMAIL_METHODS[number]["value"];
 
 const SMS_METHODS = [
     { value: "nexmo", label: "Nexmo" },
@@ -40,7 +30,6 @@ const SMS_METHODS = [
     { value: "Infobip", label: "Infobip" },
 ] as const;
 
-type SMSMethod = typeof SMS_METHODS[number]["value"];
 
 const NOTIFICATION_TEMPLATES = [
     {
@@ -71,7 +60,6 @@ const NOTIFICATION_TEMPLATES = [
 
 const NotificationSettings = () => {
     const [activeTemplate, setActiveTemplate] = useState<"email" | "sms" | null>("email");
-    const [selectedEmailMethod, setSelectedEmailMethod] = useState<EmailMethod>("php");
     const [testMailOpen, setTestMailOpen] = useState(false);
     const [testSMSOpen, setTestSMSOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("global");
@@ -188,7 +176,7 @@ const NotificationSettings = () => {
         console.log(data);
     };
 
-    const onTestMailSubmit = (data: { email: string }) => {
+    const onTestMailSubmit = () => {
         toast.success("Test email sent successfully");
         setTestMailOpen(false);
         testMailForm.reset();
@@ -204,7 +192,7 @@ const NotificationSettings = () => {
         console.log(data);
     };
 
-    const onTestSMSSubmit = (data: { mobile: string }) => {
+    const onTestSMSSubmit = () => {
         toast.success("Test SMS sent successfully");
         setTestSMSOpen(false);
         testSMSForm.reset();

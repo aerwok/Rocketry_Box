@@ -5,7 +5,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { X, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import { useState } from "react";
 
 interface BulkNDRUploadModalProps {

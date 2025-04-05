@@ -17,7 +17,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
     Tooltip,
     TooltipContent,
@@ -26,7 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { NewOrderInput, newOrderSchema } from "@/lib/validations/new-order";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BoxesIcon, Info, MinusIcon, PlusIcon, Save, Truck, Package, CreditCard, MapPin, User, Calculator, Printer, FileText } from "lucide-react";
+import { BoxesIcon, Info, MinusIcon, PlusIcon, Save, Truck, Package, CreditCard, MapPin, Calculator, Printer, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from 'react-router-dom';
@@ -37,8 +36,6 @@ import { Label } from "@/components/ui/label";
 const SellerNewOrderPage = () => {
     const navigate = useNavigate();
     const [sameAsShipping, setSameAsShipping] = useState<boolean>(false);
-    const [isDifferentAmount, setIsDifferentAmount] = useState<boolean>(false);
-    const [file, setFile] = useState<File | null>(null);
     const [shippingModalOpen, setShippingModalOpen] = useState<boolean>(false);
     const [calculatedWeight, setCalculatedWeight] = useState<number>(0);
     const [volumetricWeight, setVolumetricWeight] = useState<number>(0);
@@ -53,11 +50,6 @@ const SellerNewOrderPage = () => {
             total: number;
         };
     } | null>(null);
-    const [sellerAddress, setSellerAddress] = useState({
-        pincode: "201307", // Default seller pincode
-        city: "Noida",
-        state: "Uttar Pradesh"
-    });
     const [orderId, setOrderId] = useState<string | null>(null);
 
     const form = useForm<NewOrderInput>({
@@ -160,12 +152,6 @@ const SellerNewOrderPage = () => {
         }
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            setFile(event.target.files[0]);
-        }
-    };
-
     const handleCheckRates = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
 
@@ -256,15 +242,6 @@ const SellerNewOrderPage = () => {
         }
 
         try {
-            const orderData = form.getValues();
-            const shipmentData = {
-                ...orderData,
-                courier: selectedShipping.courier,
-                shippingMode: selectedShipping.mode,
-                weight: calculatedWeight,
-                sellerAddress,
-                orderStatus: "SHIPPED"
-            };
 
             // Make API call to create shipment
             // const response = await createShipment(shipmentData);

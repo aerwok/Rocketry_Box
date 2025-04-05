@@ -11,16 +11,12 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, Download, Filter, Search, Tag, Truck, X } from "lucide-react";
+import { ArrowUpDown, Download, Truck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { ShippingOptionsModal } from "@/components/seller/shipping-options-modal";
 import { useOrderData } from "@/hooks/useOrderData";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -224,7 +220,7 @@ const cancelledData = allData.filter(item => item.status === "cancelled");
 const shipmentCancelledData = allData.filter(item => item.status === "shipment-cancelled");
 const errorData = allData.filter(item => item.status === "error");
 
-const OrdersTable = ({ data, onStatusUpdate, onBulkStatusUpdate, dateRange }: { 
+const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: { 
     data: OrderData[], 
     onStatusUpdate: (orderId: string, status: OrderData['status']) => void,
     onBulkStatusUpdate: (orderIds: string[], status: OrderData['status']) => void,
@@ -341,28 +337,6 @@ const OrdersTable = ({ data, onStatusUpdate, onBulkStatusUpdate, dateRange }: {
                 }
             }
             return { key, direction: 'asc' };
-        });
-    };
-
-    const handleStatusUpdate = (orderId: string, status: OrderData['status']) => {
-        onStatusUpdate(orderId, status);
-    };
-
-    const handleBulkStatusUpdate = (status: OrderData['status']) => {
-        if (selectedOrders.length === 0) {
-            toast.error('No orders selected');
-            return;
-        }
-        onBulkStatusUpdate(selectedOrders, status);
-        setSelectedOrders([]);
-    };
-
-    const handleSelectOrder = (orderId: string) => {
-        setSelectedOrders(prev => {
-            if (prev.includes(orderId)) {
-                return prev.filter(id => id !== orderId);
-            }
-            return [...prev, orderId];
         });
     };
 
@@ -583,14 +557,6 @@ const OrdersTable = ({ data, onStatusUpdate, onBulkStatusUpdate, dateRange }: {
         setDisplayData(data);
         setFilterDialogOpen(false);
         toast.success("Filters cleared");
-    };
-
-    const handleAddTag = () => {
-        if (selectedOrders.length === 0) {
-            toast.error("Please select orders to add tag");
-            return;
-        }
-        setAddTagModalOpen(true);
     };
 
     const handleShipSingle = (orderId: string) => {
@@ -1024,8 +990,9 @@ const OrdersTable = ({ data, onStatusUpdate, onBulkStatusUpdate, dateRange }: {
                                     <input
                                         type="checkbox"
                                         className="rounded border-gray-300"
-                                        checked={selectedOrders.includes(order.orderId)}
-                                        onChange={(e) => handleSelectOrder(order.orderId)}
+                                        checked={selectedOrders.includes(order.orderId)
+
+                                        }
                                     />
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
@@ -1105,11 +1072,8 @@ const SellerOrdersPage = () => {
         loading,
         error,
         orders,
-        stats,
-        updateFilters,
         updateOrderStatus,
         bulkUpdateOrderStatus,
-        getFilteredOrders,
         refresh
     } = useOrderData();
 

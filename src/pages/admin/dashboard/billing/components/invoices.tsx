@@ -6,7 +6,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { ArrowUpDown, FileText, DownloadIcon, EyeIcon, DollarSign, Calendar, Search } from "lucide-react";
+import { ArrowUpDown, FileText, DownloadIcon, EyeIcon, Search } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

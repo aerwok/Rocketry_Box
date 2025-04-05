@@ -6,11 +6,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { PolicyValues, policySchema } from "@/lib/validations/policy";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const PolicyEditPage = () => {
-
-    const { slug } = useParams();
     
     const navigate = useNavigate();
 

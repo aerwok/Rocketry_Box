@@ -3,10 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-    Building2, 
     Mail, 
     Phone, 
-    MapPin, 
     Calendar, 
     ClipboardList, 
     User2, 
@@ -15,7 +13,6 @@ import {
     IdCard,
     UserCog,
     Lock,
-    ShieldCheck,
     Clock
 } from "lucide-react";
 

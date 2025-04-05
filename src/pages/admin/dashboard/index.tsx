@@ -135,7 +135,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
         });
     };
 
-    const getSortIcon = (key: keyof Shipment) => {
+    const getSortIcon = () => {
         return <ArrowUpDown className="size-3" />;
     };
 
@@ -152,7 +152,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('orderId')}
                             >
                                 Order ID
-                                {getSortIcon('orderId')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[100px] whitespace-nowrap">
@@ -161,7 +161,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('date')}
                             >
                                 Date
-                                {getSortIcon('date')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[120px] whitespace-nowrap">
@@ -170,7 +170,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('seller')}
                             >
                                 Seller
-                                {getSortIcon('seller')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[150px] whitespace-nowrap">
@@ -179,7 +179,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('product')}
                             >
                                 Product
-                                {getSortIcon('product')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[80px] whitespace-nowrap">
@@ -188,7 +188,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('weight')}
                             >
                                 Weight
-                                {getSortIcon('weight')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[120px] whitespace-nowrap">
@@ -197,7 +197,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('payment')}
                             >
                                 Payment
-                                {getSortIcon('payment')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[120px] whitespace-nowrap">
@@ -206,7 +206,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('customer')}
                             >
                                 Customer
-                                {getSortIcon('customer')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[180px] whitespace-nowrap">
@@ -215,7 +215,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('carrier')}
                             >
                                 Carrier
-                                {getSortIcon('carrier')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[100px] whitespace-nowrap">
@@ -224,7 +224,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('status')}
                             >
                                 Status
-                                {getSortIcon('status')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                         <TableHead className="min-w-[90px] whitespace-nowrap">
@@ -233,7 +233,7 @@ const ShipmentsTable = ({ data }: { data: Shipment[] }) => {
                                 onClick={() => handleSort('fulfilled')}
                             >
                                 Fulfilled
-                                {getSortIcon('fulfilled')}
+                                {getSortIcon()}
                             </div>
                         </TableHead>
                     </TableRow>

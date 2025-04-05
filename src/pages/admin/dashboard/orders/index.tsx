@@ -15,7 +15,6 @@ import { Link } from "react-router-dom";
 import AdminShippingOptionsModal from "@/components/admin/shipping-options-modal";
 import DateRangePicker from "@/components/admin/date-range-picker";
 import { DateRange } from "react-day-picker";
-import { format } from "date-fns";
 
 type OrderStatus = "Active" | "Inactive";
 type TabType = "seller" | "customer";
@@ -57,20 +56,6 @@ const getStatusStyle = (status: OrderStatus) => {
     }[status];
 };
 
-const getPaymentStatusStyle = (status: string) => {
-    const styles = {
-        "Paid": "bg-green-100 text-green-800",
-        "Pending": "bg-yellow-100 text-yellow-800",
-        "Failed": "bg-red-100 text-red-800"
-    };
-    return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800";
-};
-
-type SortConfig = {
-    key: keyof Order | null;
-    direction: "asc" | "desc" | null;
-};
-
 const AdminOrdersPage = () => {
 
     const [activeTab, setActiveTab] = useState<TabType>("seller");
@@ -87,8 +72,8 @@ const AdminOrdersPage = () => {
     const [error, setError] = useState<string | null>(null);
     
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [totalItems, setTotalItems] = useState(0);
+    const [pageSize] = useState(10);
+    const [totalItems] = useState(0);
 
     const form = useForm<WarehouseBookingValues>({
         resolver: zodResolver(warehouseBookingSchema),
@@ -167,7 +152,7 @@ const AdminOrdersPage = () => {
         setShippingModalOpen(true);
     };
 
-    const handleShipSelected = (courier: string, warehouse: string, mode: string) => {
+    const handleShipSelected = () => {
         toast.success("Order shipped successfully");
         setShippingModalOpen(false);
         setSelectedOrderForShipping("");

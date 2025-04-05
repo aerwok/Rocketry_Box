@@ -1,5 +1,4 @@
 import AdminDashboardSidebar from '@/components/admin/admin-dashboard-sidebar';
-import AdminNavbar from "@/components/admin/admin-navbar";
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/store/use-sidebar-store';
 import { Outlet } from 'react-router-dom';

@@ -32,13 +32,6 @@ interface ReattemptOrderModalProps {
     } | null;
 }
 
-const reattemptReasons = [
-    "Customer Not Available",
-    "Address Not Found",
-    "Customer Refused Delivery",
-    "Incorrect Contact Information",
-    "Other"
-];
 
 const ReattemptOrderModal = ({ isOpen, onClose, orderId, currentAddress }: ReattemptOrderModalProps) => {
     const form = useForm<ReattemptOrderInput>({

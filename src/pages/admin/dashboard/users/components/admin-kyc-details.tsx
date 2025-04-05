@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRightIcon, CheckIcon, FileIcon, Upload, XIcon } from "lucide-react";
+import { CheckIcon, FileIcon, Upload, XIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { z } from "zod";

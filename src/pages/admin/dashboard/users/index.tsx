@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchSellers, updateSellerStatus, SellerUser } from "@/lib/api/admin-seller";
 
-type UserRole = "User" | "Admin" | "Manager";
 type UserStatus = "Active" | "Inactive" | "Pending" | "Suspended";
 type TabType = "seller" | "customers";
 type SortOrder = "asc" | "desc";
@@ -126,7 +125,7 @@ const AdminUsersPage = () => {
     const [sellers, setSellers] = useState<SellerUser[]>([]);
     const [customers, setCustomers] = useState<User[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize] = useState(10);
     const [totalSellers, setTotalSellers] = useState(0);
     const [totalCustomers, setTotalCustomers] = useState(0);
 

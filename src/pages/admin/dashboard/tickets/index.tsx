@@ -42,13 +42,13 @@ const TicketsTable = ({ data }: { data: Ticket[] }) => {
 
     const [tickets, setTickets] = useState<Ticket[]>(data);
     const [filteredTickets, setFilteredTickets] = useState<Ticket[]>(data);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
     // Pagination
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize] = useState(10);
     const [totalItems, setTotalItems] = useState(0);
 
     // Fetch data

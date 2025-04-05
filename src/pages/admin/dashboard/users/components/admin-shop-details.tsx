@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ShopDetailsInput, shopDetailsSchema } from "@/lib/validations/admin-user";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRightIcon, Upload, LinkIcon } from "lucide-react";
+import { Upload, LinkIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

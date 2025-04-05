@@ -7,7 +7,6 @@ import { LoadingState } from "../../../components/common/LoadingState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useDashboard } from "../../../hooks/useDashboard";
 import { Order, Shipment } from "../../../types/dashboard";
-import { format } from "date-fns";
 
 const orderColumns: Column<Order>[] = [
     { key: "id", header: "Order ID", sortable: true },

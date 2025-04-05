@@ -6,7 +6,6 @@ import { ArrowLeftIcon, CopyIcon, PackageIcon, ShoppingBagIcon, Truck, Tag } fro
 import { motion } from "framer-motion";
 import { Link, useParams } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-import { useState } from "react";
 import { toast } from "sonner";
 
 interface OrderDetails {

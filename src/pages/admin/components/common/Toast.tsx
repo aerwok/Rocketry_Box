@@ -2,8 +2,6 @@ import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import { ReactElement } from "react";
 
-type ToastType = "success" | "error" | "warning" | "info";
-
 interface ToastOptions {
     title?: string;
     description?: string;
@@ -44,7 +42,7 @@ export const toast = {
         const Icon = icons.success;
 
         return sonnerToast.custom(
-            (id) => createToastContent(Icon, colors.success, title, description),
+            () => createToastContent(Icon, colors.success, title, description),
             {
                 duration,
                 action: action ? {
@@ -60,7 +58,7 @@ export const toast = {
         const Icon = icons.error;
 
         return sonnerToast.custom(
-            (id) => createToastContent(Icon, colors.error, title, description),
+            () => createToastContent(Icon, colors.error, title, description),
             {
                 duration,
                 action: action ? {
@@ -76,7 +74,7 @@ export const toast = {
         const Icon = icons.warning;
 
         return sonnerToast.custom(
-            (id) => createToastContent(Icon, colors.warning, title, description),
+            () => createToastContent(Icon, colors.warning, title, description),
             {
                 duration,
                 action: action ? {
@@ -92,7 +90,7 @@ export const toast = {
         const Icon = icons.info;
 
         return sonnerToast.custom(
-            (id) => createToastContent(Icon, colors.info, title, description),
+            () => createToastContent(Icon, colors.info, title, description),
             {
                 duration,
                 action: action ? {

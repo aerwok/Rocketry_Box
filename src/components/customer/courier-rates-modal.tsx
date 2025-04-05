@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useFormContext } from "react-hook-form";
 import { type CreateOrderInput } from "@/lib/validations/order";
 import { Button } from "@/components/ui/button";
-import { ChevronsUpDownIcon, X } from "lucide-react";
+import { ChevronsUpDownIcon} from "lucide-react";
 import { useState } from "react";
 
 interface CourierRate {

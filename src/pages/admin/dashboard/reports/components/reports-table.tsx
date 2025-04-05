@@ -34,13 +34,13 @@ const ReportsTable = () => {
     const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
     const [data, setData] = useState<TableData[]>(TABLE_DATA);
     const [filteredData, setFilteredData] = useState<TableData[]>(TABLE_DATA);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
     // Pagination
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize] = useState(10);
     const [totalItems, setTotalItems] = useState(0);
 
     // Fetch data

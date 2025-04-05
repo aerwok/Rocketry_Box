@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import MDEditor from "@uiw/react-md-editor";
-import { Upload, X, Calendar, Code, BarChart } from "lucide-react";
+import { Upload, X, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -142,7 +142,7 @@ const MaintenanceSettings = () => {
                                     <FormField
                                         control={form.control}
                                         name="image"
-                                        render={({ field }) => (
+                                        render={() => (
                                             <FormItem>
                                                 <FormControl>
                                                     <div className="relative">

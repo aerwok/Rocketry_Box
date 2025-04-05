@@ -6,30 +6,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { ArrowUpDown, Truck, DownloadIcon, EyeIcon, Edit, Search, Calculator, Download, Upload, Trash2, Eye, Plus } from "lucide-react";
+import { Calculator, Download, Upload, Trash2, Eye, Plus } from "lucide-react";
 import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import DateRangePicker from "@/components/admin/date-range-picker";
-import { DateRange } from "react-day-picker";
 import * as XLSX from 'xlsx';
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-interface Rate {
-    id: string;
-    serviceType: string;
-    from: string;
-    to: string;
-    weight: string;
-    baseRate: string;
-    additionalRate: string;
-    transitTime: string;
-    effectiveDate: string;
-    status: "active" | "inactive" | "expiring";
-}
 
 interface UploadedRateCard {
     id: string;
@@ -37,8 +23,6 @@ interface UploadedRateCard {
     uploadedAt: Date;
     fileName: string;
 }
-
-const rateCardData: Rate[] = [];
 
 const RateCard = () => {
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -49,10 +33,6 @@ const RateCard = () => {
     const [uploadedRateCards, setUploadedRateCards] = useState<UploadedRateCard[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [date, setDate] = useState<DateRange | undefined>({
-        from: new Date(2024, 2, 20),
-        to: new Date(2024, 2, 26),
-    });
 
     const stats = [
         { title: "Total Rates", amount: uploadedRateCards.length.toString(), icon: <Calculator className="size-5" /> },

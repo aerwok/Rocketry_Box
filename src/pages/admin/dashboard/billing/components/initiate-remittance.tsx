@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import { EyeIcon, DownloadIcon } from "lucide-react";
 
 // Empty sellers array
@@ -32,7 +31,6 @@ interface Transaction {
 }
 
 const InitiateRemittance = () => {
-    const navigate = useNavigate();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [formData, setFormData] = useState({
         transactionType: '',

@@ -1,23 +1,22 @@
 import { DateRange } from "react-day-picker";
 import { toast } from "sonner";
-import { fetchSellers } from "@/lib/api/admin-seller";
 
 // Admin Service with proper return types
 const adminService = {
   // In a real implementation, these would call API endpoints
-  getReportStats: async (params: any): Promise<{ data: ReportStats }> => {
+  getReportStats: async (): Promise<{ data: ReportStats }> => {
     // Mock API call
     throw new Error("Not implemented in API");
   },
-  getRevenueData: async (params: any): Promise<{ data: ReportChartData[] }> => {
+  getRevenueData: async (): Promise<{ data: ReportChartData[] }> => {
     // Mock API call
     throw new Error("Not implemented in API");
   },
-  getDeliveryPartnerShares: async (params: any): Promise<{ data: DeliveryPartnerShare[] }> => {
+  getDeliveryPartnerShares: async (): Promise<{ data: DeliveryPartnerShare[] }> => {
     // Mock API call
     throw new Error("Not implemented in API");
   },
-  downloadReport: async (params: any): Promise<{ data: Blob }> => {
+  downloadReport: async (): Promise<{ data: Blob }> => {
     // Mock API call
     throw new Error("Not implemented in API");
   }
@@ -58,7 +57,7 @@ const mockReportStats: ReportStats = {
   conversionRate: 92.8
 };
 
-const generateMockRevenueData = (filter: string, dateRange?: DateRange): ReportChartData[] => {
+const generateMockRevenueData = (filter: string): ReportChartData[] => {
   const baseData = {
     "1D": [
       { time: "12 AM", revenue: 12000 },
@@ -119,7 +118,7 @@ const mockDeliveryPartnerShares: DeliveryPartnerShare[] = [
 
 // Service methods
 export const reportsService = {
-  getReportStats: async (filters: ReportFilters): Promise<ReportStats> => {
+  getReportStats: async (): Promise<ReportStats> => {
     if (USE_MOCK_DATA) {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -127,10 +126,7 @@ export const reportsService = {
     }
 
     try {
-      const response = await adminService.getReportStats({
-        fromDate: filters.dateRange?.from?.toISOString(),
-        toDate: filters.dateRange?.to?.toISOString()
-      });
+      const response = await adminService.getReportStats();
       return response.data;
     } catch (error) {
       console.error("Error fetching report stats:", error);
@@ -143,15 +139,11 @@ export const reportsService = {
     if (USE_MOCK_DATA) {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      return generateMockRevenueData(filters.timeFilter || "1M", filters.dateRange);
+      return generateMockRevenueData(filters.timeFilter || "1M");
     }
 
     try {
-      const response = await adminService.getRevenueData({
-        fromDate: filters.dateRange?.from?.toISOString(),
-        toDate: filters.dateRange?.to?.toISOString(),
-        timeFilter: filters.timeFilter
-      });
+      const response = await adminService.getRevenueData();
       return response.data;
     } catch (error) {
       console.error("Error fetching revenue data:", error);
@@ -160,7 +152,7 @@ export const reportsService = {
     }
   },
 
-  getDeliveryPartnerShares: async (filters: ReportFilters): Promise<DeliveryPartnerShare[]> => {
+  getDeliveryPartnerShares: async (): Promise<DeliveryPartnerShare[]> => {
     if (USE_MOCK_DATA) {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 700));
@@ -173,10 +165,7 @@ export const reportsService = {
     }
 
     try {
-      const response = await adminService.getDeliveryPartnerShares({
-        fromDate: filters.dateRange?.from?.toISOString(),
-        toDate: filters.dateRange?.to?.toISOString()
-      });
+      const response = await adminService.getDeliveryPartnerShares();
       return response.data;
     } catch (error) {
       console.error("Error fetching delivery partner shares:", error);
@@ -185,7 +174,7 @@ export const reportsService = {
     }
   },
 
-  downloadReport: async (filters: ReportFilters, format: "csv" | "pdf"): Promise<Blob> => {
+  downloadReport: async (format: "csv" | "pdf"): Promise<Blob> => {
     if (USE_MOCK_DATA) {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -201,11 +190,7 @@ export const reportsService = {
     }
 
     try {
-      const response = await adminService.downloadReport({
-        fromDate: filters.dateRange?.from?.toISOString(),
-        toDate: filters.dateRange?.to?.toISOString(),
-        format
-      });
+      const response = await adminService.downloadReport();
       
       return response.data;
     } catch (error) {

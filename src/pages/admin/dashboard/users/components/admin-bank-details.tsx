@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { BankDetailsInput, bankDetailsSchema } from "@/lib/validations/admin-user";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRightIcon, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 

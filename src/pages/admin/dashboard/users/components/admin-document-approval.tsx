@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/form";
 import { DocumentApprovalInput, documentApprovalSchema } from "@/lib/validations/admin-user";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRightIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";

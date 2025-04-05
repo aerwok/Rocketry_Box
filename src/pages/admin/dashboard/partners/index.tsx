@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, Filter, Search, Tag, Trash, Edit, Download, Settings, RefreshCw } from "lucide-react";
+import { ArrowUpDown, Search, Tag, Trash, Edit, Download, Settings, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 

@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
-import { DollarSign, PackageCheck, ShoppingBag, TrendingUp } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Label, Pie, PieChart, XAxis } from "recharts";
+import { DollarSign, PackageCheck, TrendingUp } from "lucide-react";
+import { Label, Pie, PieChart } from "recharts";
 import { useReports } from "../../../hooks/useReports";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,12 +17,10 @@ const ReportsOverview = () => {
         }).format(value);
     };
 
-    const totalShipments = stats?.totalShipments || 0;
     const deliveredPercent = 85; // Mock data - would come from API
     const inTransitPercent = 10;
     const pendingPercent = 5;
 
-    const totalPartnerShare = deliveryPartners.reduce((acc, curr) => acc + curr.value, 0);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

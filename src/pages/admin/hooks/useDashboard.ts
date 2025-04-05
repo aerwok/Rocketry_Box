@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { DashboardState, DashboardFilters, DashboardStats, Order, Shipment } from "../types/dashboard";
+import { DashboardState, DashboardFilters } from "../types/dashboard";
 import { dashboardService } from "../services/dashboard";
 import { toast } from "sonner";
 

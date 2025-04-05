@@ -1,6 +1,5 @@
 import { ApiService } from "./api.service";
 import { toast } from "sonner";
-import api from '@/config/api.config';
 
 export interface ProfileData {
     id: string;
@@ -141,7 +140,7 @@ const MOCK_PROFILE_DATA: ProfileData = {
 
 class ProfileService extends ApiService {
     private static instance: ProfileService;
-    private readonly BASE_URL = "/api/v1/seller/profile";
+    // private readonly BASE_URL = "/api/v1/seller/profile";
 
     private constructor() {
         super();
@@ -184,7 +183,7 @@ class ProfileService extends ApiService {
         }
     }
 
-    public async updateProfileImage(file: File): Promise<{ imageUrl: string }> {
+    public async updateProfileImage(): Promise<{ imageUrl: string }> {
         try {
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 1000));

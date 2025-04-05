@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 import { 
     sellerOrderService, 
@@ -293,7 +292,6 @@ interface OrderDataState {
     selectedOrders: string[];
 }
 
-type OrderStatus = OrderData['status'];
 
 export const useOrderData = () => {
     const [state, setState] = useState<OrderDataState>({

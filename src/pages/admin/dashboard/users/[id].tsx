@@ -1,16 +1,11 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Calendar, Mail, MapPin, Package, Phone, User, Camera, Link2, Link2Icon } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Mail, Phone, User, Camera } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import AdminCompanyDetails from "./components/admin-company-details";
-import AdminDocuments from "./components/admin-documents";
 import AdminBankDetails from "./components/admin-bank-details";
-import AdminPaymentType from "./components/admin-payment-type";
-import AdminDocumentApproval from "./components/admin-document-approval";
-import AdminSellerLogin from "./components/admin-seller-login";
 import { Input } from "@/components/ui/input";
 import AdminShopDetails from "./components/admin-shop-details";
 import AdminKycDetails from "./components/admin-kyc-details";
@@ -21,12 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // Define the AdminUserTab type for tab navigation
 type AdminUserTab = "profile" | "company" | "bank" | "shop" | "kyc" | "activity" | "agreement";
 
-const STORE_LINKS = [
-    { icon: "/icons/web.svg", label: "Website", placeholder: "Enter website URL" },
-    { icon: "/icons/amazon.svg", label: "Amazon Store", placeholder: "Enter Amazon store URL" },
-    { icon: "/icons/shopify.svg", label: "Shopify Store", placeholder: "Enter Shopify store URL" },
-    { icon: "/icons/opencart.svg", label: "OpenCart Store", placeholder: "Enter OpenCart store URL" },
-];
+// const STORE_LINKS = [
+//     { icon: "/icons/web.svg", label: "Website", placeholder: "Enter website URL" },
+//     { icon: "/icons/amazon.svg", label: "Amazon Store", placeholder: "Enter Amazon store URL" },
+//     { icon: "/icons/shopify.svg", label: "Shopify Store", placeholder: "Enter Shopify store URL" },
+//     { icon: "/icons/opencart.svg", label: "OpenCart Store", placeholder: "Enter OpenCart store URL" },
+// ];
 
 const AdminUserProfilePage = () => {
     const { id } = useParams();

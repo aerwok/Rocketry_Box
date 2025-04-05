@@ -10,7 +10,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { SellerLoginInput, sellerLoginSchema } from "@/lib/validations/admin-user";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRightIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 interface AdminSellerLoginProps {

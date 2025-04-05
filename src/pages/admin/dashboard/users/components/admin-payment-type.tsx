@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/form";
 import { PaymentTypeInput, paymentTypeSchema } from "@/lib/validations/admin-user";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRightIcon, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import {
     Select,

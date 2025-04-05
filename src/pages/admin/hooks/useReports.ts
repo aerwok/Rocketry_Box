@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import { 
   reportsService, 
@@ -54,7 +53,7 @@ export const useReports = () => {
 
     try {
       // Fetch stats
-      reportsService.getReportStats(filters)
+      reportsService.getReportStats()
         .then(stats => {
           setState(prev => ({
             ...prev,
@@ -90,7 +89,7 @@ export const useReports = () => {
         });
 
       // Fetch delivery partner shares
-      reportsService.getDeliveryPartnerShares(filters)
+      reportsService.getDeliveryPartnerShares()
         .then(deliveryPartners => {
           setState(prev => ({
             ...prev,
@@ -143,7 +142,7 @@ export const useReports = () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
       
-      const blob = await reportsService.downloadReport(state.filters, format);
+      const blob = await reportsService.downloadReport(format);
       
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -160,7 +159,7 @@ export const useReports = () => {
       setState(prev => ({ ...prev, loading: false }));
       toast.error("Failed to download report");
     }
-  }, [state.filters]);
+  }, []);
 
   useEffect(() => {
     fetchReportsData(state.filters);

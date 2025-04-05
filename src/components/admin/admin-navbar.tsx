@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, MenuIcon, Search, UserCircle, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Menu, MenuIcon, Search, UserCircle} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSidebarStore } from '@/store/use-sidebar-store';

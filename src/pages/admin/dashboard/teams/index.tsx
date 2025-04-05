@@ -438,7 +438,6 @@ const AdminTeamsPage = () => {
             
             // When API is ready, this would be:
             // await updateTeamMemberStatus(userId, newStatus);
-            
             // Simulate API call delay
             await new Promise(resolve => setTimeout(resolve, 500));
             
@@ -533,6 +532,13 @@ const AdminTeamsPage = () => {
                     loading={loading}
                     onStatusUpdate={handleStatusUpdate}
                 />
+            )}
+
+            {statusUpdateLoading && (
+                <div className="flex justify-center items-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                    <span className="ml-2 text-purple-600">Updating status...</span>
+                </div>
             )}
         </div>
     );

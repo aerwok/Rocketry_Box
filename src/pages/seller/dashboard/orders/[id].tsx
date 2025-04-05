@@ -1,16 +1,9 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
-import { LoadScript, GoogleMap, Marker } from "@react-google-maps/api";
 import {
     ArrowLeftIcon,
     CopyIcon,
-    PackageIcon,
-    ShoppingBagIcon,
     Edit,
     Copy as Duplicate,
     Printer,
@@ -19,21 +12,11 @@ import {
     Truck,
     RefreshCw
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-// Rating form schema
-const ratingSchema = z.object({
-    rating: z.number().min(1, "Please select a rating").max(10),
-    remarks: z.string().max(250, "Remarks must be less than 250 characters"),
-});
-
-type RatingFormData = z.infer<typeof ratingSchema>;
 
 // Order details interface
 interface OrderDetails {
@@ -82,44 +65,10 @@ interface OrderDetails {
 const SellerOrderDetailsPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [selectedRating, setSelectedRating] = useState<number | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [isUpdateTrackingOpen, setIsUpdateTrackingOpen] = useState(false);
     const [trackingNumber, setTrackingNumber] = useState("");
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState("");
-
-    const form = useForm<RatingFormData>({
-        resolver: zodResolver(ratingSchema),
-        defaultValues: {
-            rating: 0,
-            remarks: "",
-        },
-    });
-
-    const handleCopy = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast.success("The text has been copied to your clipboard.");
-    };
-
-    const onSubmit = async (data: RatingFormData) => {
-        try {
-            setIsSubmitting(true);
-            // TODO: Replace with your actual API call
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
-            console.log("Submitted data:", data);
-
-            toast.success("Thank you for your feedback!");
-
-            // Reset form
-            form.reset();
-            setSelectedRating(null);
-        } catch (error) {
-            toast.error("Failed to submit rating. Please try again.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     // Mock order details data
     const orderDetails: OrderDetails = {
@@ -179,12 +128,6 @@ const SellerOrderDetailsPage = () => {
                 image: "/images/products/headset.jpg"
             }
         ]
-    };
-
-    // Default coordinates for Noida (customer location)
-    const defaultLocation = {
-        lat: 28.5355,
-        lng: 77.3910
     };
 
     const handleEdit = () => {

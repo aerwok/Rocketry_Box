@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/store/use-sidebar-store';
-import { Menu, MenuIcon, Search, ChevronDown } from 'lucide-react';
+import { Menu, MenuIcon, Search } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Input } from '../ui/input';
 import { useState, useEffect } from 'react';

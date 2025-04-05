@@ -1,11 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowUpDown, Download, Upload, Search } from 'lucide-react';
+import { ArrowUpDown, Upload} from 'lucide-react';
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 
 interface BillingData {
     id: string;
@@ -26,7 +24,7 @@ type BillingKey = keyof BillingData;
 const AdminEscalationBillingPage = () => {
 
     const [sortConfig, setSortConfig] = useState<{ key: BillingKey | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
-    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [searchQuery] = useState<string>("");
 
     const handleSort = (key: BillingKey) => {
         let direction: 'asc' | 'desc' | null = 'asc';
@@ -82,14 +80,6 @@ const AdminEscalationBillingPage = () => {
                 return <Badge>{status}</Badge>;
         }
     };
-
-    const stats = [
-        { title: "Total Remittance", amount: "₹ 0" },
-        { title: "Completed", amount: "₹ 0" },
-        { title: "Pending", amount: "₹ 0" },
-        { title: "Failed", amount: "₹ 0" },
-        { title: "Overdue", amount: "₹ 0" },
-    ];
 
     return (
         <div className="space-y-8">

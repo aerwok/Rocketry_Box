@@ -34,7 +34,7 @@ const Navbar = () => {
         setIsMenuOpen(!isMenuOpen);
     };
 
-    const handleNavigation = (to: string) => {
+    const handleNavigation = () => {
         setIsMenuOpen(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -57,7 +57,7 @@ const Navbar = () => {
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.3, delay: 0.1 }}
                     >
-                        <Link to="/" onClick={() => handleNavigation("/")}>
+                        <Link to="/" onClick={() => handleNavigation()}>
                             <img
                                 src="/icons/logo.svg"
                                 alt="Rocketry Box"
@@ -78,7 +78,7 @@ const Navbar = () => {
                                 <Link
                                     key={link.to}
                                     to={link.to}
-                                    onClick={() => handleNavigation(link.to)}
+                                    onClick={() => handleNavigation()}
                                     className={cn(
                                         "px-4 py-1 rounded-lg transition-colors",
                                         location.pathname === link.to
@@ -161,7 +161,7 @@ const Navbar = () => {
                                                     ? "bg-sky-500/20 text-main"
                                                     : "hover:bg-sky-500/10"
                                             )}
-                                            onClick={() => handleNavigation(link.to)}
+                                            onClick={() => handleNavigation()}
                                         >
                                             {link.label}
                                         </Link>

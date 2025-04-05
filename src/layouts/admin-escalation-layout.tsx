@@ -1,7 +1,6 @@
 import EscalationHeader from "@/components/admin/escalation-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FilterIcon } from "lucide-react";
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 
 const ESCALATION_LINKS = [

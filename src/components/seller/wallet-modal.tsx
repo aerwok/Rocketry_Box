@@ -23,7 +23,6 @@ interface WalletModalProps {
 type TabType = "balance" | "recharge" | "history";
 
 const QUICK_RECHARGE_OPTIONS = [500, 1000, 5000, 10000];
-const TRANSACTIONS_PER_PAGE = 10;
 
 const WalletModal = ({ isOpen, onClose }: WalletModalProps) => {
     const [activeTab, setActiveTab] = useState<TabType>("balance");
@@ -36,9 +35,6 @@ const WalletModal = ({ isOpen, onClose }: WalletModalProps) => {
         transactions,
         isLoadingTransactions,
         hasMoreTransactions,
-        currentPage,
-        totalPages,
-        getWalletBalance,
         rechargeWallet,
         loadMoreTransactions,
         refreshTransactions

@@ -50,7 +50,6 @@ import SellerProfilePage from "./pages/seller/dashboard/profile";
 import SellerSettingsPage from "./pages/seller/dashboard/settings";
 import SellerDisputePage from "./pages/seller/dashboard/disputes";
 import SellerNewOrderPage from "./pages/seller/dashboard/new-order";
-import SellerManifestPage from "./pages/seller/dashboard/manifest";
 import SellerReceivedPage from "./pages/seller/dashboard/received";
 import SellerSupportPage from "./pages/seller/dashboard/support";
 import SellerShipmentsPage from "./pages/seller/dashboard/shipments";
@@ -82,7 +81,6 @@ import AdminEscalationShipmentsPage from "./pages/admin/dashboard/escalation/shi
 import AdminEscalationBillingPage from "./pages/admin/dashboard/escalation/billing";
 import AdminEscalationWeightIssuesPage from "./pages/admin/dashboard/escalation/weight-issues";
 import AdminEscalationTechIssuesPage from "./pages/admin/dashboard/escalation/tech-issues";
-import AdminSettingsLayout from "./layouts/admin-settings-layout";
 import AdminLayout from "./layouts/admin-layout";
 import AdminCustomerDashboardPage from "./pages/admin/dashboard/customer";
 import AdminSettingsPage from "./pages/admin/dashboard/settings";

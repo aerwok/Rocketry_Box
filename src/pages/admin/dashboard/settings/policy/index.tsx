@@ -2,12 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Edit, Search, Settings, Trash2, Plus, FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Edit, Search, Settings, Trash2, Plus, FileText, Clock } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 
 const POLICY_TEMPLATES = [
