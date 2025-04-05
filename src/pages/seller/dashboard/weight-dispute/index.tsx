@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, Filter, Info, Scale, Search, UploadCloud } from "lucide-react";
+import { ArrowUpDown, Filter, Info, Search, UploadCloud } from "lucide-react";
 import { useState } from "react";
 import BulkDisputeUploadModal from "@/components/seller/disputes/bulk-dispute-upload-modal";
 import { Link } from "react-router-dom";

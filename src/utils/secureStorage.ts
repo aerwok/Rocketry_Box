@@ -1,6 +1,3 @@
-// Encryption key (in production, this should be handled securely)
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'your-secure-key';
-
 // Simple encryption/decryption functions (replace with proper encryption in production)
 const encrypt = (data: string): string => {
     try {

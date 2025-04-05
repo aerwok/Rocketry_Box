@@ -6,7 +6,7 @@ import { ArrowLeftIcon, CopyIcon, PackageIcon, ShoppingBagIcon } from "lucide-re
 import { motion } from "framer-motion";
 import { Link, useParams } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ratingSchema, type RatingFormData } from "@/lib/validations/rating";
@@ -67,6 +67,15 @@ interface OrderDetails {
 
 const OrderDetailsPage = () => {
     const { id } = useParams();
+    
+    // Use the id to fetch order details
+    useEffect(() => {
+        if (id) {
+            // Fetch order details using the id
+            console.log(`Fetching order details for ID: ${id}`);
+            // TODO: Implement actual API call to fetch order details
+        }
+    }, [id]);
 
     const [selectedRating, setSelectedRating] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);

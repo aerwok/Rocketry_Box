@@ -2,7 +2,6 @@ import './index.css'
 import App from './App.tsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import MockApiProvider from './providers/mock-api-provider';
 

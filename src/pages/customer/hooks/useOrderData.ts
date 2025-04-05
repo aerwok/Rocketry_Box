@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { OrderData, OrderResponse } from '../types/order';
+import { OrderData } from '../types/order';
 import { customerApi } from '../services/api';
 
 export const useOrderData = () => {

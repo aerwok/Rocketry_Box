@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Link2Icon, User, Mail, Phone, Building2, CreditCard, FileText, MapPin, ScrollText } from "lucide-react";
+import { Link2Icon, User, Mail, Phone, Building2, CreditCard, FileText, MapPin, ScrollText } from "lucide-react";
 import { useState } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";

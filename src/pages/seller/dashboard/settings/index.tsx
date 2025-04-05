@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { StoreIcon, TruckIcon, ReceiptTextIcon, UserCogIcon, MessageSquareTextIcon, TerminalIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

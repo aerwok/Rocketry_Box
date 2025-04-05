@@ -1,11 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { CheckCircle2, Loader2 } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
 import { formatCurrency, formatDate, formatAddress } from "@/lib/utils";
@@ -325,7 +323,7 @@ const PaymentPage = () => {
                 <div className="bg-[#0070BA] text-white p-4 rounded">
                     <p className="text-sm mb-3">Price Details</p>
                     <div className="space-y-2 text-sm">
-                        {priceDetails.map((item, index) => (
+                        {priceDetails.map((item) => (
                             <div key={item.label} className="flex justify-between">
                                 <span>{item.label}</span>
                                 <span>{item.value ? formatCurrency(item.value) : '-'}</span>

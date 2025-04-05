@@ -1,5 +1,4 @@
 import { motion } from "framer-motion"
-import { Package } from "lucide-react"
 import { useState } from "react"
 import TrackOrderForm, { TrackingInfo } from "@/components/shared/track-order-form"
 import TrackingResult from "@/components/shared/tracking-result"

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, Check, X } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import AgreementModal from "./agreement-modal";
 import { toast } from "sonner";

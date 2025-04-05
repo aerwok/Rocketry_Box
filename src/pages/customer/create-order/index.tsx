@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, Info } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -36,14 +36,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -237,16 +229,17 @@ export default function CustomerCreateOrderPage() {
         if (!formData.packageValue || formData.packageValue <= 0) missingFields.push("package value");
         
         if (missingFields.length > 0) {
-            await form.trigger(["weight", "length", "width", "height", "packageValue"] as const);
+            form.trigger(["weight", "length", "width", "height", "packageValue"]);
             toast.error(`Please enter valid ${missingFields.join(", ")}`);
             return;
         }
 
         // Validate address fields
-        const addressResult = await form.trigger(["senderName", "senderMobile", "senderAddress1", "senderPincode", "senderCity", "senderState"] as const);
-        const deliveryResult = await form.trigger(["receiverName", "receiverMobile", "receiverAddress1", "receiverPincode", "receiverCity", "receiverState"] as const);
+        const addressFields = ["senderName", "senderMobile", "senderAddress1", "senderPincode", "senderCity", "senderState", 
+                              "receiverName", "receiverMobile", "receiverAddress1", "receiverPincode", "receiverCity", "receiverState"] as const;
         
-        if (!addressResult || !deliveryResult) {
+        const result = await form.trigger(addressFields);
+        if (!result) {
             toast.error("Please fill all required address fields");
             return;
         }

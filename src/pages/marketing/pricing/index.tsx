@@ -1,4 +1,3 @@
-import React from 'react'
 import Hero from "./components/hero";
 import Plans from "./components/plans";
 import CTA from "../../../components/shared/cta";

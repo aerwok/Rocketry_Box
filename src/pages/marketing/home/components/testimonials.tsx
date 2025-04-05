@@ -1,5 +1,4 @@
 import { Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface TestimonialProps {

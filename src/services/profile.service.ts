@@ -183,14 +183,15 @@ class ProfileService extends ApiService {
         }
     }
 
-    public async updateProfileImage(): Promise<{ imageUrl: string }> {
+    public async updateProfileImage(file: File): Promise<{ imageUrl: string }> {
         try {
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Return mock image URL
+            // Use file name in mock URL
+            const fileName = encodeURIComponent(file.name.split('.')[0]);
             return {
-                imageUrl: "https://ui-avatars.com/api/?name=John+Doe&background=random"
+                imageUrl: `https://ui-avatars.com/api/?name=${fileName}&background=random`
             };
         } catch (error) {
             this.handleError(error);

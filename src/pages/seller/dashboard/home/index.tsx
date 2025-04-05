@@ -53,7 +53,6 @@ const SellerDashboardPage = () => {
         topProducts,
         filters,
         updateDateRange,
-        updateTimeFilter,
         downloadReport,
         refresh
     } = useDashboardData();

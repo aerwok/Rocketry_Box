@@ -83,7 +83,7 @@ const SellerSupportPage = () => {
         },
     });
 
-    const onSubmit = async (data: SupportTicketForm) => {
+    const onSubmit = async () => {
         try {
             // Simulate API call
             await new Promise((resolve) => setTimeout(resolve, 1000));

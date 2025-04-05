@@ -29,11 +29,11 @@ const ManageUsersPage = () => {
         setShowAddUser(false);
     };
 
-    const handleResetPassword = (userId: number) => {
+    const handleResetPassword = () => {
         toast.success("Password reset email sent");
     };
 
-    const handleDeleteUser = (userId: number) => {
+    const handleDeleteUser = () => {
         toast.success("User deleted successfully");
     };
 
@@ -106,14 +106,14 @@ const ManageUsersPage = () => {
                                                 <Button 
                                                     variant="outline" 
                                                     size="sm"
-                                                    onClick={() => handleResetPassword(user.id)}
+                                                    onClick={() => handleResetPassword()}
                                                 >
                                                     Reset Password
                                                 </Button>
                                                 <Button 
                                                     variant="destructive" 
                                                     size="sm"
-                                                    onClick={() => handleDeleteUser(user.id)}
+                                                    onClick={() => handleDeleteUser()}
                                                 >
                                                     Delete
                                                 </Button>

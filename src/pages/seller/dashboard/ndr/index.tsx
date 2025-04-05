@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, Filter, Search, MoreVertical } from "lucide-react";
+import { ArrowUpDown, Search, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import BulkNDRUploadModal from "@/components/seller/ndr/bulk-ndr-upload-modal";

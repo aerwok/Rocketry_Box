@@ -8,7 +8,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { ArrowUpDown, Building2, Download, Filter, Search } from "lucide-react";
+import { ArrowUpDown, Building2, Download, Search } from "lucide-react";
 import { useState } from "react";
 
 interface RemittanceData {

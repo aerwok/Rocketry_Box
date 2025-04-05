@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowUpDown, Filter, Search } from "lucide-react";
+import { ArrowUpDown, Search } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 const manifestData = [
     {
@@ -259,10 +258,6 @@ const ManifestTable = ({ data }: { data: typeof manifestData }) => {
 const SellerManifestPage = () => {
 
     const [searchQuery, setSearchQuery] = useState<string>("");
-
-    const handleDownloadSample = () => {
-        toast.info("Downloading sample file...");
-    };
 
     return (
         <div className="space-y-8">

@@ -239,10 +239,10 @@ const CustomerLoginPage = () => {
                                                 type="button"
                                                 variant="outline"
                                                 onClick={handleSendOtp}
-                                                disabled={otpTimer > 0}
+                                                disabled={otpTimer > 0 || isLoading}
                                                 size="sm"
                                             >
-                                                {otpTimer > 0 ? `Resend in ${otpTimer}s` : "Send OTP"}
+                                                {isLoading ? "Sending..." : otpTimer > 0 ? `Resend in ${otpTimer}s` : "Send OTP"}
                                             </Button>
                                         </div>
                                         <FormField
@@ -323,9 +323,9 @@ const CustomerLoginPage = () => {
                                         type="submit"
                                         variant="customer"
                                         className="w-full"
-                                        disabled={isForgotPassword && !isOtpSent}
+                                        disabled={(isForgotPassword && !isOtpSent) || isLoading}
                                     >
-                                        {isForgotPassword ? "Reset Password" : "Login"}
+                                        {isLoading ? "Please wait..." : isForgotPassword ? "Reset Password" : "Login"}
                                     </Button>
                                 </motion.div>
 

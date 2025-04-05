@@ -6,11 +6,10 @@ import {
     InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const SellerOTPPage = () => {
     const [otp, setOtp] = useState("");
-    const navigate = useNavigate();
     const location = useLocation();
     const { phone, email } = location.state || {};
 

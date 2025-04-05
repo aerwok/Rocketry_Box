@@ -132,6 +132,622 @@ Request Body: {
 
 ## API Endpoints
 
+### Seller Endpoints
+
+#### Profile Management
+// Get Profile
+Request Type: GET
+Endpoint: /api/v1/seller/profile
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  id: string,
+  name: string,
+  email: string,
+  phone: string,
+  companyName: string,
+  companyCategory: string,
+  brandName?: string,
+  website?: string,
+  supportContact?: string,
+  supportEmail?: string,
+  operationsEmail?: string,
+  financeEmail?: string,
+  rechargeType?: string,
+  profileImage?: string,
+  storeLinks?: {
+    website?: string,
+    amazon?: string,
+    shopify?: string,
+    opencart?: string
+  },
+  address?: {
+    street: string,
+    city: string,
+    state: string,
+    country: string,
+    postalCode: string,
+    landmark?: string
+  },
+  documents?: {
+    gstin?: string,
+    pan?: string,
+    cin?: string,
+    tradeLicense?: string,
+    msmeRegistration?: string,
+    aadhaar?: string,
+    documents: [
+      {
+        name: string,
+        type: string,
+        url: string,
+        status: "verified" | "pending" | "rejected"
+      }
+    ]
+  },
+  bankDetails?: [
+    {
+      accountName: string,
+      accountNumber: string,
+      bankName: string,
+      branch: string,
+      ifscCode: string,
+      swiftCode?: string,
+      accountType: string,
+      isDefault: boolean,
+      cancelledCheque?: {
+        url: string,
+        status: "verified" | "pending"
+      }
+    }
+  ]
+}
+
+// Update Profile
+Request Type: PUT
+Endpoint: /api/v1/seller/profile
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  name?: string,
+  phone?: string,
+  companyName?: string,
+  companyCategory?: string,
+  brandName?: string,
+  website?: string,
+  supportContact?: string,
+  supportEmail?: string,
+  operationsEmail?: string,
+  financeEmail?: string,
+  rechargeType?: string,
+  address?: {
+    street: string,
+    city: string,
+    state: string,
+    country: string,
+    postalCode: string,
+    landmark?: string
+  }
+}
+Response: {
+  success: boolean,
+  message: string,
+  data?: ProfileData
+}
+
+// Update Profile Image
+Request Type: POST
+Endpoint: /api/v1/seller/profile/image
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "multipart/form-data"
+}
+Request Body: {
+  file: File
+}
+Response: {
+  imageUrl: string
+}
+
+// Update Store Links
+Request Type: PUT
+Endpoint: /api/v1/seller/profile/store-links
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  website?: string,
+  amazon?: string,
+  shopify?: string,
+  opencart?: string
+}
+Response: {
+  success: boolean,
+  message: string,
+  data?: ProfileData
+}
+
+#### Orders Management
+// Get Orders
+Request Type: GET
+Endpoint: /api/v1/seller/orders
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (ISO date)
+  to?: string (ISO date)
+  status?: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
+  search?: string
+  page?: number
+  limit?: number
+Response: {
+  data: [
+    {
+      orderId: string,
+      date: string,
+      customer: string,
+      contact: string,
+      items: [
+        {
+          name: string,
+          sku: string,
+          quantity: number,
+          price: number
+        }
+      ],
+      amount: string,
+      payment: "COD" | "Prepaid",
+      chanel: "MANUAL" | "EXCEL" | "SHOPIFY" | "WOOCOMMERCE" | "AMAZON" | "FLIPKART" | "OPENCART" | "API",
+      weight: string,
+      tags: string,
+      action: "Ship" | "Processing" | "In Transit" | "Cancelled" | "Error" | "Pending",
+      whatsapp: "Message Delivered" | "Message Read" | "Order Confirm" | "Order Cancelled",
+      status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error",
+      awbNumber?: string,
+      pincode?: string
+    }
+  ],
+  pagination: {
+    total: number,
+    page: number,
+    limit: number,
+    pages: number
+  }
+}
+
+// Get Order Stats
+Request Type: GET
+Endpoint: /api/v1/seller/orders/stats
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (ISO date)
+  to?: string (ISO date)
+  status?: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
+Response: {
+  data: {
+    total: number,
+    notBooked: number,
+    processing: number,
+    booked: number,
+    cancelled: number,
+    shipmentCancelled: number,
+    error: number
+  }
+}
+
+// Update Order Status
+Request Type: PATCH
+Endpoint: /api/v1/seller/orders/:orderId/status
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
+}
+
+// Bulk Update Order Status
+Request Type: PATCH
+Endpoint: /api/v1/seller/orders/bulk-status
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  orderIds: string[],
+  status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
+}
+
+// Process Shipping
+Request Type: POST
+Endpoint: /api/v1/seller/orders/ship
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  orderIds: string[],
+  shippingOptions: {
+    warehouse: string,
+    rtoWarehouse: string,
+    shippingMode: "surface" | "air",
+    courier: string
+  }
+}
+
+// Get Shipping Options
+Request Type: GET
+Endpoint: /api/v1/seller/shipping-options
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    warehouses: [
+      {
+        id: string,
+        name: string,
+        address: string
+      }
+    ],
+    rtoWarehouses: [
+      {
+        id: string,
+        name: string,
+        address: string
+      }
+    ],
+    shippingModes: [
+      {
+        id: string,
+        name: string,
+        description: string
+      }
+    ],
+    couriers: [
+      {
+        id: string,
+        name: string,
+        description: string
+      }
+    ]
+  }
+}
+
+#### Dashboard
+// Get Dashboard Stats
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/stats
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    orders: {
+      total: number,
+      pending: number,
+      processing: number,
+      shipped: number,
+      delivered: number,
+      cancelled: number,
+      todayCount: number
+    },
+    shipments: {
+      total: number,
+      todayCount: number
+    },
+    delivery: {
+      total: number,
+      todayCount: number
+    },
+    cod: {
+      expected: number,
+      totalDue: number
+    },
+    revenue: {
+      total: number,
+      dailyGrowth: number
+    },
+    ndr: {
+      pending: number,
+      actionRequired: number
+    }
+  }
+}
+
+// Get Dashboard Chart Data
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/chart-data
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (ISO date)
+  to?: string (ISO date)
+  timeFilter?: "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL"
+Response: {
+  data: {
+    orderStatusDistribution: {
+      delivered: number,
+      inTransit: number,
+      pending: number
+    },
+    shipmentTrends: [
+      {
+        day: string,
+        current: number,
+        previous: number
+      }
+    ],
+    revenueTrends: [
+      {
+        month: string,
+        value: number
+      }
+    ],
+    topProducts: [
+      {
+        month: string,
+        desktop: number
+      }
+    ],
+    deliveryPerformance: [
+      {
+        month: string,
+        desktop: number
+      }
+    ],
+    courierData: [
+      {
+        courier: string,
+        total: number,
+        notShipped: number,
+        pendingPickup: number,
+        inTransit: number,
+        ofd: number,
+        delivered: { count: number, percentage: string },
+        cancelled: { count: number, percentage: string },
+        exception: { count: number, percentage: string },
+        rto: number,
+        lostDamage: number
+      }
+    ],
+    productData: [
+      {
+        productName: string,
+        quantity: number,
+        totalShipments: number,
+        notShipped: number,
+        cancelled: number,
+        pendingPickup: number,
+        inTransit: number,
+        delivered: number,
+        rto: number
+      }
+    ]
+  }
+}
+
+// Get Courier Performance
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/courier-performance
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: [
+    {
+      courier: string,
+      total: number,
+      notShipped: number,
+      pendingPickup: number,
+      inTransit: number,
+      ofd: number,
+      delivered: { count: number, percentage: string },
+      cancelled: { count: number, percentage: string },
+      exception: { count: number, percentage: string },
+      rto: number,
+      lostDamage: number
+    }
+  ]
+}
+
+// Get Top Products
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/top-products
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: [
+    {
+      productName: string,
+      quantity: number,
+      totalShipments: number,
+      notShipped: number,
+      cancelled: number,
+      pendingPickup: number,
+      inTransit: number,
+      delivered: number,
+      rto: number
+    }
+  ]
+}
+
+// Download Dashboard Report
+Request Type: GET
+Endpoint: /api/v1/seller/dashboard/report
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  format: "csv" | "pdf"
+Response: Blob (file download)
+
+#### Wallet
+// Get Wallet Balance
+Request Type: GET
+Endpoint: /api/v1/seller/wallet/balance
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    walletBalance: number,
+    lastRecharge: number,
+    remittanceBalance: number,
+    lastUpdated: string
+  }
+}
+
+// Get Wallet History
+Request Type: GET
+Endpoint: /api/v1/seller/wallet/history
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  page?: number
+  limit?: number
+Response: {
+  data: {
+    transactions: [
+      {
+        transactionId: string,
+        date: string,
+        type: "Credit" | "Debit",
+        amount: number,
+        balance: number,
+        description: string,
+        status: "Success" | "Pending" | "Failed",
+        paymentMethod?: string,
+        metadata?: Record<string, unknown>
+      }
+    ],
+    totalCount: number,
+    currentPage: number,
+    totalPages: number,
+    hasMore: boolean
+  }
+}
+
+// Recharge Wallet
+Request Type: POST
+Endpoint: /api/v1/seller/wallet/recharge
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  amount: number,
+  paymentMethod: string
+}
+Response: {
+  data: {
+    walletBalance: number,
+    lastRecharge: number,
+    remittanceBalance: number,
+    lastUpdated: string
+  }
+}
+
+// Verify Transaction
+Request Type: POST
+Endpoint: /api/v1/seller/wallet/verify-transaction
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  transactionId: string
+}
+Response: {
+  data: {
+    verified: boolean
+  }
+}
+
+#### Bulk Orders
+// Upload Bulk Order
+Request Type: POST
+Endpoint: /api/v1/seller/bulk-orders/upload
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "multipart/form-data"
+}
+Request Body: {
+  file: File
+}
+Response: {
+  data: {
+    orderId: string,
+    status: "Processing" | "Completed" | "Failed",
+    totalRows: number,
+    processedRows: number,
+    failedRows: number,
+    errors?: [
+      {
+        row: number,
+        message: string
+      }
+    ],
+    createdAt: string,
+    updatedAt: string
+  }
+}
+
+// Get Bulk Order Status
+Request Type: GET
+Endpoint: /api/v1/seller/bulk-orders/:orderId/status
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    orderId: string,
+    status: "Processing" | "Completed" | "Failed",
+    progress: number,
+    totalRows: number,
+    processedRows: number,
+    failedRows: number,
+    errors?: [
+      {
+        row: number,
+        message: string
+      }
+    ],
+    createdAt: string,
+    updatedAt: string
+  }
+}
+
+// Cancel Bulk Order
+Request Type: POST
+Endpoint: /api/v1/seller/bulk-orders/:orderId/cancel
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    success: boolean
+  }
+}
+
+// Download Bulk Order Template
+Request Type: GET
+Endpoint: /api/v1/seller/bulk-orders/template
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: Blob (file download)
+
 ### Customer Endpoints
 
 #### Profile Management
@@ -349,342 +965,6 @@ Request Body: {
   reason: string
 }
 
-### Seller Endpoints
-
-#### Profile Management
-// Get Seller Profile
-Request Type: GET
-Endpoint: /api/v1/seller/profile
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-Response: {
-  id: string,
-  name: string,
-  email: string,
-  phone: string,
-  businessName: string,
-  gstin: string,
-  address: {
-    street: string,
-    city: string,
-    state: string,
-    pincode: string,
-    country: string
-  },
-  bankDetails: {
-    accountNumber: string,
-    ifscCode: string,
-    accountHolderName: string
-  }
-}
-
-// Update Seller Profile
-Request Type: PUT
-Endpoint: /api/v1/seller/profile
-Headers: {
-  "Authorization": "Bearer ${token}",
-  "Content-Type": "application/json"
-}
-Request Body: {
-  name: string,
-  phone: string,
-  businessName: string,
-  gstin: string,
-  address: {
-    street: string,
-    city: string,
-    state: string,
-    pincode: string,
-    country: string
-  },
-  bankDetails: {
-    accountNumber: string,
-    ifscCode: string,
-    accountHolderName: string
-  }
-}
-
-#### Orders Management
-// Get Orders
-Request Type: GET
-Endpoint: /api/v1/seller/orders
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-Query Parameters:
-  from?: string (ISO date)
-  to?: string (ISO date)
-  status?: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
-  search?: string
-  page?: number
-  limit?: number
-Response: {
-  data: [
-    {
-      orderId: string,
-      date: string,
-      customer: string,
-      contact: string,
-      items: [
-        {
-          name: string,
-          sku: string,
-          quantity: number,
-          price: number
-        }
-      ],
-      amount: string,
-      payment: "COD" | "Prepaid",
-      chanel: "MANUAL" | "EXCEL" | "SHOPIFY" | "WOOCOMMERCE" | "AMAZON" | "FLIPKART" | "OPENCART" | "API",
-      weight: string,
-      tags: string,
-      action: "Ship" | "Processing" | "In Transit" | "Cancelled" | "Error" | "Pending",
-      whatsapp: "Message Delivered" | "Message Read" | "Order Confirm" | "Order Cancelled",
-      status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error",
-      awbNumber: string,
-      pincode: string
-    }
-  ],
-  pagination: {
-    total: number,
-    page: number,
-    limit: number,
-    pages: number
-  }
-}
-
-// Get Order Stats
-Request Type: GET
-Endpoint: /api/v1/seller/orders/stats
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-Query Parameters:
-  from?: string (ISO date)
-  to?: string (ISO date)
-  status?: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
-Response: {
-  data: {
-    total: number,
-    notBooked: number,
-    processing: number,
-    booked: number,
-    cancelled: number,
-    shipmentCancelled: number,
-    error: number
-  }
-}
-
-// Update Order Status
-Request Type: PATCH
-Endpoint: /api/v1/seller/orders/:orderId/status
-Headers: {
-  "Authorization": "Bearer ${token}",
-  "Content-Type": "application/json"
-}
-Request Body: {
-  status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
-}
-
-// Bulk Update Order Status
-Request Type: PATCH
-Endpoint: /api/v1/seller/orders/bulk-status
-Headers: {
-  "Authorization": "Bearer ${token}",
-  "Content-Type": "application/json"
-}
-Request Body: {
-  orderIds: string[],
-  status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error"
-}
-
-// Process Shipping
-Request Type: POST
-Endpoint: /api/v1/seller/orders/ship
-Headers: {
-  "Authorization": "Bearer ${token}",
-  "Content-Type": "application/json"
-}
-Request Body: {
-  orderIds: string[],
-  shippingOptions: {
-    warehouse: string,
-    rtoWarehouse: string,
-    shippingMode: "surface" | "air",
-    courier: string
-  }
-}
-
-// Get Shipping Options
-Request Type: GET
-Endpoint: /api/v1/seller/shipping-options
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-Response: {
-  data: {
-    warehouses: [
-      {
-        id: string,
-        name: string,
-        address: string
-      }
-    ],
-    rtoWarehouses: [
-      {
-        id: string,
-        name: string,
-        address: string
-      }
-    ],
-    shippingModes: [
-      {
-        id: string,
-        name: string,
-        description: string
-      }
-    ],
-    couriers: [
-      {
-        id: string,
-        name: string,
-        description: string
-      }
-    ]
-  }
-}
-
-#### Inventory Management
-// Get Inventory
-Request Type: GET
-Endpoint: /api/v1/seller/inventory
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-Query Parameters:
-  search?: string
-  category?: string
-  page?: number
-  limit?: number
-Response: {
-  data: [
-    {
-      id: string,
-      name: string,
-      sku: string,
-      category: string,
-      price: number,
-      stock: number,
-      images: string[]
-    }
-  ],
-  pagination: {
-    total: number,
-    page: number,
-    limit: number,
-    pages: number
-  }
-}
-
-// Add Inventory Item
-Request Type: POST
-Endpoint: /api/v1/seller/inventory
-Headers: {
-  "Authorization": "Bearer ${token}",
-  "Content-Type": "application/json"
-}
-Request Body: {
-  name: string,
-  sku: string,
-  category: string,
-  price: number,
-  stock: number,
-  images: string[]
-}
-
-// Update Inventory Item
-Request Type: PUT
-Endpoint: /api/v1/seller/inventory/:itemId
-Headers: {
-  "Authorization": "Bearer ${token}",
-  "Content-Type": "application/json"
-}
-Request Body: {
-  name: string,
-  sku: string,
-  category: string,
-  price: number,
-  stock: number,
-  images: string[]
-}
-
-// Delete Inventory Item
-Request Type: DELETE
-Endpoint: /api/v1/seller/inventory/:itemId
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-
-#### Analytics
-// Get Sales Analytics
-Request Type: GET
-Endpoint: /api/v1/seller/analytics/sales
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-Query Parameters:
-  from?: string (ISO date)
-  to?: string (ISO date)
-  groupBy?: "day" | "week" | "month"
-Response: {
-  data: {
-    totalSales: number,
-    totalOrders: number,
-    averageOrderValue: number,
-    salesByPeriod: [
-      {
-        period: string,
-        sales: number,
-        orders: number
-      }
-    ]
-  }
-}
-
-// Get Product Analytics
-Request Type: GET
-Endpoint: /api/v1/seller/analytics/products
-Headers: {
-  "Authorization": "Bearer ${token}"
-}
-Query Parameters:
-  from?: string (ISO date)
-  to?: string (ISO date)
-  limit?: number
-Response: {
-  data: {
-    topProducts: [
-      {
-        id: string,
-        name: string,
-        sku: string,
-        sales: number,
-        revenue: number
-      }
-    ],
-    lowStockProducts: [
-      {
-        id: string,
-        name: string,
-        sku: string,
-        stock: number,
-        threshold: number
-      }
-    ]
-  }
-}
-
 ### Admin Endpoints
 
 #### User Management
@@ -840,6 +1120,128 @@ interface ShippingOptions {
   rtoWarehouse: string;
   shippingMode: string;
   courier: string;
+}
+```
+
+### ProfileData
+```typescript
+interface ProfileData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  companyName: string;
+  companyCategory: string;
+  brandName?: string;
+  website?: string;
+  supportContact?: string;
+  supportEmail?: string;
+  operationsEmail?: string;
+  financeEmail?: string;
+  rechargeType?: string;
+  profileImage?: string;
+  storeLinks?: {
+    website?: string;
+    amazon?: string;
+    shopify?: string;
+    opencart?: string;
+  };
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    landmark?: string;
+  };
+  documents?: {
+    gstin?: string;
+    pan?: string;
+    cin?: string;
+    tradeLicense?: string;
+    msmeRegistration?: string;
+    aadhaar?: string;
+    documents: {
+      name: string;
+      type: string;
+      url: string;
+      status: 'verified' | 'pending' | 'rejected';
+    }[];
+  };
+  bankDetails?: {
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    branch: string;
+    ifscCode: string;
+    swiftCode?: string;
+    accountType: string;
+    isDefault: boolean;
+    cancelledCheque?: {
+      url: string;
+      status: 'verified' | 'pending';
+    };
+  }[];
+}
+```
+
+### WalletBalance
+```typescript
+interface WalletBalance {
+  walletBalance: number;
+  lastRecharge: number;
+  remittanceBalance: number;
+  lastUpdated: string;
+}
+```
+
+### WalletTransaction
+```typescript
+interface WalletTransaction {
+  transactionId: string;
+  date: string;
+  type: "Credit" | "Debit";
+  amount: number;
+  balance: number;
+  description: string;
+  status: "Success" | "Pending" | "Failed";
+  paymentMethod?: string;
+  metadata?: Record<string, unknown>;
+}
+```
+
+### DashboardStats
+```typescript
+interface DashboardStats {
+  orders: {
+    total: number;
+    pending: number;
+    processing: number;
+    shipped: number;
+    delivered: number;
+    cancelled: number;
+    todayCount: number;
+  };
+  shipments: {
+    total: number;
+    todayCount: number;
+  };
+  delivery: {
+    total: number;
+    todayCount: number;
+  };
+  cod: {
+    expected: number;
+    totalDue: number;
+  };
+  revenue: {
+    total: number;
+    dailyGrowth: number;
+  };
+  ndr: {
+    pending: number;
+    actionRequired: number;
+  };
 }
 ```
 

@@ -6,11 +6,6 @@ import CustomerLayout from "@/layouts/customer-layout"
 import TrackOrderForm, { TrackingInfo } from "@/components/shared/track-order-form"
 import TrackingResult from "@/components/shared/tracking-result"
 
-// Add a loading card component
-const LoadingCard = () => (
-  <div className="w-full h-20 animate-pulse bg-gray-200 rounded-lg"></div>
-)
-
 const CustomerTrackOrderPage = () => {
   const [trackingInfo, setTrackingInfo] = useState<TrackingInfo | null>(null)
   const [error, setError] = useState<string>("")

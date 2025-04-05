@@ -75,13 +75,13 @@ const BulkOrdersPage = () => {
         downloadTemplate 
     } = useBulkOrder();
 
-    const [uploadHistory, setUploadHistory] = useState([
+    const uploadHistory = [
         { id: 1, uploadDate: '15-12-2024 19:33:07', originalFile: 'orders_samples.xlsx', successCount: 1, errorCount: 1, blankCount: 0, totalCount: 2, errorFile: 'Download', showHide: 'Hide' },
         { id: 2, uploadDate: '19-10-2024 13:49:34', originalFile: '1729325539510_BULK.xlsx', successCount: 478, errorCount: 0, blankCount: 0, totalCount: 478, errorFile: '-', showHide: 'Hide' },
         { id: 3, uploadDate: '19-10-2024 13:42:19', originalFile: 'orders_samples.xlsx', successCount: 1, errorCount: 478, blankCount: 0, totalCount: 479, errorFile: 'Download', showHide: 'Hide' },
         { id: 4, uploadDate: '19-10-2024 13:40:57', originalFile: 'orders_samples.xlsx', successCount: 0, errorCount: 479, blankCount: 0, totalCount: 479, errorFile: 'Download', showHide: 'Hide' },
         { id: 5, uploadDate: '19-10-2024 13:39:55', originalFile: 'orders_samples.xlsx', successCount: 1, errorCount: 478, blankCount: 0, totalCount: 479, errorFile: 'Download', showHide: 'Hide' }
-    ]);
+    ];
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {

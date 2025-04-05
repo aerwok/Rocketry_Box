@@ -1,6 +1,3 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ShoppingCart, TrendingUp, Building, Store } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion } from 'framer-motion';
 
