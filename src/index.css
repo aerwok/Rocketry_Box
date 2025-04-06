@@ -79,6 +79,41 @@
   }
 }
 
+/* Marquee Animation Styles */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.marquee-container {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.marquee-content {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee 40s linear infinite;
+  will-change: transform;
+}
+
+.marquee-content-reversed {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee 40s linear infinite reverse;
+  will-change: transform;
+}
+
+.marquee-item {
+  flex: 0 0 auto;
+  margin: 0 1rem;
+}
+
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;

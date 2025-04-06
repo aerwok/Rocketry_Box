@@ -79,20 +79,12 @@ export default {
     		},
     		keyframes: {
     			marquee: {
-    				from: {
-    					transform: 'translateX(0)'
-    				},
-    				to: {
-    					transform: 'translateX(calc(-100% - var(--gap)))'
-    				}
+    				'0%': { transform: 'translateX(0%)' },
+    				'100%': { transform: 'translateX(-100%)' }
     			},
     			'marquee-vertical': {
-    				from: {
-    					transform: 'translateY(0)'
-    				},
-    				to: {
-    					transform: 'translateY(calc(-100% - var(--gap)))'
-    				}
+    				'0%': { transform: 'translateY(0%)' },
+    				'100%': { transform: 'translateY(-100%)' }
     			},
     			'caret-blink': {
     				'0%,70%,100%': {

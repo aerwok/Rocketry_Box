@@ -1,5 +1,6 @@
 import { Marquee } from '@/components/ui/marquee';
 import { motion } from 'framer-motion';
+import "@/styles/marquee.css";
 
 const companyLogos = [
     "/images/company1.png",
@@ -16,6 +17,10 @@ const companyLogos = [
     "/images/company12.png",
     "/images/company13.png",
 ];
+
+// Repeat the logos to ensure enough content for smooth scrolling
+const repeatedFirstRowLogos = [...companyLogos.slice(0, 7), ...companyLogos.slice(0, 7), ...companyLogos.slice(0, 7)];
+const repeatedSecondRowLogos = [...companyLogos.slice(7), ...companyLogos.slice(7), ...companyLogos.slice(7)];
 
 const Companies = () => {
     return (
@@ -56,64 +61,50 @@ const Companies = () => {
                 className="relative w-full overflow-hidden pt-10"
             >
                 {/* First row - left to right */}
-                <Marquee className="mb-8" pauseOnHover>
-                    {companyLogos.map((logo, index) => (
-                        <motion.div
+                <Marquee className="mb-8" pauseOnHover speed={25}>
+                    {repeatedFirstRowLogos.map((logo, index) => (
+                        <div
                             key={`first-${index}`}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.2, delay: index * 0.02 }}
-                            className="mx-4 bg-white rounded-lg p-6 flex items-center justify-center"
-                            style={{ width: '180px', height: '80px' }}
+                            className="marquee-item rounded-lg p-6 flex items-center justify-center"
+                            style={{ 
+                                width: '180px', 
+                                height: '80px', 
+                                backgroundColor: 'rgba(93, 65, 128, 0.2)',
+                                backdropFilter: 'blur(5px)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}
                         >
-                            <motion.img
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.2, delay: 0.1 + index * 0.02 }}
+                            <img
                                 src={logo}
-                                alt={`Courier Partner ${index + 1}`}
+                                alt={`Courier Partner ${index % 7 + 1}`}
                                 className="max-h-10 w-auto object-contain"
                             />
-                        </motion.div>
+                        </div>
                     ))}
                 </Marquee>
 
                 {/* Second row - right to left */}
-                <Marquee reverse pauseOnHover>
-                    {companyLogos.reverse().map((logo, index) => (
-                        <motion.div
+                <Marquee reverse pauseOnHover speed={20}>
+                    {repeatedSecondRowLogos.map((logo, index) => (
+                        <div
                             key={`second-${index}`}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.2, delay: index * 0.02 }}
-                            className="mx-4 bg-white rounded-lg p-6 flex items-center justify-center"
-                            style={{ width: '180px', height: '80px' }}
+                            className="marquee-item rounded-lg p-6 flex items-center justify-center"
+                            style={{ 
+                                width: '180px', 
+                                height: '80px', 
+                                backgroundColor: 'rgba(93, 65, 128, 0.2)',
+                                backdropFilter: 'blur(5px)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}
                         >
-                            <motion.img
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.2, delay: 0.1 + index * 0.02 }}
+                            <img
                                 src={logo}
-                                alt={`Courier Partner ${index + 1}`}
+                                alt={`Courier Partner ${index % 6 + 8}`}
                                 className="max-h-10 w-auto object-contain"
                             />
-                        </motion.div>
+                        </div>
                     ))}
                 </Marquee>
-
-                {/* Gradient overlays */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2, delay: 0.3 }}
-                    className="absolute left-0 inset-y-0 h-full w-20 bg-gradient-to-r from-[#EEF7FF]"
-                />
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2, delay: 0.3 }}
-                    className="absolute right-0 inset-y-0 h-full w-20 bg-gradient-to-l from-[#EEF7FF]"
-                />
             </motion.div>
         </section>
     );

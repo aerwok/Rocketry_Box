@@ -1,5 +1,6 @@
 import { Marquee } from '@/components/ui/marquee';
 import { motion } from "framer-motion";
+import "@/styles/marquee.css";
 
 // Define company logos array
 const companyLogos = [
@@ -17,6 +18,10 @@ const companyLogos = [
     "/images/company12.png",
     "/images/company13.png",
 ];
+
+// Repeat the logos to ensure enough content for smooth scrolling
+const repeatedFirstRowLogos = [...companyLogos.slice(0, 6), ...companyLogos.slice(0, 6), ...companyLogos.slice(0, 6)];
+const repeatedSecondRowLogos = [...companyLogos.slice(6), ...companyLogos.slice(6), ...companyLogos.slice(6)];
 
 const Companies = () => {
     return (
@@ -47,68 +52,41 @@ const Companies = () => {
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="relative w-full"
+                className="relative w-full overflow-hidden"
             >
                 {/* First row - left to right */}
-                <Marquee className="mb-4" pauseOnHover>
-                    {companyLogos.slice(0, 6).map((logo, index) => (
-                        <motion.div
-                            key={index}
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 400 }}
-                            className="mx-2 lg:mx-8 bg-white rounded-lg shadow-sm p-6 flex items-center justify-center"
+                <Marquee className="mb-8" pauseOnHover speed={25}>
+                    {repeatedFirstRowLogos.map((logo, index) => (
+                        <div
+                            key={`first-${index}`}
+                            className="marquee-item bg-white rounded-lg shadow-sm p-6 flex items-center justify-center"
                             style={{ width: '180px', height: '80px' }}
                         >
-                            <motion.img
-                                initial={{ opacity: 0 }}
-                                whileInView={{ opacity: 1 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
+                            <img
                                 src={logo}
-                                alt={`Company ${index + 1}`}
+                                alt={`Company ${index % 6 + 1}`}
                                 className="max-h-10 w-auto object-contain"
                             />
-                        </motion.div>
+                        </div>
                     ))}
                 </Marquee>
 
                 {/* Second row - right to left */}
-                <Marquee reverse pauseOnHover>
-                    {companyLogos.slice(7).map((logo, index) => (
-                        <motion.div
-                            key={index}
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 400 }}
-                            className="mx-2 lg:mx-8 bg-white rounded-lg shadow-sm p-6 flex items-center justify-center"
+                <Marquee reverse pauseOnHover speed={20}>
+                    {repeatedSecondRowLogos.map((logo, index) => (
+                        <div
+                            key={`second-${index}`}
+                            className="marquee-item bg-white rounded-lg shadow-sm p-6 flex items-center justify-center"
                             style={{ width: '180px', height: '80px' }}
                         >
-                            <motion.img
-                                initial={{ opacity: 0 }}
-                                whileInView={{ opacity: 1 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
+                            <img
                                 src={logo}
-                                alt={`Company ${index + 5}`}
+                                alt={`Company ${index % 7 + 7}`}
                                 className="max-h-10 w-auto object-contain"
                             />
-                        </motion.div>
+                        </div>
                     ))}
                 </Marquee>
-
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.8 }}
-                    className="absolute left-0 inset-y-0 h-full w-20 bg-gradient-to-r from-[#EEF7FF]"
-                />
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.8 }}
-                    className="absolute right-0 inset-y-0 h-full w-20 bg-gradient-to-l from-[#EEF7FF]"
-                />
             </motion.div>
         </div>
     );

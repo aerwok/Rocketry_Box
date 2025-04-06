@@ -1,35 +1,13 @@
 import { cn } from "@/lib/utils";
-import { ComponentPropsWithoutRef } from "react";
+import "@/styles/marquee.css";
+import { ReactNode, useRef, useEffect } from "react";
 
-interface MarqueeProps extends ComponentPropsWithoutRef<"div"> {
-    /**
-     * Optional CSS class name to apply custom styles
-     */
+interface MarqueeProps {
     className?: string;
-    /**
-     * Whether to reverse the animation direction
-     * @default false
-     */
     reverse?: boolean;
-    /**
-     * Whether to pause the animation on hover
-     * @default false
-     */
     pauseOnHover?: boolean;
-    /**
-     * Content to be displayed in the marquee
-     */
-    children: React.ReactNode;
-    /**
-     * Whether to animate vertically instead of horizontally
-     * @default false
-     */
-    vertical?: boolean;
-    /**
-     * Number of times to repeat the content
-     * @default 4
-     */
-    repeat?: number;
+    children: ReactNode;
+    speed?: number;
 }
 
 export function Marquee({
@@ -37,37 +15,57 @@ export function Marquee({
     reverse = false,
     pauseOnHover = false,
     children,
-    vertical = false,
-    repeat = 4,
-    ...props
+    speed = 20,
 }: MarqueeProps) {
+    const contentRef = useRef<HTMLDivElement>(null);
+    const animationDuration = Math.max(10, 80 / speed); // Ensure reasonable duration bounds
+    
+    // Clone children to ensure smooth animation
+    useEffect(() => {
+        if (!contentRef.current) return;
+        
+        // Calculate how many times we need to repeat children to fill the container
+        const container = contentRef.current.parentElement;
+        if (container) {
+            const containerWidth = container.offsetWidth;
+            const contentWidth = contentRef.current.scrollWidth / 2; // Divide by 2 since we already have 2 copies
+            
+            if (contentWidth < containerWidth) {
+                // Need more copies to fill the container
+                const neededCopies = Math.ceil(containerWidth / contentWidth) + 1;
+                const currentChildren = contentRef.current.children;
+                const singleSetCount = currentChildren.length / 2;
+                
+                // Add more copies if needed
+                if (neededCopies > 2) {
+                    for (let i = 0; i < (neededCopies - 2) * singleSetCount; i++) {
+                        const index = i % singleSetCount;
+                        const clone = currentChildren[index].cloneNode(true);
+                        contentRef.current.appendChild(clone);
+                    }
+                }
+            }
+        }
+    }, [children]);
+
     return (
-        <div
-            {...props}
-            className={cn(
-                "group flex overflow-hidden p-2 [--duration:40s] [--gap:1rem] [gap:var(--gap)]",
-                {
-                    "flex-row": !vertical,
-                    "flex-col": vertical,
-                },
-                className,
-            )}
-        >
-            {Array(repeat)
-                .fill(0)
-                .map((_, i) => (
-                    <div
-                        key={i}
-                        className={cn("flex shrink-0 justify-around [gap:var(--gap)]", {
-                            "animate-marquee flex-row": !vertical,
-                            "animate-marquee-vertical flex-col": vertical,
-                            "group-hover:[animation-play-state:paused]": pauseOnHover,
-                            "[animation-direction:reverse]": reverse,
-                        })}
-                    >
-                        {children}
-                    </div>
-                ))}
+        <div className={cn("marquee-container", className)}>
+            <div 
+                ref={contentRef}
+                className={cn(reverse ? "marquee-content-reversed" : "marquee-content")}
+                style={{
+                    animationDuration: `${animationDuration}s`,
+                }}
+                onMouseEnter={pauseOnHover ? (e) => {
+                    e.currentTarget.style.animationPlayState = 'paused';
+                } : undefined}
+                onMouseLeave={pauseOnHover ? (e) => {
+                    e.currentTarget.style.animationPlayState = 'running';
+                } : undefined}
+            >
+                {children}
+                {children}
+            </div>
         </div>
     );
-};
+}
