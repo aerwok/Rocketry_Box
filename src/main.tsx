@@ -9,12 +9,11 @@ const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             refetchOnWindowFocus: false,
-            retry: 1,
+            retry: false,
         },
     },
 });
 
-// Default to using mock API in production for demonstration purposes
 // This will be configured via env variables when backend is ready
 const useMockApiByDefault = import.meta.env.VITE_USE_MOCK_API !== 'false';
 

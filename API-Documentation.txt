@@ -1317,6 +1317,146 @@ Response: {
   }
 }
 
+#### Billing Management
+
+// Get Invoices
+Request Type: GET
+Endpoint: /api/v1/seller/billing/invoices
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (YYYY-MM-DD)
+  to?: string (YYYY-MM-DD)
+Response: {
+  success: boolean,
+  invoices: [
+    {
+      id: string,
+      invoiceNumber: string,
+      period: string,
+      shipments: number,
+      amount: string
+    }
+  ]
+}
+
+// Get Invoice Summary
+Request Type: GET
+Endpoint: /api/v1/seller/billing/invoices/summary
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (YYYY-MM-DD)
+  to?: string (YYYY-MM-DD)
+Response: {
+  success: boolean,
+  summary: {
+    totalInvoices: number,
+    pendingAmount: string,
+    overdueAmount: string,
+    totalPaid: string,
+    totalOutstanding: string
+  }
+}
+
+// Get Invoice Shipments
+Request Type: GET
+Endpoint: /api/v1/seller/billing/invoices/:id/shipments
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  format?: "excel" | "csv"
+Response: {
+  success: boolean,
+  invoice: {
+    id: string,
+    invoiceNumber: string,
+    period: string,
+    shipments: number,
+    amount: string
+  },
+  shipments: [
+    {
+      id: string,
+      date: string,
+      trackingNumber: string,
+      origin: string,
+      originCity: string,
+      destination: string,
+      destinationCity: string,
+      weight: string,
+      category: string,
+      courier: string,
+      status: string,
+      baseCharge: number,
+      additionalCharge: number,
+      codCharge: number,
+      gst: number,
+      total: number
+    }
+  ]
+}
+
+// Get Ledger Transactions
+Request Type: GET
+Endpoint: /api/v1/seller/billing/ledger
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (YYYY-MM-DD)
+  to?: string (YYYY-MM-DD)
+  page?: number
+  limit?: number
+Response: {
+  success: boolean,
+  transactions: [
+    {
+      id: string,
+      date: string,
+      type: string,
+      transactionBy: string,
+      credit: string | null,
+      debit: string | null,
+      taxableAmount: string | null,
+      igst: string | null,
+      cgst: string | null,
+      sgst: string | null,
+      totalAmount: string,
+      closingBalance: string,
+      transactionNumber: string,
+      transactionAgainst: string,
+      remark: string | null
+    }
+  ],
+  pagination: {
+    totalEntries: number,
+    totalPages: number,
+    currentPage: number,
+    pageSize: number,
+    hasMore: boolean
+  }
+}
+
+// Get Ledger Summary
+Request Type: GET
+Endpoint: /api/v1/seller/billing/ledger/summary
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  success: boolean,
+  summary: {
+    totalRecharge: string,
+    totalDebit: string,
+    totalCredit: string,
+    closingBalance: string
+  }
+}
+
 ### Customer Endpoints
 
 #### Profile Management
@@ -1870,6 +2010,72 @@ Response: {
 }
 
 ## Data Models
+
+### Invoice
+```typescript
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  period: string;
+  shipments: number;
+  amount: string;
+}
+
+interface InvoiceSummary {
+  totalInvoices: number;
+  pendingAmount: string;
+  overdueAmount: string;
+  totalPaid: string;
+  totalOutstanding: string;
+}
+
+interface Shipment {
+  id: string;
+  date: string;
+  trackingNumber: string;
+  origin: string;
+  originCity: string;
+  destination: string;
+  destinationCity: string;
+  weight: string;
+  category: string;
+  courier: string;
+  status: string;
+  baseCharge: number;
+  additionalCharge: number;
+  codCharge: number;
+  gst: number;
+  total: number;
+}
+```
+
+### LedgerTransaction
+```typescript
+interface LedgerTransaction {
+  id: string;
+  date: string;
+  type: string;
+  transactionBy: string;
+  credit: string | null;
+  debit: string | null;
+  taxableAmount: string | null;
+  igst: string | null;
+  cgst: string | null;
+  sgst: string | null;
+  totalAmount: string;
+  closingBalance: string;
+  transactionNumber: string;
+  transactionAgainst: string;
+  remark: string | null;
+}
+
+interface LedgerSummary {
+  totalRecharge: string;
+  totalDebit: string;
+  totalCredit: string;
+  closingBalance: string;
+}
+```
 
 ### OrderData
 ```typescript

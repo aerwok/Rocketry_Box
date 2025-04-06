@@ -373,7 +373,7 @@ const WalletHistory = () => {
         if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
         return 0;
     });
-    
+
     // Apply filtering when filters change
     useEffect(() => {
         applyFilters();
@@ -804,7 +804,7 @@ const WalletHistory = () => {
                         </button>
                     </div>
                     <h3 className="uppercase text-xs font-semibold text-gray-500 mb-2">CLOSING BALANCE</h3>
-                    <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
                         <div className="text-gray-400">
                             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -1072,7 +1072,7 @@ const WalletHistory = () => {
                             onChange={handleFilterChange}
                             className="w-full"
                         />
-                    </div>
+            </div>
                     <div className="flex gap-2 mt-4">
                         <Button 
                             onClick={applyFilters}
@@ -1107,7 +1107,7 @@ const WalletHistory = () => {
             {/* Transactions table */}
             <div className="bg-white rounded-lg border overflow-hidden">
                 <div className="overflow-x-auto">
-                    <Table>
+                        <Table>
                         <TableHeader className="bg-gray-50 border-b">
                             <TableRow>
                                 <TableHead className="text-center w-12">#</TableHead>
@@ -1115,39 +1115,39 @@ const WalletHistory = () => {
                                     DATE {sortConfig?.key === 'date' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
-                                </TableHead>
+                                    </TableHead>
                                 <TableHead>REFERENCE NUMBER</TableHead>
                                 <TableHead>ORDER ID</TableHead>
                                 <TableHead className="cursor-pointer" onClick={() => handleSort('type')}>
                                     TYPE {sortConfig?.key === 'type' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
-                                </TableHead>
+                                    </TableHead>
                                 <TableHead className="cursor-pointer" onClick={() => handleSort('amount')}>
                                     AMOUNT {sortConfig?.key === 'amount' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
-                                </TableHead>
+                                    </TableHead>
                                 <TableHead>COD CHARGE</TableHead>
                                 <TableHead>IGST</TableHead>
                                 <TableHead>SUB-TOTAL</TableHead>
                                 <TableHead>CLOSING BALANCE</TableHead>
                                 <TableHead>REMARK</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                             {isLoading ? (
                                 <TableRow>
                                     <TableCell colSpan={11} className="text-center py-6 text-gray-500">
                                         Loading transactions...
-                                    </TableCell>
+                                        </TableCell>
                                 </TableRow>
                             ) : sortedData.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={11} className="text-center py-6 text-gray-500">
                                         No transactions found
-                                    </TableCell>
-                                </TableRow>
+                                        </TableCell>
+                                    </TableRow>
                             ) : (
                                 // Using pagination to show only the current page of transactions
                                 sortedData
@@ -1168,9 +1168,9 @@ const WalletHistory = () => {
                                         </TableRow>
                                     ))
                             )}
-                        </TableBody>
-                    </Table>
-                </div>
+                            </TableBody>
+                        </Table>
+                    </div>
             </div>
 
             {/* Pagination controls - updated for API mode */}
