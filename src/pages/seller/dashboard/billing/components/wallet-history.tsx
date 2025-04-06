@@ -20,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import axios from "axios";
 
 interface WalletTransaction {
     id: number;
@@ -136,7 +137,13 @@ const WalletHistory = () => {
     const dateDropdownRef = useRef<HTMLDivElement>(null);
     const calendarRef = useRef<HTMLDivElement>(null);
 
-    // Add filtered data state
+    // Add API-related state
+    const [isLoading, setIsLoading] = useState(false);
+    const [isApiMode, setIsApiMode] = useState(false);
+    const [totalTransactions, setTotalTransactions] = useState(0);
+    const [apiError, setApiError] = useState<string | null>(null);
+
+    // Add filtered data state - will be populated from API in real mode
     const [filteredData, setFilteredData] = useState<WalletTransaction[]>([...transactionData]);
 
     const handleSort = (key: keyof WalletTransaction) => {
@@ -230,6 +237,13 @@ const WalletHistory = () => {
 
     // Apply filters to data
     const applyFilters = () => {
+        if (isApiMode) {
+            // In API mode, filters are sent to the backend
+            fetchWalletTransactions();
+            return;
+        }
+
+        // Existing client-side filtering logic for mock data
         let result = [...transactionData];
         
         // Filter by date (handling various date formats)
@@ -587,8 +601,117 @@ const WalletHistory = () => {
         XLSX.writeFile(workbook, "Wallet_History.xlsx");
     };
 
+    // API Functions
+    // 1. Fetch wallet transactions with filters
+    const fetchWalletTransactions = async () => {
+        if (!isApiMode) return; // Skip API call if in mock mode
+        
+        setIsLoading(true);
+        setApiError(null);
+        
+        try {
+            // Build query parameters from filters
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', currentPage.toString());
+            queryParams.append('limit', rowsPerPage.toString());
+            
+            // Add filter parameters if they exist
+            if (filters.date) queryParams.append('date', filters.date);
+            if (filters.referenceNumber) queryParams.append('referenceNumber', filters.referenceNumber);
+            if (filters.orderId) queryParams.append('orderId', filters.orderId);
+            if (filters.paymentType && filters.paymentType !== 'all') 
+                queryParams.append('paymentType', filters.paymentType);
+            if (filters.creditDebit && filters.creditDebit !== 'Credit Debit') 
+                queryParams.append('creditDebit', filters.creditDebit);
+            if (filters.amount) queryParams.append('amount', filters.amount);
+            if (filters.remark) queryParams.append('remark', filters.remark);
+            
+            // Add sorting if available
+            if (sortConfig) {
+                queryParams.append('sortBy', sortConfig.key);
+                queryParams.append('sortDirection', sortConfig.direction);
+            }
+            
+            // Make API request
+            const response = await axios.get(`/api/wallet/transactions?${queryParams.toString()}`);
+            
+            // Update state with API response
+            setFilteredData(response.data.transactions);
+            setTotalTransactions(response.data.totalCount);
+            
+        } catch (error) {
+            console.error('Error fetching wallet transactions:', error);
+            setApiError('Failed to fetch wallet transactions. Please try again later.');
+            // Fallback to mock data on error
+            setFilteredData([...transactionData]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    // 2. Fetch wallet summary data (for cards at the top)
+    const fetchWalletSummary = async () => {
+        if (!isApiMode) return; // Skip API call if in mock mode
+        
+        try {
+            // Make the API call without storing the response since it's not used yet
+            await axios.get('/api/wallet/summary');
+            
+            // In a real implementation, you would update these values from the API response
+            // For example:
+            // const response = await axios.get('/api/wallet/summary');
+            // setTotalRecharge(response.data.totalRecharge);
+            // Instead of calculating them from transactionData
+            
+        } catch (error) {
+            console.error('Error fetching wallet summary:', error);
+            // Continue using calculated values from mock data
+        }
+    };
+    
+    // Toggle between API mode and mock data mode
+    const toggleDataMode = () => {
+        setIsApiMode(!isApiMode);
+    };
+
+    // Fetch data when relevant state changes
+    useEffect(() => {
+        if (isApiMode) {
+            fetchWalletTransactions();
+            fetchWalletSummary();
+        } else {
+            // Apply client-side filtering when in mock mode
+            applyFilters();
+        }
+    }, [isApiMode, currentPage, rowsPerPage, sortConfig, filters]);
+
     return (
         <div className="space-y-6">
+            {/* Data Mode Toggle - for testing purposes only */}
+            <div className="flex justify-end">
+                <Button 
+                    variant="outline" 
+                    onClick={toggleDataMode} 
+                    className="text-xs"
+                >
+                    {isApiMode ? "Switch to Mock Data" : "Switch to API Data"}
+                </Button>
+            </div>
+
+            {/* API Error Message */}
+            {apiError && (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+                    {apiError}
+                </div>
+            )}
+
+            {/* Loading Indicator */}
+            {isLoading && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded flex items-center justify-center">
+                    Loading wallet transactions...
+                </div>
+            )}
+
             {/* Top stat cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div className="bg-white p-4 rounded border relative">
@@ -1013,7 +1136,13 @@ const WalletHistory = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sortedData.length === 0 ? (
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={11} className="text-center py-6 text-gray-500">
+                                        Loading transactions...
+                                    </TableCell>
+                                </TableRow>
+                            ) : sortedData.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={11} className="text-center py-6 text-gray-500">
                                         No transactions found
@@ -1044,14 +1173,17 @@ const WalletHistory = () => {
                 </div>
             </div>
 
-            {/* Pagination controls */}
+            {/* Pagination controls - updated for API mode */}
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Rows/Page:</span>
                     <select 
                         className="border rounded py-1 px-2 text-sm"
                         value={rowsPerPage}
-                        onChange={(e) => setRowsPerPage(parseInt(e.target.value))}
+                        onChange={(e) => {
+                            setRowsPerPage(parseInt(e.target.value));
+                            setCurrentPage(1); // Reset to first page when changing rows per page
+                        }}
                     >
                         <option value="50">50</option>
                         <option value="100">100</option>
@@ -1078,7 +1210,7 @@ const WalletHistory = () => {
                     >
                         Previous
                     </Button>
-                    {[...Array(Math.min(4, Math.ceil(sortedData.length / rowsPerPage)))].map((_, i) => (
+                    {[...Array(Math.min(4, Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage)))].map((_, i) => (
                         <Button 
                             key={i}
                             variant="outline" 
@@ -1096,8 +1228,8 @@ const WalletHistory = () => {
                         variant="outline" 
                         size="sm" 
                         className="px-2"
-                        disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(sortedData.length / rowsPerPage)))}
+                        disabled={currentPage === Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage) || sortedData.length === 0}
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage)))}
                     >
                         Next
                     </Button>
@@ -1105,8 +1237,8 @@ const WalletHistory = () => {
                         variant="outline" 
                         size="sm" 
                         className="px-2"
-                        disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
-                        onClick={() => setCurrentPage(Math.ceil(sortedData.length / rowsPerPage))}
+                        disabled={currentPage === Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage) || sortedData.length === 0}
+                        onClick={() => setCurrentPage(Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage))}
                     >
                         Last
                     </Button>
