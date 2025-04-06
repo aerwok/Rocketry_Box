@@ -1256,6 +1256,67 @@ Response: {
   }
 }
 
+#### Rate Card Management
+// Get Seller Rate Card
+Request Type: GET
+Endpoint: /api/v1/seller/rate-card
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    rateBand: string,
+    lastUpdated: string,
+    couriers: [
+      {
+        name: string,
+        rates: {
+          withinCity: number,
+          withinState: number,
+          metroToMetro: number,
+          restOfIndia: number,
+          northEastJK: number
+        },
+        codCharge: number,
+        codPercent: number
+      }
+    ]
+  }
+}
+
+// Calculate Shipping Rate
+Request Type: POST
+Endpoint: /api/v1/seller/rate-card/calculate
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  pickupPincode: string,
+  deliveryPincode: string,
+  paymentType: "COD" | "Prepaid",
+  purchaseAmount: string,
+  packageLength: string,
+  packageWidth: string,
+  packageHeight: string,
+  packageWeight: string
+}
+Response: {
+  data: {
+    zone: string,
+    weight: string,
+    rates: [
+      {
+        name: string,
+        baseCharge: number,
+        codCharge: number,
+        gst: number,
+        total: number
+      }
+    ]
+  }
+}
+
 ### Customer Endpoints
 
 #### Profile Management
@@ -1566,6 +1627,248 @@ Request Body: {
   notes: string
 }
 
+#### Rate Band Management
+// Get Rate Bands
+Request Type: GET
+Endpoint: /api/v1/admin/rate-bands
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: [
+    {
+      id: string,
+      name: string,
+      description: string,
+      isDefault: boolean,
+      createdAt: string,
+      updatedAt: string
+    }
+  ]
+}
+
+// Create Rate Band
+Request Type: POST
+Endpoint: /api/v1/admin/rate-bands
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  name: string,
+  description: string,
+  isDefault: boolean
+}
+Response: {
+  data: {
+    id: string,
+    name: string,
+    description: string,
+    isDefault: boolean,
+    createdAt: string,
+    updatedAt: string
+  }
+}
+
+// Get Rate Band Details
+Request Type: GET
+Endpoint: /api/v1/admin/rate-bands/:bandId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    id: string,
+    name: string,
+    description: string,
+    isDefault: boolean,
+    rates: [
+      {
+        courier: string,
+        rates: {
+          withinCity: {
+            base: string,
+            additional: string,
+            rto: string
+          },
+          withinState: {
+            base: string,
+            additional: string,
+            rto: string
+          },
+          metroToMetro: {
+            base: string,
+            additional: string,
+            rto: string
+          },
+          restOfIndia: {
+            base: string,
+            additional: string,
+            rto: string
+          },
+          northEastJK: {
+            base: string,
+            additional: string,
+            rto: string
+          }
+        },
+        cod: string,
+        codPercent: string
+      }
+    ],
+    createdAt: string,
+    updatedAt: string
+  }
+}
+
+// Update Rate Band
+Request Type: PUT
+Endpoint: /api/v1/admin/rate-bands/:bandId
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  name?: string,
+  description?: string,
+  isDefault?: boolean,
+  rates?: [RateObject]
+}
+Response: {
+  data: {
+    id: string,
+    name: string,
+    description: string,
+    isDefault: boolean,
+    updatedAt: string
+  }
+}
+
+// Delete Rate Band
+Request Type: DELETE
+Endpoint: /api/v1/admin/rate-bands/:bandId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    success: boolean,
+    message: string
+  }
+}
+
+// Upload Rate Card
+Request Type: POST
+Endpoint: /api/v1/admin/rate-bands/:bandId/upload
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "multipart/form-data"
+}
+Request Body: {
+  file: File // Excel file with rate card data
+}
+Response: {
+  data: {
+    success: boolean,
+    message: string,
+    processedRows: number,
+    errors?: [
+      {
+        row: number,
+        message: string
+      }
+    ]
+  }
+}
+
+// Download Rate Card Template
+Request Type: GET
+Endpoint: /api/v1/admin/rate-bands/template
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: Blob (Excel file download)
+
+// Assign Rate Band to Seller
+Request Type: POST
+Endpoint: /api/v1/admin/users/:userId/rate-band
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  rateBandId: string
+}
+Response: {
+  data: {
+    success: boolean,
+    message: string,
+    userId: string,
+    rateBandId: string,
+    rateBandName: string
+  }
+}
+
+// Get Custom Seller Rates
+Request Type: GET
+Endpoint: /api/v1/admin/users/:userId/custom-rates
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    userId: string,
+    userName: string,
+    rates: [
+      {
+        courier: string,
+        rates: {
+          withinCity: number,
+          withinState: number,
+          metroToMetro: number,
+          restOfIndia: number,
+          northEastJK: number
+        },
+        codCharge: number,
+        codPercent: number
+      }
+    ],
+    lastUpdated: string
+  }
+}
+
+// Update Custom Seller Rates
+Request Type: PUT
+Endpoint: /api/v1/admin/users/:userId/custom-rates
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  rates: [
+    {
+      courier: string,
+      rates: {
+        withinCity: number,
+        withinState: number,
+        metroToMetro: number,
+        restOfIndia: number,
+        northEastJK: number
+      },
+      codCharge: number,
+      codPercent: number
+    }
+  ]
+}
+Response: {
+  data: {
+    success: boolean,
+    message: string,
+    userId: string,
+    lastUpdated: string
+  }
+}
+
 ## Data Models
 
 ### OrderData
@@ -1845,6 +2148,80 @@ interface ShippingRate {
   gst: number;
   total: number;
   expectedDelivery: string;
+}
+```
+
+### RateCard
+```typescript
+interface CourierRate {
+  name: string;
+  rates: {
+    withinCity: number;
+    withinState: number;
+    metroToMetro: number;
+    restOfIndia: number;
+    northEastJK: number;
+  };
+  codCharge: number;
+  codPercent: number;
+}
+
+interface SellerRateCard {
+  rateBand: string;
+  lastUpdated: string;
+  couriers: CourierRate[];
+}
+```
+
+### DetailedRateObject
+```typescript
+interface ZoneRate {
+  base: string;
+  additional: string;
+  rto: string;
+}
+
+interface DetailedRateObject {
+  courier: string;
+  rates: {
+    withinCity: ZoneRate;
+    withinState: ZoneRate;
+    metroToMetro: ZoneRate;
+    restOfIndia: ZoneRate;
+    northEastJK: ZoneRate;
+  };
+  cod: string;
+  codPercent: string;
+}
+```
+
+### RateCalculationResult
+```typescript
+interface RateResult {
+  name: string;
+  baseCharge: number;
+  codCharge: number;
+  gst: number;
+  total: number;
+}
+
+interface RateCalculationResult {
+  zone: string;
+  weight: string;
+  rates: RateResult[];
+}
+```
+
+### RateBand
+```typescript
+interface RateBand {
+  id: string;
+  name: string;
+  description: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+  rates?: DetailedRateObject[];
 }
 ```
 
