@@ -1078,6 +1078,184 @@ Response: {
   }
 }
 
+#### NDR Management
+// Get NDR Shipments
+Request Type: GET
+Endpoint: /api/v1/seller/ndr
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  status?: "all" | "action-required" | "action-requested" | "in-transit" | "ofd" | "delivered"
+  page?: number
+  limit?: number
+  fromDate?: string (YYYY-MM-DD)
+  toDate?: string (YYYY-MM-DD)
+  searchQuery?: string
+Response: {
+  data: [
+    {
+      id: string,
+      awb: string,
+      order_date: string,
+      courier_name: string,
+      customer_name: string,
+      attempts: number,
+      last_attempt_date: string,
+      status: string,
+      ndr_reason: string,
+      recommended_action: string,
+      delivery_address: {
+        fullName: string,
+        contactNumber: string,
+        addressLine1: string,
+        addressLine2?: string,
+        landmark?: string,
+        pincode: string,
+        city: string,
+        state: string
+      }
+    }
+  ],
+  pagination: {
+    total: number,
+    page: number,
+    limit: number,
+    pages: number
+  }
+}
+
+// Get NDR Details
+Request Type: GET
+Endpoint: /api/v1/seller/ndr/:awb
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    id: string,
+    awb: string,
+    order_id: string,
+    order_date: string,
+    courier_name: string,
+    customer_name: string,
+    attempts: number,
+    attempt_history: [
+      {
+        date: string,
+        time: string,
+        status: string,
+        reason: string,
+        agent_remarks?: string
+      }
+    ],
+    status: string,
+    ndr_reason: string,
+    recommended_action: string,
+    delivery_address: {
+      fullName: string,
+      contactNumber: string,
+      addressLine1: string,
+      addressLine2?: string,
+      landmark?: string,
+      pincode: string,
+      city: string,
+      state: string
+    }
+  }
+}
+
+// Return NDR Shipment
+Request Type: POST
+Endpoint: /api/v1/seller/ndr/:awb/return
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  reason: string,
+  remarks?: string
+}
+Response: {
+  data: {
+    id: string,
+    awb: string,
+    status: "return_initiated",
+    message: string,
+    return_id: string
+  }
+}
+
+// Reattempt NDR Shipment
+Request Type: POST
+Endpoint: /api/v1/seller/ndr/:awb/reattempt
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  address?: {
+    fullName: string,
+    contactNumber: string,
+    addressLine1: string,
+    addressLine2?: string,
+    landmark?: string,
+    pincode: string,
+    city: string,
+    state: string
+  },
+  preferredDate?: string,
+  remarks?: string
+}
+Response: {
+  data: {
+    id: string,
+    awb: string,
+    status: "reattempt_scheduled",
+    message: string,
+    reattempt_id: string,
+    scheduled_date?: string
+  }
+}
+
+// Get NDR Report
+Request Type: GET
+Endpoint: /api/v1/seller/ndr/report
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  status?: "all" | "action-required" | "action-requested" | "in-transit" | "ofd" | "delivered"
+  fromDate?: string (YYYY-MM-DD)
+  toDate?: string (YYYY-MM-DD)
+  format?: "xlsx" | "csv" (default: xlsx)
+Response: Blob (file download)
+
+// Bulk NDR Upload
+Request Type: POST
+Endpoint: /api/v1/seller/ndr/bulk-upload
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "multipart/form-data"
+}
+Request Body: {
+  file: File,
+  action: "return" | "reattempt"
+}
+Response: {
+  data: {
+    upload_id: string,
+    total: number,
+    processed: number,
+    failed: number,
+    message: string,
+    errors?: {
+      awb: string,
+      error: string
+    }[]
+  }
+}
+
 ### Customer Endpoints
 
 #### Profile Management

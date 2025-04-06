@@ -574,6 +574,173 @@ PUT /api/v1/seller/inventory/:itemId
 DELETE /api/v1/seller/inventory/:itemId
 ```
 
+#### NDR Management
+```typescript
+// Get NDR Shipments
+GET /api/v1/seller/ndr
+Query Parameters:
+  status?: "all" | "action-required" | "action-requested" | "in-transit" | "ofd" | "delivered"
+  page?: number
+  limit?: number
+  fromDate?: string (YYYY-MM-DD)
+  toDate?: string (YYYY-MM-DD)
+  searchQuery?: string
+
+Response:
+{
+  "data": [
+    {
+      "id": string,
+      "awb": string,
+      "order_date": string,
+      "courier_name": string,
+      "customer_name": string,
+      "attempts": number,
+      "last_attempt_date": string,
+      "status": string,
+      "ndr_reason": string,
+      "recommended_action": string,
+      "delivery_address": {
+        "fullName": string,
+        "contactNumber": string,
+        "addressLine1": string,
+        "addressLine2"?: string,
+        "landmark"?: string,
+        "pincode": string,
+        "city": string,
+        "state": string
+      }
+    }
+  ],
+  "pagination": {
+    "total": number,
+    "page": number,
+    "limit": number,
+    "pages": number
+  }
+}
+
+// Get NDR Details
+GET /api/v1/seller/ndr/:awb
+
+Response:
+{
+  "data": {
+    "id": string,
+    "awb": string,
+    "order_id": string,
+    "order_date": string,
+    "courier_name": string,
+    "customer_name": string,
+    "attempts": number,
+    "attempt_history": [
+      {
+        "date": string,
+        "time": string,
+        "status": string,
+        "reason": string,
+        "agent_remarks"?: string
+      }
+    ],
+    "status": string,
+    "ndr_reason": string,
+    "recommended_action": string,
+    "delivery_address": {
+      "fullName": string,
+      "contactNumber": string,
+      "addressLine1": string,
+      "addressLine2"?: string,
+      "landmark"?: string,
+      "pincode": string,
+      "city": string,
+      "state": string
+    }
+  }
+}
+
+// Return NDR Shipment
+POST /api/v1/seller/ndr/:awb/return
+{
+  "reason": string,
+  "remarks"?: string
+}
+
+Response:
+{
+  "data": {
+    "id": string,
+    "awb": string,
+    "status": "return_initiated",
+    "message": string,
+    "return_id": string
+  }
+}
+
+// Reattempt NDR Shipment
+POST /api/v1/seller/ndr/:awb/reattempt
+{
+  "address"?: {
+    "fullName": string,
+    "contactNumber": string,
+    "addressLine1": string,
+    "addressLine2"?: string,
+    "landmark"?: string,
+    "pincode": string,
+    "city": string,
+    "state": string
+  },
+  "preferredDate"?: string,
+  "remarks"?: string
+}
+
+Response:
+{
+  "data": {
+    "id": string,
+    "awb": string,
+    "status": "reattempt_scheduled",
+    "message": string,
+    "reattempt_id": string,
+    "scheduled_date"?: string
+  }
+}
+
+// Get NDR Report
+GET /api/v1/seller/ndr/report
+Query Parameters:
+  status?: "all" | "action-required" | "action-requested" | "in-transit" | "ofd" | "delivered"
+  fromDate?: string (YYYY-MM-DD)
+  toDate?: string (YYYY-MM-DD)
+  format?: "xlsx" | "csv" (default: xlsx)
+
+Response: File Download
+
+// Bulk NDR Upload
+POST /api/v1/seller/ndr/bulk-upload
+Content-Type: multipart/form-data
+{
+  "file": File,
+  "action": "return" | "reattempt"
+}
+
+Response:
+{
+  "data": {
+    "upload_id": string,
+    "total": number,
+    "processed": number,
+    "failed": number,
+    "message": string,
+    "errors"?: [
+      {
+        "awb": string,
+        "error": string
+      }
+    ]
+  }
+}
+```
+
 #### Analytics
 ```typescript
 // Get Sales Analytics
@@ -776,6 +943,44 @@ interface ShippingOptions {
   rtoWarehouse: string;
   shippingMode: string;
   courier: string;
+}
+```
+
+### NDRData
+```typescript
+interface NDRAddress {
+  fullName: string;
+  contactNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
+  landmark?: string;
+  pincode: string;
+  city: string;
+  state: string;
+}
+
+interface NDRAttemptHistory {
+  date: string;
+  time: string;
+  status: string;
+  reason: string;
+  agent_remarks?: string;
+}
+
+interface NDRData {
+  id: string;
+  awb: string;
+  order_id?: string;
+  order_date: string;
+  courier_name: string;
+  customer_name: string;
+  attempts: number;
+  last_attempt_date: string;
+  status: "Action Required" | "Action Requested" | "In Transit" | "Out for Delivery" | "Delivered";
+  ndr_reason: string;
+  recommended_action: string;
+  delivery_address?: NDRAddress;
+  attempt_history?: NDRAttemptHistory[];
 }
 ```
 

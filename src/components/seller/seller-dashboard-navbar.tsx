@@ -112,6 +112,18 @@ const SellerDashboardNavbar = () => {
         e.preventDefault(); // Prevent form submission
     };
 
+    // Function to get the appropriate search placeholder based on current route
+    const getSearchPlaceholder = () => {
+        if (location.pathname.includes('/seller/dashboard/ndr')) {
+            return "Search NDR by AWB, Customer, Courier...";
+        } else if (location.pathname.includes('/seller/dashboard/shipments')) {
+            return "Search Shipments by AWB...";
+        } else if (location.pathname.includes('/seller/dashboard/orders')) {
+            return "Search Orders by ID, Customer...";
+        }
+        return "Search AWB number...";
+    };
+
     return (
         <header className="fixed top-0 left-0 right-0 border-b border-border z-50 bg-white h-16">
             <div className="px-4 h-full">
@@ -143,7 +155,7 @@ const SellerDashboardNavbar = () => {
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                                     <Input
                                         type="search"
-                                        placeholder="Search AWB number..."
+                                        placeholder={getSearchPlaceholder()}
                                         className="pl-9 bg-[#F8F7FF] w-full"
                                         value={searchQuery}
                                         onChange={handleSearchChange}
@@ -222,7 +234,7 @@ const SellerDashboardNavbar = () => {
                                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                                                 <Input
                                                     type="search"
-                                                    placeholder="Search AWB number..."
+                                                    placeholder={getSearchPlaceholder()}
                                                     className="pl-9 bg-[#F8F7FF] w-full"
                                                     value={searchQuery}
                                                     onChange={handleSearchChange}
