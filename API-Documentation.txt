@@ -748,6 +748,226 @@ Headers: {
 }
 Response: Blob (file download)
 
+#### Shipments Management
+
+// Get Shipments
+Request Type: GET
+Endpoint: /api/v1/seller/shipments
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  status?: "all" | "booked" | "pending-pickup" | "in-transit" | "delivered" | "cancelled" | "exception"
+  awb?: string
+  from?: string (ISO date)
+  to?: string (ISO date)
+  page?: number
+  limit?: number
+Response: {
+  data: [
+    {
+      orderId: string,
+      orderDate: string,
+      booked: string,
+      pickupId: string,
+      customer: string,
+      product: string,
+      amount: string,
+      payment: "COD" | "Prepaid",
+      weight: string,
+      channel: string,
+      awb: string,
+      courier: string,
+      tracking: string,
+      status: string
+    }
+  ],
+  pagination: {
+    total: number,
+    page: number,
+    limit: number,
+    pages: number
+  }
+}
+
+// Get Shipment Details
+Request Type: GET
+Endpoint: /api/v1/seller/shipments/:shipmentId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    shipmentId: string,
+    orderId: string,
+    orderDate: string,
+    booked: string,
+    pickupId: string,
+    customer: {
+      name: string,
+      phone: string,
+      email: string,
+      address: {
+        street: string,
+        city: string,
+        state: string,
+        pincode: string,
+        country: string
+      }
+    },
+    product: {
+      name: string,
+      sku: string,
+      quantity: number,
+      price: number,
+      weight: string,
+      dimensions: {
+        length: number,
+        width: number,
+        height: number
+      }
+    },
+    payment: {
+      method: "COD" | "Prepaid",
+      amount: string,
+      codCharge: string,
+      shippingCharge: string,
+      gst: string,
+      total: string
+    },
+    channel: string,
+    awb: string,
+    courier: {
+      name: string,
+      trackingUrl: string
+    },
+    status: string,
+    trackingHistory: [
+      {
+        status: string,
+        location: string,
+        timestamp: string,
+        description: string
+      }
+    ]
+  }
+}
+
+// Track Shipment
+Request Type: GET
+Endpoint: /api/v1/seller/shipments/:awb/track
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    awb: string,
+    courier: string,
+    status: string,
+    expectedDelivery: string,
+    origin: string,
+    destination: string,
+    weight: string,
+    trackingHistory: [
+      {
+        status: string,
+        location: string,
+        timestamp: string,
+        description: string
+      }
+    ]
+  }
+}
+
+// Cancel Shipment
+Request Type: POST
+Endpoint: /api/v1/seller/shipments/:awb/cancel
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  reason: string
+}
+Response: {
+  data: {
+    success: boolean,
+    message: string,
+    cancellationId: string
+  }
+}
+
+// Bulk Track Shipments
+Request Type: POST
+Endpoint: /api/v1/seller/shipments/bulk-track
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  awbs: string[]
+}
+Response: {
+  data: [
+    {
+      awb: string,
+      courier: string,
+      status: string,
+      lastUpdated: string
+    }
+  ]
+}
+
+// Get Shipping Rates
+Request Type: GET
+Endpoint: /api/v1/seller/shipments/rates
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  fromPincode: string
+  toPincode: string
+  weight: string
+  payment: "cod" | "prepaid"
+Response: {
+  data: [
+    {
+      courier: string,
+      mode: string,
+      zone: string,
+      baseCharge: number,
+      codCharge: number,
+      gst: number,
+      total: number,
+      expectedDelivery: string
+    }
+  ]
+}
+
+// Print Label
+Request Type: GET
+Endpoint: /api/v1/seller/shipments/:awb/label
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  format?: "pdf" | "thermal"
+  size?: "A4" | "4x6"
+Response: Blob (file download)
+
+// Print Manifest
+Request Type: POST
+Endpoint: /api/v1/seller/shipments/manifest
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  awbs: string[],
+  courier?: string
+}
+Response: Blob (file download)
+
 ### Customer Endpoints
 
 #### Profile Management
@@ -1242,6 +1462,101 @@ interface DashboardStats {
     pending: number;
     actionRequired: number;
   };
+}
+```
+
+### Shipment
+```typescript
+interface Shipment {
+  orderId: string;
+  orderDate: string;
+  booked: string;
+  pickupId: string;
+  customer: string;
+  product: string;
+  amount: string;
+  payment: "COD" | "Prepaid";
+  weight: string;
+  channel: string;
+  awb: string;
+  courier: string;
+  tracking: string;
+  status: string;
+}
+```
+
+### ShipmentDetail
+```typescript
+interface ShipmentDetail {
+  shipmentId: string;
+  orderId: string;
+  orderDate: string;
+  booked: string;
+  pickupId: string;
+  customer: {
+    name: string;
+    phone: string;
+    email: string;
+    address: {
+      street: string;
+      city: string;
+      state: string;
+      pincode: string;
+      country: string;
+    };
+  };
+  product: {
+    name: string;
+    sku: string;
+    quantity: number;
+    price: number;
+    weight: string;
+    dimensions: {
+      length: number;
+      width: number;
+      height: number;
+    };
+  };
+  payment: {
+    method: "COD" | "Prepaid";
+    amount: string;
+    codCharge: string;
+    shippingCharge: string;
+    gst: string;
+    total: string;
+  };
+  channel: string;
+  awb: string;
+  courier: {
+    name: string;
+    trackingUrl: string;
+  };
+  status: string;
+  trackingHistory: TrackingEvent[];
+}
+```
+
+### TrackingEvent
+```typescript
+interface TrackingEvent {
+  status: string;
+  location: string;
+  timestamp: string;
+  description: string;
+}
+```
+
+### ShippingRate
+```typescript
+interface ShippingRate {
+  courier: string;
+  mode: string;
+  zone: string;
+  baseCharge: number;
+  codCharge: number;
+  gst: number;
+  total: number;
+  expectedDelivery: string;
 }
 ```
 

@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/store/use-sidebar-store';
 import { Menu, MenuIcon, Search } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../ui/input';
 import { useState, useEffect } from 'react';
 import {
@@ -23,9 +23,13 @@ import {
 const SellerDashboardNavbar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const toggleSidebar = useSidebarStore((state) => state.toggleSidebar);
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Add debounce timer for search
+    const [searchDebounce, setSearchDebounce] = useState<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         // Check if user is authenticated
@@ -45,6 +49,14 @@ const SellerDashboardNavbar = () => {
             console.warn('⚠️ DEVELOPMENT MODE: Using authentication bypass for seller. REMOVE BEFORE DEPLOYMENT!');
         }
     }, [navigate]);
+
+    // Initialize search from URL parameters
+    useEffect(() => {
+        const awbParam = searchParams.get("awb");
+        if (awbParam) {
+            setSearchQuery(awbParam);
+        }
+    }, [searchParams]);
 
     const orderSubLinks = [
         { to: "/seller/dashboard/new-order", label: "New Order" },
@@ -78,11 +90,26 @@ const SellerDashboardNavbar = () => {
         const query = e.target.value;
         setSearchQuery(query);
         
-        // Dispatch custom event for search
-        const searchEvent = new CustomEvent('navbarSearch', {
-            detail: { query }
-        });
-        window.dispatchEvent(searchEvent);
+        // Clear previous timeout
+        if (searchDebounce) {
+            clearTimeout(searchDebounce);
+        }
+        
+        // Debounce the search event (300ms)
+        const timer = setTimeout(() => {
+            // Dispatch custom event for search
+            const searchEvent = new CustomEvent('navbarSearch', {
+                detail: { query }
+            });
+            window.dispatchEvent(searchEvent);
+        }, 300);
+        
+        setSearchDebounce(timer);
+    };
+
+    // We can remove the form submission handler since we're doing real-time search
+    const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault(); // Prevent form submission
     };
 
     return (
@@ -111,16 +138,18 @@ const SellerDashboardNavbar = () => {
 
                         {/* Search Bar */}
                         <div className="hidden lg:flex items-center max-w-md w-full mx-4">
-                            <div className="relative w-full">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                                <Input
-                                    type="search"
-                                    placeholder="Search by AWB number..."
-                                    className="pl-9 bg-[#F8F7FF] w-full"
-                                    value={searchQuery}
-                                    onChange={handleSearchChange}
-                                />
-                            </div>
+                            <form onSubmit={handleSearchSubmit} className="relative w-full">
+                                <div className="relative w-full">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                                    <Input
+                                        type="search"
+                                        placeholder="Search AWB number..."
+                                        className="pl-9 bg-[#F8F7FF] w-full"
+                                        value={searchQuery}
+                                        onChange={handleSearchChange}
+                                    />
+                                </div>
+                            </form>
                         </div>
                     </div>
 
@@ -188,16 +217,18 @@ const SellerDashboardNavbar = () => {
                                 <div className="flex flex-col h-full pt-12">
                                     {/* Mobile Search */}
                                     <div className="p-4 border-b">
-                                        <div className="relative w-full">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                                            <Input
-                                                type="search"
-                                                placeholder="Search by AWB number..."
-                                                className="pl-9 bg-[#F8F7FF] w-full"
-                                                value={searchQuery}
-                                                onChange={handleSearchChange}
-                                            />
-                                        </div>
+                                        <form onSubmit={handleSearchSubmit} className="relative w-full">
+                                            <div className="relative w-full">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                                                <Input
+                                                    type="search"
+                                                    placeholder="Search AWB number..."
+                                                    className="pl-9 bg-[#F8F7FF] w-full"
+                                                    value={searchQuery}
+                                                    onChange={handleSearchChange}
+                                                />
+                                            </div>
+                                        </form>
                                     </div>
 
                                     {/* Mobile Navigation Links */}

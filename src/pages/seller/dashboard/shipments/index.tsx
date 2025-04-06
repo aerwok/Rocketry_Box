@@ -1,13 +1,12 @@
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, ArrowUpDown, Loader2, RefreshCw, Search } from "lucide-react";
+import { AlertCircle, ArrowUpDown, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-// Mock data - will be replaced with API call in production
+// Mock data - will be used when API is not available or for testing
 const shipmentData = [
     {
         orderId: "ORD123456",
@@ -189,39 +188,120 @@ interface Shipment {
     status: string;
 }
 
-// API function for fetching shipments - commented out for now
-// Will be implemented when backend is ready
-const fetchShipments = async (status?: string): Promise<Shipment[]> => {
-    try {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // In production, this would be:
-        // const url = status && status !== 'all' 
-        //   ? `/api/shipments?status=${status}` 
-        //   : '/api/shipments';
-        // const response = await fetch(url);
-        // if (!response.ok) throw new Error('Failed to fetch shipments');
-        // return await response.json();
-
-        // For development, filter the mock data based on status
-        if (status && status !== 'all') {
-            // Convert status like "in-transit" to "In-transit"
-            const formattedStatus = status
+// API Service for shipments
+const ShipmentService = {
+    // Set this to true to use the real API instead of mock data
+    useRealApi: false,
+    
+    // Generic fetch function that can be reused for different endpoints
+    async fetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+        try {
+            const baseUrl = process.env.REACT_APP_API_URL || 'https://api.example.com';
+            const url = `${baseUrl}${endpoint}`;
+            
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('seller_token')}`,
+                    ...options?.headers,
+                },
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('API fetch error:', error);
+            throw error;
+        }
+    },
+    
+    // Get shipments with filters
+    async getShipments(filters: { status?: string; awb?: string; }): Promise<Shipment[]> {
+        // Use real API if enabled
+        if (this.useRealApi) {
+            const queryParams = new URLSearchParams();
+            
+            if (filters.status && filters.status !== 'all') {
+                queryParams.append('status', filters.status);
+            }
+            
+            if (filters.awb) {
+                queryParams.append('awb', filters.awb);
+            }
+            
+            const endpoint = `/shipments?${queryParams.toString()}`;
+            return this.fetch<Shipment[]>(endpoint);
+        } 
+        
+        // Otherwise use mock data
+        return this.getMockShipments(filters);
+    },
+    
+    // Mock implementation for testing
+    async getMockShipments(filters: { status?: string; awb?: string; }): Promise<Shipment[]> {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        let filteredData = [...shipmentData];
+        
+        // Filter by status if provided
+        if (filters.status && filters.status !== 'all') {
+            const formattedStatus = filters.status
                 .split('-')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
-            return shipmentData.filter(shipment => 
+                
+            filteredData = filteredData.filter(shipment => 
                 shipment.status === formattedStatus
             );
         }
         
-        return shipmentData;
-    } catch (error) {
-        console.error('Error fetching shipments:', error);
-        throw error;
+        // Filter by AWB if provided
+        if (filters.awb && filters.awb.trim() !== '') {
+            const searchTerm = filters.awb.toLowerCase().trim();
+            filteredData = filteredData.filter(shipment => 
+                shipment.awb.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        return filteredData;
     }
 };
+
+// Custom hook for shipment data
+function useShipments(status?: string, awbSearch?: string) {
+    const [data, setData] = useState<Shipment[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [searchPerformed, setSearchPerformed] = useState<boolean>(false);
+    
+    const loadShipments = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            
+            const shipments = await ShipmentService.getShipments({
+                status,
+                awb: awbSearch
+            });
+            
+            setData(shipments);
+            setSearchPerformed(true);
+        } catch (error) {
+            console.error('Failed to load shipments', error);
+            setError('There was an error loading your shipments. Please try again.');
+            toast.error('Failed to load shipments');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    return { data, isLoading, error, loadShipments, searchPerformed };
+}
 
 const getPaymentStyle = (payment: string) => {
     return payment === "COD" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800";
@@ -481,72 +561,63 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 const SellerShipmentsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [searchQuery, setSearchQuery] = useState<string>("");
-    const [filteredData, setFilteredData] = useState<Shipment[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
-    const [shipments, setShipments] = useState<Shipment[]>([]);
-
     const currentTab = searchParams.get("tab") || "all";
+    const awbSearch = searchParams.get("awb") || "";
+    const [isSearching, setIsSearching] = useState<boolean>(false);
+    
+    // Use our custom hook to manage shipment data
+    const { 
+        data: filteredData, 
+        isLoading, 
+        error, 
+        loadShipments,
+        searchPerformed
+    } = useShipments(currentTab, awbSearch);
 
     const handleTabChange = (value: string) => {
-        setSearchParams({ tab: value });
+        // Preserve the AWB search when changing tabs
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set("tab", value);
+        setSearchParams(newParams);
     };
-
-    const loadShipments = async () => {
-        try {
-            setIsLoading(true);
-            setError(null);
-            
-            const data = await fetchShipments(currentTab);
-            setShipments(data);
-            
-            // Filter by search query if provided
-            if (searchQuery) {
-                filterShipments(data, searchQuery);
-            } else {
-                setFilteredData(data);
-            }
-            
-        } catch (error) {
-            console.error('Failed to load shipments', error);
-            setError('There was an error loading your shipments. Please try again.');
-            toast.error('Failed to load shipments');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Filter shipments based on search query
-    const filterShipments = (data: Shipment[], query: string) => {
-        if (!query.trim()) {
-            setFilteredData(data);
-            return;
-        }
-
-        const lowercaseQuery = query.toLowerCase();
-        const filtered = data.filter(shipment => 
-            shipment.orderId.toLowerCase().includes(lowercaseQuery) ||
-            shipment.customer.toLowerCase().includes(lowercaseQuery) ||
-            shipment.product.toLowerCase().includes(lowercaseQuery) ||
-            shipment.awb.toLowerCase().includes(lowercaseQuery) ||
-            shipment.courier.toLowerCase().includes(lowercaseQuery)
-        );
+    
+    // Function to handle AWB from the navbar search
+    const handleAWBSearch = (awbInput: string) => {
+        // Indicate search is in progress for the UI
+        setIsSearching(true);
         
-        setFilteredData(filtered);
+        const newParams = new URLSearchParams(searchParams);
+        if (awbInput && awbInput.trim() !== '') {
+            newParams.set("awb", awbInput.trim());
+        } else {
+            newParams.delete("awb");
+        }
+        setSearchParams(newParams);
+        
+        // Reset searching indicator after a short delay (for visual feedback)
+        setTimeout(() => setIsSearching(false), 300);
     };
 
-    // Load shipments when tab changes
+    // Listen for the navbar search event
+    useEffect(() => {
+        const handleNavbarSearch = (event: CustomEvent) => {
+            const { query } = event.detail;
+            handleAWBSearch(query);
+        };
+
+        // Add event listener for navbar search
+        window.addEventListener('navbarSearch', handleNavbarSearch as EventListener);
+        
+        // Clean up event listener on component unmount
+        return () => {
+            window.removeEventListener('navbarSearch', handleNavbarSearch as EventListener);
+        };
+    }, []);
+
+    // Load shipments when tab or AWB search changes
     useEffect(() => {
         loadShipments();
-    }, [currentTab]);
-
-    // Filter shipments when search query changes
-    useEffect(() => {
-        if (shipments.length > 0) {
-            filterShipments(shipments, searchQuery);
-        }
-    }, [searchQuery]);
+    }, [currentTab, awbSearch]);
 
     // Load initial tab and data
     useEffect(() => {
@@ -613,27 +684,52 @@ const SellerShipmentsPage = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 py-4 w-full">
-                    <div className="flex items-center gap-2 w-full">
-                        <div className="relative flex-1 px-px">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                            <Input
-                                placeholder="Search by Order ID, AWB, Customer..."
-                                className="pl-9 w-full bg-[#F8F7FF]"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={loadShipments}
-                            disabled={isLoading}
-                            title="Refresh shipments"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                        </Button>
+                {/* Show AWB search info if active or searching */}
+                <div className="flex items-center justify-between py-4 w-full">
+                    <div className="flex items-center gap-2">
+                        {isSearching && (
+                            <div className="flex items-center gap-2 text-violet-600">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span className="text-sm">Searching...</span>
+                            </div>
+                        )}
+                        
+                        {!isSearching && awbSearch && (
+                            <>
+                                <span className="text-sm text-muted-foreground">Filtering by AWB: </span>
+                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-medium flex items-center gap-1">
+                                    {awbSearch}
+                                    <button 
+                                        onClick={() => handleAWBSearch("")}
+                                        className="hover:text-blue-600"
+                                        title="Clear AWB filter"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </span>
+                            </>
+                        )}
+                        
+                        {!isSearching && !awbSearch && searchPerformed && (
+                            <span className="text-sm text-muted-foreground">
+                                Type in the search bar to filter by AWB number
+                            </span>
+                        )}
                     </div>
+                    
+                    <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={loadShipments}
+                        disabled={isLoading}
+                        title="Refresh shipments"
+                        className={awbSearch || isSearching ? "" : "ml-auto"}
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </Button>
                 </div>
 
                 <div className="w-[calc(100vw-4rem)] lg:w-full -mr-4 lg:mr-0">
@@ -647,7 +743,7 @@ const SellerShipmentsPage = () => {
                             />
                         </TabsContent>
 
-                        {/* Other tabs will be handled by the loadShipments function */}
+                        {/* Keep other tab contents the same */}
                         <TabsContent value="booked" className="mt-2 min-w-full">
                             <ShipmentsTable 
                                 data={filteredData} 
