@@ -968,6 +968,116 @@ Request Body: {
 }
 Response: Blob (file download)
 
+#### Received Management
+
+// Get Received Shipments
+Request Type: GET
+Endpoint: /api/v1/seller/received
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (ISO date)
+  to?: string (ISO date)
+  status?: string
+  page?: number
+  limit?: number
+Response: {
+  data: [
+    {
+      id: string,
+      awb: string,
+      courier: string,
+      customer: string,
+      product: string,
+      status: string,
+      receivedAt: string,
+      notes?: string
+    }
+  ],
+  pagination: {
+    total: number,
+    page: number,
+    limit: number,
+    pages: number
+  }
+}
+
+// Upload Received AWBs
+Request Type: POST
+Endpoint: /api/v1/seller/received/upload
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "multipart/form-data"
+}
+Request Body: {
+  file: File // Excel/CSV file with AWB numbers
+}
+Response: {
+  data: {
+    uploadId: string,
+    totalAwbs: number,
+    validAwbs: number,
+    invalidAwbs: number,
+    status: "processing" | "completed",
+    errors?: {
+      awb: string,
+      message: string
+    }[]
+  }
+}
+
+// Download Sample AWB List
+Request Type: GET
+Endpoint: /api/v1/seller/received/sample
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: Blob (file download of Excel sample)
+
+// Update Received Shipment
+Request Type: PATCH
+Endpoint: /api/v1/seller/received/:id
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  status?: string,
+  notes?: string
+}
+Response: {
+  data: {
+    id: string,
+    awb: string,
+    courier: string,
+    status: string,
+    notes?: string,
+    updatedAt: string
+  }
+}
+
+// Bulk Update Received Shipments
+Request Type: PATCH
+Endpoint: /api/v1/seller/received/bulk
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json" 
+}
+Request Body: {
+  ids: string[],
+  status: string
+}
+Response: {
+  data: {
+    updated: number,
+    errors?: {
+      id: string,
+      message: string
+    }[]
+  }
+}
+
 ### Customer Endpoints
 
 #### Profile Management

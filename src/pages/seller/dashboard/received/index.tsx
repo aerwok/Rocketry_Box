@@ -5,6 +5,7 @@ import { Download, FileSpreadsheet, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import * as XLSX from 'xlsx';
 
 interface UploadedFile {
     name: string;
@@ -12,6 +13,18 @@ interface UploadedFile {
     status: 'uploading' | 'success' | 'error';
     progress: number;
 }
+
+// Sample AWB data for the Excel file
+const sampleAwbData = [
+    { awb: "8044601751" },
+    { awb: "8044601752" },
+    { awb: "8044601621" },
+    { awb: "8044601643" },
+    { awb: "8044601654" },
+    { awb: "8044601676" },
+    { awb: "8044601680" },
+    { awb: "8044603631" },
+];
 
 const SellerReceivedPage = () => {
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -67,7 +80,24 @@ const SellerReceivedPage = () => {
     };
 
     const handleDownloadSample = () => {
-        toast.info("Downloading sample file...");
+        try {
+            // Create a new workbook
+            const workbook = XLSX.utils.book_new();
+            
+            // Convert the sample data to worksheet
+            const worksheet = XLSX.utils.json_to_sheet(sampleAwbData);
+            
+            // Add the worksheet to the workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, "AWB Numbers");
+            
+            // Generate Excel file and trigger download
+            XLSX.writeFile(workbook, "sample_awb_list.xlsx");
+            
+            toast.success("Sample file downloaded successfully!");
+        } catch (error) {
+            console.error("Error downloading sample file:", error);
+            toast.error("Failed to download sample file");
+        }
     };
 
     const removeFile = (index: number) => {
@@ -195,7 +225,7 @@ const SellerReceivedPage = () => {
                                 All required fields must be filled
                             </li>
                             <li>
-                                Date format should be DD/MM/YYYY
+                                Format should have column 'awb' with AWB numbers
                             </li>
                         </ul>
                     </div>
