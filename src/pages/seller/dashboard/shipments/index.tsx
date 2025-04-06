@@ -277,7 +277,6 @@ function useShipments(status?: string, awbSearch?: string) {
     const [data, setData] = useState<Shipment[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [searchPerformed, setSearchPerformed] = useState<boolean>(false);
     
     const loadShipments = async () => {
         try {
@@ -290,7 +289,6 @@ function useShipments(status?: string, awbSearch?: string) {
             });
             
             setData(shipments);
-            setSearchPerformed(true);
         } catch (error) {
             console.error('Failed to load shipments', error);
             setError('There was an error loading your shipments. Please try again.');
@@ -300,7 +298,7 @@ function useShipments(status?: string, awbSearch?: string) {
         }
     };
     
-    return { data, isLoading, error, loadShipments, searchPerformed };
+    return { data, isLoading, error, loadShipments };
 }
 
 const getPaymentStyle = (payment: string) => {
@@ -570,8 +568,7 @@ const SellerShipmentsPage = () => {
         data: filteredData, 
         isLoading, 
         error, 
-        loadShipments,
-        searchPerformed
+        loadShipments
     } = useShipments(currentTab, awbSearch);
 
     const handleTabChange = (value: string) => {
@@ -711,12 +708,6 @@ const SellerShipmentsPage = () => {
                                     </button>
                                 </span>
                             </>
-                        )}
-                        
-                        {!isSearching && !awbSearch && searchPerformed && (
-                            <span className="text-sm text-muted-foreground">
-                                Type in the search bar to filter by AWB number
-                            </span>
                         )}
                     </div>
                     
