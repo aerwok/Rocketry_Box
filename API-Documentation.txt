@@ -1406,11 +1406,19 @@ Endpoint: /api/v1/seller/billing/ledger
 Headers: {
   "Authorization": "Bearer ${token}"
 }
-Query Parameters:
-  from?: string (YYYY-MM-DD)
-  to?: string (YYYY-MM-DD)
-  page?: number
-  limit?: number
+Query Parameters: {
+  from?: string (YYYY-MM-DD),
+  to?: string (YYYY-MM-DD),
+  page?: number,
+  limit?: number,
+  transactionNumber?: string,
+  transactionBy?: string,
+  transactionType?: string,
+  transactionAgainst?: string,
+  creditDebit?: "Credit" | "Debit" | "Both",
+  amount?: string,
+  remark?: string
+}
 Response: {
   success: boolean,
   transactions: [
@@ -1456,6 +1464,37 @@ Response: {
     closingBalance: string
   }
 }
+
+// Export Ledger Transactions
+Request Type: GET
+Endpoint: /api/v1/seller/billing/ledger/export
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  format: "xlsx" | "csv",
+  from?: string (YYYY-MM-DD),
+  to?: string (YYYY-MM-DD),
+  transactionNumber?: string,
+  transactionBy?: string,
+  transactionType?: string,
+  transactionAgainst?: string,
+  creditDebit?: "Credit" | "Debit" | "Both",
+  amount?: string,
+  remark?: string
+}
+Response: Blob (file download)
+
+// Export Single Transaction
+Request Type: GET
+Endpoint: /api/v1/seller/billing/ledger/:transactionId/export
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  format: "xlsx" | "csv"
+}
+Response: Blob (file download)
 
 ### Customer Endpoints
 
@@ -2074,6 +2113,30 @@ interface LedgerSummary {
   totalDebit: string;
   totalCredit: string;
   closingBalance: string;
+}
+
+interface LedgerFilters {
+  date?: string;
+  transactionNumber?: string;
+  transactionBy?: string;
+  transactionType?: string;
+  transactionAgainst?: string;
+  creditDebit?: "Credit" | "Debit" | "Both";
+  amount?: string;
+  remark?: string;
+}
+
+interface DateRange {
+  start: Date | null;
+  end: Date | null;
+}
+
+interface LedgerPagination {
+  totalEntries: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  hasMore: boolean;
 }
 ```
 

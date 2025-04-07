@@ -162,9 +162,9 @@ const mockSummary: LedgerSummary = {
 };
 
 const LedgerHistory = () => {
-    const [transactions, setTransactions] = useState<LedgerTransaction[]>([]);
+    const [transactions, setTransactions] = useState<LedgerTransaction[]>(mockTransactionData);
     const [summary, setSummary] = useState<LedgerSummary>(mockSummary);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -218,7 +218,10 @@ const LedgerHistory = () => {
     const calendarRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        fetchLedgerData();
+        // Only fetch data if we're not in development mode
+        if (import.meta.env.MODE !== 'development') {
+            fetchLedgerData();
+        }
     }, [date, currentPage, rowsPerPage]);
 
     const fetchLedgerData = async () => {
@@ -230,8 +233,13 @@ const LedgerHistory = () => {
             const fromDate = date?.from ? date.from.toISOString().split('T')[0] : '';
             const toDate = date?.to ? date.to.toISOString().split('T')[0] : '';
             
-            // Get ledger transactions
-            const response = await axios.get('/api/seller/billing/ledger', {
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Request timed out')), 5000);
+            });
+            
+            // Get ledger transactions with timeout
+            const responsePromise = axios.get('/api/seller/billing/ledger', {
                 params: { 
                     from: fromDate,
                     to: toDate,
@@ -240,8 +248,12 @@ const LedgerHistory = () => {
                 }
             });
             
-            // Get summary data
-            const summaryResponse = await axios.get('/api/seller/billing/ledger/summary');
+            // Race between the API call and the timeout
+            const response = await Promise.race([responsePromise, timeoutPromise]) as any;
+            
+            // Get summary data with timeout
+            const summaryPromise = axios.get('/api/seller/billing/ledger/summary');
+            const summaryResponse = await Promise.race([summaryPromise, timeoutPromise]) as any;
             
             if (response.data.success && summaryResponse.data.success) {
                 setTransactions(response.data.transactions);
@@ -669,91 +681,92 @@ const LedgerHistory = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
+            {/* Stats Cards - Made more compact */}
             <div className="flex justify-between items-center">
-            {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-grow">
-                    <div className="bg-white p-4 rounded-lg border">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-sm font-medium text-gray-500 uppercase">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 flex-grow">
+                    <div className="bg-white p-3 rounded-lg border">
+                        <div className="flex flex-col">
+                            <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
                                 TOTAL RECHARGE
                             </h3>
-                            <div className="flex items-center gap-2">
-                                <FileText className="size-5 text-gray-400" />
-                                <span className="text-lg font-semibold">
+                            <div className="flex items-center gap-1">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span className="text-base font-semibold">
                                     {summary.totalRecharge}
                                 </span>
-                                <Info className="h-4 w-4 text-gray-400" />
+                                <Info className="h-3 w-3 text-gray-400" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white p-4 rounded-lg border">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-sm font-medium text-gray-500 uppercase">
+                    <div className="bg-white p-3 rounded-lg border">
+                        <div className="flex flex-col">
+                            <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
                                 TOTAL DEBIT
                             </h3>
-                            <div className="flex items-center gap-2">
-                                <FileText className="size-5 text-gray-400" />
-                                <span className="text-lg font-semibold">
+                            <div className="flex items-center gap-1">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span className="text-base font-semibold">
                                     {summary.totalDebit}
                                 </span>
-                                <Info className="h-4 w-4 text-gray-400" />
+                                <Info className="h-3 w-3 text-gray-400" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white p-4 rounded-lg border">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-sm font-medium text-gray-500 uppercase">
+                    <div className="bg-white p-3 rounded-lg border">
+                        <div className="flex flex-col">
+                            <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
                                 TOTAL CREDIT
                             </h3>
-                            <div className="flex items-center gap-2">
-                                <FileText className="size-5 text-gray-400" />
-                                <span className="text-lg font-semibold">
+                            <div className="flex items-center gap-1">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span className="text-base font-semibold">
                                     {summary.totalCredit}
                                 </span>
-                                <Info className="h-4 w-4 text-gray-400" />
+                                <Info className="h-3 w-3 text-gray-400" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white p-4 rounded-lg border">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-sm font-medium text-gray-500 uppercase">
+                    <div className="bg-white p-3 rounded-lg border">
+                        <div className="flex flex-col">
+                            <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
                                 CLOSING BALANCE
                             </h3>
-                            <div className="flex items-center gap-2">
-                                <FileText className="size-5 text-gray-400" />
-                                <span className="text-lg font-semibold">
+                            <div className="flex items-center gap-1">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span className="text-base font-semibold">
                                     {summary.closingBalance}
                                 </span>
-                                <Info className="h-4 w-4 text-gray-400" />
+                                <Info className="h-3 w-3 text-gray-400" />
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                {/* Action buttons */}
-                <div className="flex gap-2 ml-4">
+
+                {/* Action buttons - Made more compact */}
+                <div className="flex gap-2 ml-3">
                     <Button 
                         variant="outline" 
+                        size="sm"
                         className={cn(
-                            "flex items-center gap-1",
+                            "flex items-center gap-1 h-8 px-3",
                             showFilters ? "bg-purple-600 text-white hover:bg-purple-700 hover:text-white" : ""
                         )}
                         onClick={() => setShowFilters(!showFilters)}
                     >
-                        <Filter className="h-4 w-4" />
+                        <Filter className="h-3 w-3" />
                         Show
                     </Button>
                 </div>
             </div>
 
-            {/* Filter Section */}
+            {/* Filter Section - Made more compact */}
             {showFilters && (
-                <div className="bg-white rounded-lg border p-4 space-y-4 relative z-10">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg border p-3 space-y-3 relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="relative">
                             <Label className="block text-xs font-medium text-gray-500 mb-1">Dates</Label>
                             <div className="relative">
@@ -962,61 +975,44 @@ const LedgerHistory = () => {
                             />
                         </div>
                     </div>
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex gap-2 mt-3">
                         <Button 
                             onClick={applyFilters}
                             size="sm"
                             variant="default"
-                            className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 px-4 py-1 h-9 rounded"
+                            className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 px-3 py-1 h-8 rounded"
                         >
-                            <Filter className="h-4 w-4" />
+                            <Filter className="h-3 w-3" />
                             Filter
                         </Button>
                         <Button 
                             onClick={clearFilters}
                             size="sm"
                             variant="outline"
-                            className="bg-orange-50 hover:bg-orange-100 text-orange-500 border-orange-200 flex items-center gap-1 px-4 py-1 h-9 rounded"
+                            className="bg-orange-50 hover:bg-orange-100 text-orange-500 border-orange-200 flex items-center gap-1 px-3 py-1 h-8 rounded"
                         >
-                            <X className="h-4 w-4" />
+                            <X className="h-3 w-3" />
                             Clear
                         </Button>
                         <Button 
                             onClick={exportToExcel}
                             size="sm"
                             variant="outline"
-                            className="bg-green-50 hover:bg-green-100 text-green-500 border-green-200 flex items-center gap-1 px-4 py-1 h-9 rounded"
+                            className="bg-green-50 hover:bg-green-100 text-green-500 border-green-200 flex items-center gap-1 px-3 py-1 h-8 rounded"
                         >
-                            <Download className="h-4 w-4" />
+                            <Download className="h-3 w-3" />
                             Export
                         </Button>
                     </div>
                 </div>
             )}
 
-            <div className="space-y-4">
-                {/* Search and Filter Controls */}
-                <div className="flex justify-end mb-2">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleRefresh}
-                        disabled={loading}
-                    >
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
-                    </Button>
-                </div>
-
-                {error && (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded-md text-sm">
-                        {error}
-                    </div>
-                )}
-
+            {/* Table Controls - Made more compact */}
+            <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Rows/Page</span>
+                    <span className="text-xs text-gray-500">Rows/Page</span>
                     <Select value={rowsPerPage.toString()} onValueChange={(value) => setRowsPerPage(parseInt(value))}>
-                        <SelectTrigger className="w-16 h-8">
+                        <SelectTrigger className="w-14 h-7">
                             <SelectValue placeholder="50" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1027,330 +1023,350 @@ const LedgerHistory = () => {
                         </SelectContent>
                     </Select>
                 </div>
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    className="h-7 px-3"
+                >
+                    {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Refresh"}
+                </Button>
+            </div>
 
-                {/* Ledger Table */}
-                <div className="overflow-x-auto border rounded-md">
-                    <Table className="border-collapse w-full">
-                        <TableHeader>
-                            <TableRow className="border-b hover:bg-transparent">
-                                <TableHead className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 w-10">
-                                    #
-                                </TableHead>
-                                {visibleColumns.date && (
-                                    <TableHead 
-                                        onClick={() => handleSort('date')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            TRANSACTION DATE
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.type && (
-                                    <TableHead 
-                                        onClick={() => handleSort('type')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            TRANSACTION TYPE
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.transactionBy && (
-                                    <TableHead 
-                                        onClick={() => handleSort('transactionBy')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            TRANSACTION BY
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.credit && (
-                                    <TableHead 
-                                        onClick={() => handleSort('credit')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            CREDIT
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.debit && (
-                                    <TableHead 
-                                        onClick={() => handleSort('debit')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            DEBIT
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.taxableAmount && (
-                                    <TableHead 
-                                        onClick={() => handleSort('taxableAmount')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            TAXABLE AMOUNT
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.igst && (
-                                    <TableHead 
-                                        onClick={() => handleSort('igst')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            IGST
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.cgst && (
-                                    <TableHead
-                                        onClick={() => handleSort('cgst')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            CGST
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.sgst && (
-                                    <TableHead
-                                        onClick={() => handleSort('sgst')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            SGST
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.totalAmount && (
-                                    <TableHead
-                                        onClick={() => handleSort('totalAmount')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            TOTAL AMOUNT
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.closingBalance && (
-                                    <TableHead
-                                        onClick={() => handleSort('closingBalance')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            CLOSING BALANCE
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.transactionNumber && (
-                                    <TableHead
-                                        onClick={() => handleSort('transactionNumber')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            TRANSACTION NUMBER
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.transactionAgainst && (
-                                    <TableHead
-                                        onClick={() => handleSort('transactionAgainst')}
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-center whitespace-nowrap">
-                                            TRANSACTION AGAINST
-                                            <ArrowUpDown className="ml-1 h-3 w-3" />
-                                        </div>
-                                    </TableHead>
-                                )}
-                                {visibleColumns.remark && (
-                                    <TableHead
-                                        className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] border-r p-2"
-                                    >
-                                        REMARK
-                                    </TableHead>
-                                )}
+            {error && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-2 rounded-md text-xs">
+                    {error}
+                </div>
+            )}
+
+            {/* Table Section - Optimized header and cell sizes */}
+            <div className="overflow-x-auto border rounded-md">
+                <Table className="border-collapse w-full">
+                    <TableHeader>
+                        <TableRow className="border-b hover:bg-transparent">
+                            <TableHead className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 w-8">
+                                #
+                            </TableHead>
+                            {visibleColumns.date && (
                                 <TableHead 
-                                    className="font-semibold text-xs h-10 uppercase text-center bg-[#f8f8fa] p-2"
+                                    onClick={() => handleSort('date')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
-                                    ACTION
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-24 text-center">
-                                        <div className="flex justify-center items-center">
-                                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                                            Loading transactions...
-                                        </div>
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        TRANSACTION DATE
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.type && (
+                                <TableHead 
+                                    onClick={() => handleSort('type')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        TRANSACTION TYPE
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.transactionBy && (
+                                <TableHead 
+                                    onClick={() => handleSort('transactionBy')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        TRANSACTION BY
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.credit && (
+                                <TableHead 
+                                    onClick={() => handleSort('credit')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        CREDIT
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.debit && (
+                                <TableHead 
+                                    onClick={() => handleSort('debit')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        DEBIT
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.taxableAmount && (
+                                <TableHead 
+                                    onClick={() => handleSort('taxableAmount')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        TAXABLE AMOUNT
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.igst && (
+                                <TableHead 
+                                    onClick={() => handleSort('igst')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        IGST
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.cgst && (
+                                <TableHead
+                                    onClick={() => handleSort('cgst')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        CGST
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.sgst && (
+                                <TableHead
+                                    onClick={() => handleSort('sgst')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        SGST
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.totalAmount && (
+                                <TableHead
+                                    onClick={() => handleSort('totalAmount')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        TOTAL AMOUNT
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.closingBalance && (
+                                <TableHead
+                                    onClick={() => handleSort('closingBalance')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        CLOSING BALANCE
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.transactionNumber && (
+                                <TableHead
+                                    onClick={() => handleSort('transactionNumber')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        TRANSACTION NUMBER
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.transactionAgainst && (
+                                <TableHead
+                                    onClick={() => handleSort('transactionAgainst')}
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
+                                >
+                                    <div className="flex items-center justify-center whitespace-nowrap">
+                                        TRANSACTION AGAINST
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </div>
+                                </TableHead>
+                            )}
+                            {visibleColumns.remark && (
+                                <TableHead
+                                    className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2"
+                                >
+                                    REMARK
+                                </TableHead>
+                            )}
+                            <TableHead 
+                                className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] p-2"
+                            >
+                                ACTION
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center">
+                                    <div className="flex justify-center items-center">
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        <span className="text-sm">Loading transactions...</span>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : sortedData.length > 0 ? (
+                            sortedData.map((transaction, index) => (
+                                <TableRow key={transaction.id} className="border-b hover:bg-gray-50">
+                                    <TableCell className="p-2 text-center border-r text-sm">
+                                        {index + 1}
                                     </TableCell>
-                                </TableRow>
-                            ) : sortedData.length > 0 ? (
-                                sortedData.map((transaction, index) => (
-                                    <TableRow key={transaction.id} className="border-b hover:bg-gray-50">
-                                        <TableCell className="p-3 text-center border-r">
-                                            {index + 1}
-                                        </TableCell>
-                                        {visibleColumns.date && (
-                                            <TableCell className="p-3 border-r">
+                                    {visibleColumns.date && (
+                                        <TableCell className="p-2 border-r">
                                             {transaction.date}
                                         </TableCell>
-                                        )}
-                                        {visibleColumns.type && (
-                                            <TableCell className="p-3 border-r">
-                                                {transaction.type}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.transactionBy && (
-                                            <TableCell className="p-3 border-r">
-                                                {transaction.transactionBy}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.credit && (
-                                            <TableCell className="p-3 text-right border-r">
-                                                {transaction.credit}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.debit && (
-                                            <TableCell className="p-3 text-right border-r">
-                                                {transaction.debit}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.taxableAmount && (
-                                            <TableCell className="p-3 text-right border-r">
-                                                {transaction.taxableAmount}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.igst && (
-                                            <TableCell className="p-3 text-right border-r">
-                                                {transaction.igst}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.cgst && (
-                                            <TableCell className="p-3 text-right border-r">
-                                                {transaction.cgst}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.sgst && (
-                                            <TableCell className="p-3 text-right border-r">
-                                                {transaction.sgst}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.totalAmount && (
-                                            <TableCell className="p-3 text-right font-medium border-r">
-                                                {transaction.totalAmount}
-                                            </TableCell>
-                                        )}
-                                        {visibleColumns.closingBalance && (
-                                            <TableCell className="p-3 text-right font-medium border-r">
-                                                {transaction.closingBalance}
+                                    )}
+                                    {visibleColumns.type && (
+                                        <TableCell className="p-2 border-r">
+                                            {transaction.type}
                                         </TableCell>
-                                        )}
-                                        {visibleColumns.transactionNumber && (
-                                            <TableCell className="p-3 border-r">
-                                                {transaction.transactionNumber}
+                                    )}
+                                    {visibleColumns.transactionBy && (
+                                        <TableCell className="p-2 border-r">
+                                            {transaction.transactionBy}
                                         </TableCell>
-                                        )}
-                                        {visibleColumns.transactionAgainst && (
-                                            <TableCell className="p-3 border-r">
-                                                {transaction.transactionAgainst}
+                                    )}
+                                    {visibleColumns.credit && (
+                                        <TableCell className="p-2 text-right border-r">
+                                            {transaction.credit}
                                         </TableCell>
-                                        )}
-                                        {visibleColumns.remark && (
-                                            <TableCell className="p-3 border-r">
-                                                {transaction.remark || ""}
+                                    )}
+                                    {visibleColumns.debit && (
+                                        <TableCell className="p-2 text-right border-r">
+                                            {transaction.debit}
                                         </TableCell>
-                                        )}
-                                        <TableCell className="p-3 text-center">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 rounded-full hover:bg-gray-100"
-                                                onClick={() => exportSingleTransactionToExcel(transaction)}
-                                            >
-                                                <Download className="h-4 w-4" />
-                                            </Button>
+                                    )}
+                                    {visibleColumns.taxableAmount && (
+                                        <TableCell className="p-2 text-right border-r">
+                                            {transaction.taxableAmount}
                                         </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-24 text-center">
-                                        No transactions found
+                                    )}
+                                    {visibleColumns.igst && (
+                                        <TableCell className="p-2 text-right border-r">
+                                            {transaction.igst}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.cgst && (
+                                        <TableCell className="p-2 text-right border-r">
+                                            {transaction.cgst}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.sgst && (
+                                        <TableCell className="p-2 text-right border-r">
+                                            {transaction.sgst}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.totalAmount && (
+                                        <TableCell className="p-2 text-right font-medium border-r">
+                                            {transaction.totalAmount}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.closingBalance && (
+                                        <TableCell className="p-2 text-right font-medium border-r">
+                                            {transaction.closingBalance}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.transactionNumber && (
+                                        <TableCell className="p-2 border-r">
+                                            {transaction.transactionNumber}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.transactionAgainst && (
+                                        <TableCell className="p-2 border-r">
+                                            {transaction.transactionAgainst}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.remark && (
+                                        <TableCell className="p-2 border-r">
+                                            {transaction.remark || ""}
+                                        </TableCell>
+                                    )}
+                                    <TableCell className="p-2 text-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full hover:bg-gray-100"
+                                            onClick={() => exportSingleTransactionToExcel(transaction)}
+                                        >
+                                            <Download className="h-4 w-4" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
-                            )}
-                            </TableBody>
-                        </Table>
-                </div>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center text-sm">
+                                    No transactions found
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
 
-                {/* Pagination */}
-                <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-500">
-                        Showing {sortedData.length > 0 ? 1 : 0} to {Math.min(rowsPerPage, sortedData.length)} of {sortedData.length} entries
-                    </div>
-                    <div className="flex items-center space-x-2">
+            {/* Pagination - Made more compact */}
+            <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-500">
+                    Showing {sortedData.length > 0 ? 1 : 0} to {Math.min(rowsPerPage, sortedData.length)} of {sortedData.length} entries
+                </div>
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(1)}
+                        disabled={currentPage === 1}
+                        className="h-7 px-2 text-xs"
+                    >
+                        First
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="h-7 px-2 text-xs"
+                    >
+                        Previous
+                    </Button>
+                    {Array.from({ length: Math.min(totalPages, 4) }).map((_, i) => (
                         <Button
-                            variant="outline"
+                            key={i}
+                            variant={currentPage === i + 1 ? "default" : "outline"}
                             size="sm"
-                            onClick={() => handlePageChange(1)}
-                            disabled={currentPage === 1}
+                            onClick={() => handlePageChange(i + 1)}
+                            className="h-7 w-7 text-xs"
                         >
-                            First
+                            {i + 1}
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                        >
-                            Previous
-                        </Button>
-                        {Array.from({ length: Math.min(totalPages, 4) }).map((_, i) => (
-                            <Button
-                                key={i}
-                                variant={currentPage === i + 1 ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => handlePageChange(i + 1)}
-                            >
-                                {i + 1}
-                            </Button>
-                        ))}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                        >
-                            Next
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(totalPages)}
-                            disabled={currentPage === totalPages}
-                        >
-                            Last
-                        </Button>
-                    </div>
+                    ))}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="h-7 px-2 text-xs"
+                    >
+                        Next
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="h-7 px-2 text-xs"
+                    >
+                        Last
+                    </Button>
                 </div>
             </div>
         </div>
