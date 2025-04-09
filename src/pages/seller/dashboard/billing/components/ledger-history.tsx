@@ -20,7 +20,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { DateRange } from "react-day-picker";
-import axios from "axios";
 import * as XLSX from 'xlsx';
 
 interface LedgerTransaction {
@@ -133,7 +132,7 @@ const LedgerHistory = () => {
     const fetchLedgerData = useCallback(async () => {
         // Only attempt to fetch real data in production
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            console.log('Development mode detected, using mock data');
+            console.log('Development mode detected, using empty data');
             setTransactions(emptyTransactionData);
             setSummary(emptySummary);
             return;
@@ -153,56 +152,74 @@ const LedgerHistory = () => {
             const fromDate = date?.from ? date.from.toISOString().split('T')[0] : '';
             const toDate = date?.to ? date.to.toISOString().split('T')[0] : '';
             
-            // Increased timeout to 15 seconds to allow for slower network conditions
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            // Create separate controllers for each request
+            const ledgerController = new AbortController();
+            const summaryController = new AbortController();
+            const timeoutId = setTimeout(() => {
+                ledgerController.abort();
+                summaryController.abort();
+            }, 20000); // Increase timeout to 20 seconds
             
             try {
-                const response = await axios.get(`/api/seller/billing/ledger`, {
-                    params: { 
-                        from: fromDate,
-                        to: toDate,
-                        page: currentPage,
-                        limit: rowsPerPage
-                    },
-                    signal: controller.signal,
-                    // Increase timeout for slow networks
-                    timeout: 15000
-                });
-                
-                const summaryResponse = await axios.get(`/api/seller/billing/ledger/summary`, {
-                    signal: controller.signal,
-                    timeout: 15000
-                });
+                // Use Promise.all instead of sequential requests
+                const [ledgerResponse, summaryResponse] = await Promise.all([
+                    // Direct call to avoid interception
+                    fetch(`/api/seller/billing/ledger?from=${fromDate}&to=${toDate}&page=${currentPage}&limit=${rowsPerPage}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        signal: ledgerController.signal
+                    }).then(res => {
+                        if (!res.ok) throw new Error(`API error: ${res.status}`);
+                        return res.json();
+                    }),
+                    
+                    // Direct call to avoid interception
+                    fetch(`/api/seller/billing/ledger/summary`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        signal: summaryController.signal
+                    }).then(res => {
+                        if (!res.ok) throw new Error(`API error: ${res.status}`);
+                        return res.json();
+                    })
+                ]);
                 
                 clearTimeout(timeoutId);
                 
-                if (response.data.success && summaryResponse.data.success) {
-                    setTransactions(response.data.transactions);
-                    setSummary(summaryResponse.data.summary);
-                    return; // Exit early on success
+                if (ledgerResponse.success && summaryResponse.success) {
+                    setTransactions(ledgerResponse.transactions || []);
+                    setSummary(summaryResponse.summary || emptySummary);
+                    return;
                 } else {
-                    throw new Error(response.data.message || 'Failed to fetch ledger data');
+                    throw new Error(ledgerResponse.message || summaryResponse.message || 'Failed to fetch ledger data');
                 }
             } catch (apiError: any) {
                 clearTimeout(timeoutId);
                 console.error('API Error:', apiError);
-                throw apiError; // Re-throw to be caught by outer try/catch
+                throw apiError;
             }
         } catch (err: any) {
             console.error('Error fetching ledger data:', err);
             
             // More detailed error message based on the specific error
-            let errorMessage = 'Failed to load ledger data. Using mock data instead.';
+            let errorMessage = 'Failed to load ledger data.';
             if (err.name === 'AbortError') {
-                errorMessage = 'API request timed out. Using mock data instead.';
-            } else if (err.message.includes('Network Error')) {
-                errorMessage = 'Network error occurred. Using mock data instead.';
+                errorMessage = 'API request timed out.';
+            } else if (err.message?.includes('Network Error')) {
+                errorMessage = 'Network error occurred.';
+            } else {
+                errorMessage = `Error: ${err.message || 'Unknown error'}`;
             }
             
             setError(errorMessage);
             
-            // Always fallback to mock data when API fails
+            // Use empty data on failure
             setTransactions(emptyTransactionData);
             setSummary(emptySummary);
         } finally {
