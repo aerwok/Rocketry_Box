@@ -7,7 +7,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { ArrowUpDown, FileText, Download, Info, Filter, X, Calendar, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -209,7 +209,6 @@ const LedgerHistory = () => {
     });
     const [showDateDropdown, setShowDateDropdown] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
-    const [selectedMonth, setSelectedMonth] = useState(new Date());
     const [customDateRange, setCustomDateRange] = useState<{start: Date | null, end: Date | null}>({
         start: null,
         end: null
@@ -218,13 +217,37 @@ const LedgerHistory = () => {
     const calendarRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Only fetch data if we're not in development mode
-        if (import.meta.env.MODE !== 'development') {
-            fetchLedgerData();
+        function handleClickOutside(event: MouseEvent) {
+            if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
+                setShowDateDropdown(false);
+            }
+            if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+                setShowCalendar(false);
+            }
         }
-    }, [date, currentPage, rowsPerPage]);
+        
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
-    const fetchLedgerData = async () => {
+    // Move the fetchLedgerData function declaration before the useEffect that uses it
+    const fetchLedgerData = useCallback(async () => {
+        // Only attempt to fetch real data in production
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.log('Development mode detected, using mock data');
+            setTransactions(mockTransactionData);
+            setSummary(mockSummary);
+            return;
+        }
+
+        // Don't fetch if user is offline
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            setError('You are currently offline. Using cached data.');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         
@@ -234,32 +257,28 @@ const LedgerHistory = () => {
             const toDate = date?.to ? date.to.toISOString().split('T')[0] : '';
             
             // Increased timeout to 15 seconds to allow for slower network conditions
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Request timed out')), 15000);
-            });
-            
-            // Get ledger transactions with timeout
-            let response, summaryResponse;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
             
             try {
-                // Use baseURL for consistent API paths that will work in both development and production
-                const baseURL = import.meta.env.VITE_API_BASE_URL || '';
-
-                const responsePromise = axios.get(`${baseURL}/api/seller/billing/ledger`, {
+                const response = await axios.get(`/api/seller/billing/ledger`, {
                     params: { 
                         from: fromDate,
                         to: toDate,
                         page: currentPage,
                         limit: rowsPerPage
-                    }
+                    },
+                    signal: controller.signal,
+                    // Increase timeout for slow networks
+                    timeout: 15000
                 });
                 
-                // Race between the API call and the timeout
-                response = await Promise.race([responsePromise, timeoutPromise]) as any;
+                const summaryResponse = await axios.get(`/api/seller/billing/ledger/summary`, {
+                    signal: controller.signal,
+                    timeout: 15000
+                });
                 
-                // Get summary data with timeout
-                const summaryPromise = axios.get(`${baseURL}/api/seller/billing/ledger/summary`);
-                summaryResponse = await Promise.race([summaryPromise, timeoutPromise]) as any;
+                clearTimeout(timeoutId);
                 
                 if (response.data.success && summaryResponse.data.success) {
                     setTransactions(response.data.transactions);
@@ -268,21 +287,20 @@ const LedgerHistory = () => {
                 } else {
                     throw new Error(response.data.message || 'Failed to fetch ledger data');
                 }
-            } catch (apiError) {
+            } catch (apiError: any) {
+                clearTimeout(timeoutId);
                 console.error('API Error:', apiError);
                 throw apiError; // Re-throw to be caught by outer try/catch
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching ledger data:', err);
             
             // More detailed error message based on the specific error
             let errorMessage = 'Failed to load ledger data. Using mock data instead.';
-            if (err instanceof Error) {
-                if (err.message.includes('timeout')) {
-                    errorMessage = 'API request timed out. Using mock data instead.';
-                } else if (err.message.includes('Network Error')) {
-                    errorMessage = 'Network error occurred. Using mock data instead.';
-                }
+            if (err.name === 'AbortError') {
+                errorMessage = 'API request timed out. Using mock data instead.';
+            } else if (err.message.includes('Network Error')) {
+                errorMessage = 'Network error occurred. Using mock data instead.';
             }
             
             setError(errorMessage);
@@ -293,36 +311,56 @@ const LedgerHistory = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage, date, rowsPerPage]);
 
-    const filteredData = transactions;
+    // Add enhanced error handling for API
+    useEffect(() => {
+        // Add event listener for offline/online status changes
+        const handleOnline = () => {
+            if (!loading) {
+                fetchLedgerData();
+            }
+        };
 
-    // Sort the filtered data
-    const sortedData = [...filteredData].sort((a, b) => {
-        if (!sortConfig) return 0;
+        window.addEventListener('online', handleOnline);
+        
+        return () => {
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [fetchLedgerData, loading]);
 
-        const { key, direction } = sortConfig;
-        const aValue = a[key] ?? '';
-        const bValue = b[key] ?? '';
-        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-        return 0;
-    });
+    useEffect(() => {
+        fetchLedgerData();
+    }, [fetchLedgerData]);
 
-    const handleSort = (key: keyof LedgerTransaction) => {
+    // Memoize expensive computations
+    const sortedData = useMemo(() => {
+        if (!sortConfig) return transactions;
+        
+        return [...transactions].sort((a, b) => {
+            const { key, direction } = sortConfig;
+            const aValue = a[key] ?? '';
+            const bValue = b[key] ?? '';
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [transactions, sortConfig]);
+
+    const handleSort = useCallback((key: keyof LedgerTransaction) => {
         setSortConfig(current => ({
             key,
             direction: current?.key === key && current.direction === 'asc' ? 'desc' : 'asc',
         }));
-    };
+    }, []);
 
-    const handleRefresh = () => {
+    const handleRefresh = useCallback(() => {
         fetchLedgerData();
-    };
+    }, [fetchLedgerData]);
 
-    const handlePageChange = (pageNumber: number) => {
+    const handlePageChange = useCallback((pageNumber: number) => {
         setCurrentPage(pageNumber);
-    };
+    }, []);
 
     // Calculate total pages
     const totalPages = 4; // This would normally come from API
@@ -564,33 +602,22 @@ const LedgerHistory = () => {
         applyFiltersWithState(emptyFilters);
     };
 
-    // Handle clicks outside the date dropdown and calendar
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target as Node)) {
-                setShowDateDropdown(false);
-            }
-            if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
-                setShowCalendar(false);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
-
     const prevMonth = () => {
-        const newDate = new Date(selectedMonth);
-        newDate.setMonth(newDate.getMonth() - 1);
-        setSelectedMonth(newDate);
+        const currentDate = new Date();
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        setCustomDateRange({
+            start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+            end: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+        });
     };
 
-    const nextMonthNav = () => {
-        const newDate = new Date(selectedMonth);
-        newDate.setMonth(newDate.getMonth() + 1);
-        setSelectedMonth(newDate);
+    const nextMonth = () => {
+        const currentDate = new Date();
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        setCustomDateRange({
+            start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+            end: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+        });
     };
 
     const generateCalendarDays = (year: number, month: number) => {
@@ -862,9 +889,9 @@ const LedgerHistory = () => {
                                                 <ChevronLeft className="h-4 w-4" />
                                             </button>
                                             <span className="text-sm font-medium">
-                                                {selectedMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                        </span>
-                                            <button onClick={nextMonthNav} className="p-1">
+                                                {customDateRange.start ? formatDate(customDateRange.start) : "Select Date"}
+                                            </span>
+                                            <button onClick={nextMonth} className="p-1">
                                                 <ChevronRight className="h-4 w-4" />
                                             </button>
                                         </div>
@@ -875,8 +902,8 @@ const LedgerHistory = () => {
                                                 </div>
                                             ))}
                                             {generateCalendarDays(
-                                                selectedMonth.getFullYear(),
-                                                selectedMonth.getMonth()
+                                                customDateRange.start ? customDateRange.start.getFullYear() : new Date().getFullYear(),
+                                                customDateRange.start ? customDateRange.start.getMonth() : new Date().getMonth()
                                             ).map((day, i) => (
                                                 <button
                                                     key={i}
@@ -1069,10 +1096,10 @@ const LedgerHistory = () => {
                         <TableRow className="border-b hover:bg-transparent">
                             <TableHead className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 w-8">
                                 #
-                                    </TableHead>
+                            </TableHead>
                             {visibleColumns.date && (
-                                    <TableHead
-                                        onClick={() => handleSort('date')}
+                                <TableHead
+                                    onClick={() => handleSort('date')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
                                     <div className="flex items-center justify-center whitespace-nowrap">
@@ -1178,10 +1205,10 @@ const LedgerHistory = () => {
                                         TOTAL AMOUNT
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                    </TableHead>
+                                </TableHead>
                             )}
                             {visibleColumns.closingBalance && (
-                                    <TableHead
+                                <TableHead
                                     onClick={() => handleSort('closingBalance')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1189,10 +1216,10 @@ const LedgerHistory = () => {
                                         CLOSING BALANCE
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                    </TableHead>
+                                </TableHead>
                             )}
                             {visibleColumns.transactionNumber && (
-                                    <TableHead
+                                <TableHead
                                     onClick={() => handleSort('transactionNumber')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1200,10 +1227,10 @@ const LedgerHistory = () => {
                                         TRANSACTION NUMBER
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                    </TableHead>
+                                </TableHead>
                             )}
                             {visibleColumns.transactionAgainst && (
-                                    <TableHead
+                                <TableHead
                                     onClick={() => handleSort('transactionAgainst')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1211,23 +1238,23 @@ const LedgerHistory = () => {
                                         TRANSACTION AGAINST
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                    </TableHead>
+                                </TableHead>
                             )}
                             {visibleColumns.remark && (
-                                    <TableHead
+                                <TableHead
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2"
-                                    >
+                                >
                                     REMARK
-                                    </TableHead>
+                                </TableHead>
                             )}
-                                    <TableHead
+                            <TableHead
                                 className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] p-2"
-                                    >
+                            >
                                 ACTION
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {loading ? (
                             <TableRow>
                                 <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center">
@@ -1242,7 +1269,7 @@ const LedgerHistory = () => {
                                 <TableRow key={transaction.id} className="border-b hover:bg-gray-50">
                                     <TableCell className="p-2 text-center border-r text-sm">
                                         {index + 1}
-                                        </TableCell>
+                                    </TableCell>
                                     {visibleColumns.date && (
                                         <TableCell className="p-2 border-r">
                                             {transaction.date}
@@ -1329,12 +1356,12 @@ const LedgerHistory = () => {
                             <TableRow>
                                 <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center text-sm">
                                     No transactions found
-                                        </TableCell>
-                                    </TableRow>
+                                </TableCell>
+                            </TableRow>
                         )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                    </TableBody>
+                </Table>
+            </div>
 
             {/* Pagination - Made more compact */}
             <div className="flex items-center justify-between">
