@@ -48,122 +48,19 @@ interface LedgerSummary {
     closingBalance: string;
 }
 
-// Mock data to display initially
-const mockTransactionData: LedgerTransaction[] = [
-    {
-        id: "LD001",
-        date: "2023-05-15",
-        type: "Wallet Recharge",
-        transactionBy: "Admin",
-        credit: "₹10,000",
-        debit: null,
-        taxableAmount: null,
-        igst: null,
-        cgst: null,
-        sgst: null,
-        totalAmount: "₹10,000",
-        closingBalance: "₹10,000",
-        transactionNumber: "TR-2023051501",
-        transactionAgainst: "Wallet",
-        remark: "Initial wallet funding"
-    },
-    {
-        id: "LD002",
-        date: "2023-05-18",
-        type: "Shipping Charge",
-        transactionBy: "System",
-        credit: null,
-        debit: "₹850",
-        taxableAmount: "₹720",
-        igst: "₹130",
-        cgst: null,
-        sgst: null,
-        totalAmount: "₹850",
-        closingBalance: "₹9,150",
-        transactionNumber: "TR-2023051802",
-        transactionAgainst: "Order #12345",
-        remark: "Express delivery charges"
-    },
-    {
-        id: "LD003",
-        date: "2023-05-25",
-        type: "COD Charges",
-        transactionBy: "System",
-        credit: null,
-        debit: "₹120",
-        taxableAmount: "₹101.69",
-        igst: null,
-        cgst: "₹9.15",
-        sgst: "₹9.15",
-        totalAmount: "₹120",
-        closingBalance: "₹9,030",
-        transactionNumber: "TR-2023052503",
-        transactionAgainst: "Order #12350",
-        remark: "COD handling fee"
-    },
-    {
-        id: "LD004",
-        date: "2023-06-01",
-        type: "Wallet Recharge",
-        transactionBy: "Self",
-        credit: "₹5,000",
-        debit: null,
-        taxableAmount: null,
-        igst: null,
-        cgst: null,
-        sgst: null,
-        totalAmount: "₹5,000",
-        closingBalance: "₹14,030",
-        transactionNumber: "TR-2023060104",
-        transactionAgainst: "Wallet",
-        remark: "Additional funds transfer"
-    },
-    {
-        id: "LD005",
-        date: "2023-06-10",
-        type: "Shipping Charge",
-        transactionBy: "System",
-        credit: null,
-        debit: "₹1,250",
-        taxableAmount: "₹1,059.32",
-        igst: "₹190.68",
-        cgst: null,
-        sgst: null,
-        totalAmount: "₹1,250",
-        closingBalance: "₹12,780",
-        transactionNumber: "TR-2023061005",
-        transactionAgainst: "Order #12480",
-        remark: "Premium delivery charges"
-    },
-    {
-        id: "LD006",
-        date: "2023-06-15",
-        type: "Refund",
-        transactionBy: "Admin",
-        credit: "₹350",
-        debit: null,
-        taxableAmount: "₹296.61",
-        igst: "₹53.39",
-        cgst: null,
-        sgst: null,
-        totalAmount: "₹350",
-        closingBalance: "₹13,130",
-        transactionNumber: "TR-2023061506",
-        transactionAgainst: "Order #12380",
-        remark: "Return shipping refund"
-    }
-];
+// Empty data to use as default
+const emptyTransactionData: LedgerTransaction[] = [];
 
-const mockSummary: LedgerSummary = {
-    totalRecharge: "₹15,000",
-    totalDebit: "₹2,220",
-    totalCredit: "₹15,350",
-    closingBalance: "₹13,130"
+const emptySummary: LedgerSummary = {
+    totalRecharge: "₹0",
+    totalDebit: "₹0",
+    totalCredit: "₹0",
+    closingBalance: "₹0"
 };
 
 const LedgerHistory = () => {
-    const [transactions, setTransactions] = useState<LedgerTransaction[]>(mockTransactionData);
-    const [summary, setSummary] = useState<LedgerSummary>(mockSummary);
+    const [transactions, setTransactions] = useState<LedgerTransaction[]>(emptyTransactionData);
+    const [summary, setSummary] = useState<LedgerSummary>(emptySummary);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -237,8 +134,8 @@ const LedgerHistory = () => {
         // Only attempt to fetch real data in production
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
             console.log('Development mode detected, using mock data');
-            setTransactions(mockTransactionData);
-            setSummary(mockSummary);
+            setTransactions(emptyTransactionData);
+            setSummary(emptySummary);
             return;
         }
 
@@ -306,8 +203,8 @@ const LedgerHistory = () => {
             setError(errorMessage);
             
             // Always fallback to mock data when API fails
-            setTransactions(mockTransactionData);
-            setSummary(mockSummary);
+            setTransactions(emptyTransactionData);
+            setSummary(emptySummary);
         } finally {
             setLoading(false);
         }
@@ -338,13 +235,13 @@ const LedgerHistory = () => {
         if (!sortConfig) return transactions;
         
         return [...transactions].sort((a, b) => {
-            const { key, direction } = sortConfig;
+        const { key, direction } = sortConfig;
             const aValue = a[key] ?? '';
             const bValue = b[key] ?? '';
             if (aValue < bValue) return direction === 'asc' ? -1 : 1;
             if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-            return 0;
-        });
+        return 0;
+    });
     }, [transactions, sortConfig]);
 
     const handleSort = useCallback((key: keyof LedgerTransaction) => {
@@ -497,8 +394,8 @@ const LedgerHistory = () => {
         // Reset to page 1 when applying filters
         setCurrentPage(1);
         // In a real application, this would call the API with new filters
-        // For now, we'll just filter our mock data
-        let filtered = [...mockTransactionData];
+        // For now, we'll just filter our current transactions
+        let filtered = [...transactions];
 
         // Filter by date
         if (filterState.date) {
@@ -890,7 +787,7 @@ const LedgerHistory = () => {
                                             </button>
                                             <span className="text-sm font-medium">
                                                 {customDateRange.start ? formatDate(customDateRange.start) : "Select Date"}
-                                            </span>
+                        </span>
                                             <button onClick={nextMonth} className="p-1">
                                                 <ChevronRight className="h-4 w-4" />
                                             </button>
@@ -1096,10 +993,10 @@ const LedgerHistory = () => {
                         <TableRow className="border-b hover:bg-transparent">
                             <TableHead className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 w-8">
                                 #
-                            </TableHead>
+                                    </TableHead>
                             {visibleColumns.date && (
-                                <TableHead
-                                    onClick={() => handleSort('date')}
+                                    <TableHead
+                                        onClick={() => handleSort('date')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
                                     <div className="flex items-center justify-center whitespace-nowrap">
@@ -1205,10 +1102,10 @@ const LedgerHistory = () => {
                                         TOTAL AMOUNT
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.closingBalance && (
-                                <TableHead
+                                    <TableHead
                                     onClick={() => handleSort('closingBalance')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1216,10 +1113,10 @@ const LedgerHistory = () => {
                                         CLOSING BALANCE
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.transactionNumber && (
-                                <TableHead
+                                    <TableHead
                                     onClick={() => handleSort('transactionNumber')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1227,10 +1124,10 @@ const LedgerHistory = () => {
                                         TRANSACTION NUMBER
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.transactionAgainst && (
-                                <TableHead
+                                    <TableHead
                                     onClick={() => handleSort('transactionAgainst')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1238,23 +1135,23 @@ const LedgerHistory = () => {
                                         TRANSACTION AGAINST
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.remark && (
-                                <TableHead
+                                    <TableHead
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2"
-                                >
+                                    >
                                     REMARK
-                                </TableHead>
+                                    </TableHead>
                             )}
-                            <TableHead
+                                    <TableHead
                                 className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] p-2"
-                            >
+                                    >
                                 ACTION
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                         {loading ? (
                             <TableRow>
                                 <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center">
@@ -1269,7 +1166,7 @@ const LedgerHistory = () => {
                                 <TableRow key={transaction.id} className="border-b hover:bg-gray-50">
                                     <TableCell className="p-2 text-center border-r text-sm">
                                         {index + 1}
-                                    </TableCell>
+                                        </TableCell>
                                     {visibleColumns.date && (
                                         <TableCell className="p-2 border-r">
                                             {transaction.date}
@@ -1356,12 +1253,12 @@ const LedgerHistory = () => {
                             <TableRow>
                                 <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center text-sm">
                                     No transactions found
-                                </TableCell>
-                            </TableRow>
+                                        </TableCell>
+                                    </TableRow>
                         )}
-                    </TableBody>
-                </Table>
-            </div>
+                            </TableBody>
+                        </Table>
+                    </div>
 
             {/* Pagination - Made more compact */}
             <div className="flex items-center justify-between">
