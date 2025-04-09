@@ -23,7 +23,7 @@ import {
 const SellerDashboardNavbar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const toggleSidebar = useSidebarStore((state) => state.toggleSidebar);
     const [searchQuery, setSearchQuery] = useState("");
@@ -97,11 +97,14 @@ const SellerDashboardNavbar = () => {
         
         // Debounce the search event (300ms)
         const timer = setTimeout(() => {
-            // Dispatch custom event for search
-            const searchEvent = new CustomEvent('navbarSearch', {
-                detail: { query }
-            });
-            window.dispatchEvent(searchEvent);
+            // Update URL search params
+            const newParams = new URLSearchParams(searchParams);
+            if (query) {
+                newParams.set("search", query);
+            } else {
+                newParams.delete("search");
+            }
+            setSearchParams(newParams);
         }, 300);
         
         setSearchDebounce(timer);

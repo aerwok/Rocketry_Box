@@ -841,7 +841,7 @@ const LedgerHistory = () => {
                                             </button>
                                             <span className="text-sm font-medium">
                                                 {selectedMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                                            </span>
+                        </span>
                                             <button onClick={nextMonthNav} className="p-1">
                                                 <ChevronRight className="h-4 w-4" />
                                             </button>
@@ -1047,10 +1047,10 @@ const LedgerHistory = () => {
                         <TableRow className="border-b hover:bg-transparent">
                             <TableHead className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 w-8">
                                 #
-                            </TableHead>
+                                    </TableHead>
                             {visibleColumns.date && (
-                                <TableHead 
-                                    onClick={() => handleSort('date')}
+                                    <TableHead
+                                        onClick={() => handleSort('date')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
                                     <div className="flex items-center justify-center whitespace-nowrap">
@@ -1156,10 +1156,10 @@ const LedgerHistory = () => {
                                         TOTAL AMOUNT
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.closingBalance && (
-                                <TableHead
+                                    <TableHead
                                     onClick={() => handleSort('closingBalance')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1167,10 +1167,10 @@ const LedgerHistory = () => {
                                         CLOSING BALANCE
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.transactionNumber && (
-                                <TableHead
+                                    <TableHead
                                     onClick={() => handleSort('transactionNumber')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1178,10 +1178,10 @@ const LedgerHistory = () => {
                                         TRANSACTION NUMBER
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.transactionAgainst && (
-                                <TableHead
+                                    <TableHead
                                     onClick={() => handleSort('transactionAgainst')}
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2 cursor-pointer"
                                 >
@@ -1189,23 +1189,23 @@ const LedgerHistory = () => {
                                         TRANSACTION AGAINST
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </div>
-                                </TableHead>
+                                    </TableHead>
                             )}
                             {visibleColumns.remark && (
-                                <TableHead
+                                    <TableHead
                                     className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] border-r p-2"
-                                >
+                                    >
                                     REMARK
-                                </TableHead>
+                                    </TableHead>
                             )}
-                            <TableHead 
+                                    <TableHead
                                 className="font-medium text-xs h-8 uppercase text-center bg-[#f8f8fa] p-2"
-                            >
+                                    >
                                 ACTION
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                         {loading ? (
                             <TableRow>
                                 <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center">
@@ -1220,7 +1220,7 @@ const LedgerHistory = () => {
                                 <TableRow key={transaction.id} className="border-b hover:bg-gray-50">
                                     <TableCell className="p-2 text-center border-r text-sm">
                                         {index + 1}
-                                    </TableCell>
+                                        </TableCell>
                                     {visibleColumns.date && (
                                         <TableCell className="p-2 border-r">
                                             {transaction.date}
@@ -1307,12 +1307,12 @@ const LedgerHistory = () => {
                             <TableRow>
                                 <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 2} className="h-20 text-center text-sm">
                                     No transactions found
-                                </TableCell>
-                            </TableRow>
+                                        </TableCell>
+                                    </TableRow>
                         )}
-                    </TableBody>
-                </Table>
-            </div>
+                            </TableBody>
+                        </Table>
+                    </div>
 
             {/* Pagination - Made more compact */}
             <div className="flex items-center justify-between">

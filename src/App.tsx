@@ -38,7 +38,7 @@ import SellerDashboardPage from "./pages/seller/dashboard/home";
 import SellerDashboardLayout from "./layouts/seller-dashboard-layout";
 import SellerOrdersPage from "./pages/seller/dashboard/orders";
 import SellerNDRPage from "./pages/seller/dashboard/ndr";
-import SellerWeightDisputePage from "./pages/seller/dashboard/disputes";
+import SellerWeightDisputePage from "./pages/seller/dashboard/weight-dispute";
 import SellerBillingPage from "./pages/seller/dashboard/billing";
 import SellerToolsPage from "./pages/seller/dashboard/tools";
 import SellerWarehousePage from "./pages/seller/dashboard/warehouse";

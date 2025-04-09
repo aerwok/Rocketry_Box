@@ -18,7 +18,7 @@ Development: http://localhost:8000
 Production: https://api.rocketrybox.com
 
 ### API Version
-All endpoints are prefixed with `/api/v1/`
+All endpoints are prefixed with `/api/v2/`
 
 ### Content Type
 All requests and responses use `application/json`
@@ -33,7 +33,7 @@ Authorization: Bearer <token>
 
 ### Login
 Request Type: POST
-Endpoint: /api/v1/auth/login
+Endpoint: /api/v2/auth/login
 Headers: {
   "Content-Type": "application/json"
 }
@@ -56,7 +56,7 @@ Response: {
 
 ### Register
 Request Type: POST
-Endpoint: /api/v1/auth/register
+Endpoint: /api/v2/auth/register
 Headers: {
   "Content-Type": "application/json"
 }
@@ -100,7 +100,7 @@ Response: {
 ### OTP Endpoints
 // Send Mobile OTP
 Request Type: POST
-Endpoint: /api/v1/auth/send-mobile-otp
+Endpoint: /api/v2/auth/send-mobile-otp
 Headers: {
   "Content-Type": "application/json"
 }
@@ -110,7 +110,7 @@ Request Body: {
 
 // Send Email OTP
 Request Type: POST
-Endpoint: /api/v1/auth/send-email-otp
+Endpoint: /api/v2/auth/send-email-otp
 Headers: {
   "Content-Type": "application/json"
 }
@@ -120,7 +120,7 @@ Request Body: {
 
 // Verify OTP
 Request Type: POST
-Endpoint: /api/v1/auth/verify-otp
+Endpoint: /api/v2/auth/verify-otp
 Headers: {
   "Content-Type": "application/json"
 }
@@ -137,7 +137,7 @@ Request Body: {
 #### Profile Management
 // Get Profile
 Request Type: GET
-Endpoint: /api/v1/seller/profile
+Endpoint: /api/v2/seller/profile
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -206,7 +206,7 @@ Response: {
 
 // Update Profile
 Request Type: PUT
-Endpoint: /api/v1/seller/profile
+Endpoint: /api/v2/seller/profile
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -240,7 +240,7 @@ Response: {
 
 // Update Profile Image
 Request Type: POST
-Endpoint: /api/v1/seller/profile/image
+Endpoint: /api/v2/seller/profile/image
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "multipart/form-data"
@@ -254,7 +254,7 @@ Response: {
 
 // Update Store Links
 Request Type: PUT
-Endpoint: /api/v1/seller/profile/store-links
+Endpoint: /api/v2/seller/profile/store-links
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -274,7 +274,7 @@ Response: {
 #### Orders Management
 // Get Orders
 Request Type: GET
-Endpoint: /api/v1/seller/orders
+Endpoint: /api/v2/seller/orders
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -322,7 +322,7 @@ Response: {
 
 // Get Order Stats
 Request Type: GET
-Endpoint: /api/v1/seller/orders/stats
+Endpoint: /api/v2/seller/orders/stats
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -344,7 +344,7 @@ Response: {
 
 // Update Order Status
 Request Type: PATCH
-Endpoint: /api/v1/seller/orders/:orderId/status
+Endpoint: /api/v2/seller/orders/:orderId/status
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -355,7 +355,7 @@ Request Body: {
 
 // Bulk Update Order Status
 Request Type: PATCH
-Endpoint: /api/v1/seller/orders/bulk-status
+Endpoint: /api/v2/seller/orders/bulk-status
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -367,7 +367,7 @@ Request Body: {
 
 // Process Shipping
 Request Type: POST
-Endpoint: /api/v1/seller/orders/ship
+Endpoint: /api/v2/seller/orders/ship
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -384,7 +384,7 @@ Request Body: {
 
 // Get Shipping Options
 Request Type: GET
-Endpoint: /api/v1/seller/shipping-options
+Endpoint: /api/v2/seller/shipping-options
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -421,10 +421,108 @@ Response: {
   }
 }
 
+#### Weight Dispute Management
+// Get Weight Disputes
+Request Type: GET
+Endpoint: /api/v2/weight-disputes
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  fromDate?: string (YYYY-MM-DD)
+  toDate?: string (YYYY-MM-DD)
+  status?: "Action Required" | "Open Dispute" | "Closed Dispute" | "Closed Resolved"
+  accepted?: boolean
+  search?: string
+  awbNumber?: string
+  product?: string
+  courierPartner?: string
+  page?: number
+  limit?: number
+Response: {
+  data: [
+    {
+      disputeDate: string,
+      awbNumber: string,
+      orderId: string,
+      given: number,
+      applied: number,
+      revised: number,
+      accepted: boolean,
+      difference: number,
+      product: string,
+      comments: string,
+      status: "Action Required" | "Open Dispute" | "Closed Dispute" | "Closed Resolved"
+    }
+  ],
+  pagination: {
+    total: number,
+    page: number,
+    limit: number,
+    pages: number
+  }
+}
+
+// Get Weight Dispute Details
+Request Type: GET
+Endpoint: /api/v2/weight-disputes/:awbNumber
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  orderId: string
+Response: {
+  data: {
+    disputeDate: string,
+    awbNumber: string,
+    orderId: string,
+    given: number,
+    applied: number,
+    revised: number,
+    accepted: boolean,
+    difference: number,
+    product: string,
+    comments: string,
+    status: "Action Required" | "Open Dispute" | "Closed Dispute" | "Closed Resolved",
+    customerName?: string,
+    customerPhone?: string,
+    address?: string,
+    price?: number,
+    quantity?: number,
+    courierPartner?: string,
+    trackingStatus?: string,
+    pickupDate?: string,
+    deliveryDate?: string,
+    deliveryAttempts?: number,
+    paymentMethod?: string,
+    codAmount?: number,
+    sellerName?: string,
+    sellerSKU?: string,
+    shippingCharge?: number,
+    weightChargeDiscount?: number,
+    weightDifferenceCharge?: number
+  }
+}
+
+// Upload Weight Dispute File
+Request Type: POST
+Endpoint: /api/v2/weight-disputes/upload
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "multipart/form-data"
+}
+Request Body: {
+  file: File
+}
+Response: {
+  success: boolean,
+  message: string
+}
+
 #### Dashboard
 // Get Dashboard Stats
 Request Type: GET
-Endpoint: /api/v1/seller/dashboard/stats
+Endpoint: /api/v2/seller/dashboard/stats
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -458,13 +556,18 @@ Response: {
     ndr: {
       pending: number,
       actionRequired: number
+    },
+    weightDisputes: {
+      pending: number,
+      total: number,
+      resolved: number
     }
   }
 }
 
 // Get Dashboard Chart Data
 Request Type: GET
-Endpoint: /api/v1/seller/dashboard/chart-data
+Endpoint: /api/v2/seller/dashboard/chart-data
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -531,13 +634,30 @@ Response: {
         delivered: number,
         rto: number
       }
-    ]
+    ],
+    weightDisputeStats: {
+      disputesByMonth: [
+        {
+          month: string,
+          pending: number,
+          approved: number,
+          rejected: number
+        }
+      ],
+      disputesByCourier: [
+        {
+          courier: string,
+          count: number,
+          approvalRate: string
+        }
+      ]
+    }
   }
 }
 
 // Get Courier Performance
 Request Type: GET
-Endpoint: /api/v1/seller/dashboard/courier-performance
+Endpoint: /api/v2/seller/dashboard/courier-performance
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -561,7 +681,7 @@ Response: {
 
 // Get Top Products
 Request Type: GET
-Endpoint: /api/v1/seller/dashboard/top-products
+Endpoint: /api/v2/seller/dashboard/top-products
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -583,18 +703,19 @@ Response: {
 
 // Download Dashboard Report
 Request Type: GET
-Endpoint: /api/v1/seller/dashboard/report
+Endpoint: /api/v2/seller/dashboard/report
 Headers: {
   "Authorization": "Bearer ${token}"
 }
 Query Parameters:
-  format: "csv" | "pdf"
+  format: "csv" | "pdf" | "xlsx"
+  report_type?: "shipments" | "orders" | "revenue" | "weight_disputes"
 Response: Blob (file download)
 
 #### Wallet
 // Get Wallet Balance
 Request Type: GET
-Endpoint: /api/v1/seller/wallet/balance
+Endpoint: /api/v2/seller/wallet/balance
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -609,7 +730,7 @@ Response: {
 
 // Get Wallet History
 Request Type: GET
-Endpoint: /api/v1/seller/wallet/history
+Endpoint: /api/v2/seller/wallet/history
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -640,7 +761,7 @@ Response: {
 
 // Recharge Wallet
 Request Type: POST
-Endpoint: /api/v1/seller/wallet/recharge
+Endpoint: /api/v2/seller/wallet/recharge
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -660,7 +781,7 @@ Response: {
 
 // Verify Transaction
 Request Type: POST
-Endpoint: /api/v1/seller/wallet/verify-transaction
+Endpoint: /api/v2/seller/wallet/verify-transaction
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -677,7 +798,7 @@ Response: {
 #### Bulk Orders
 // Upload Bulk Order
 Request Type: POST
-Endpoint: /api/v1/seller/bulk-orders/upload
+Endpoint: /api/v2/seller/bulk-orders/upload
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "multipart/form-data"
@@ -705,7 +826,7 @@ Response: {
 
 // Get Bulk Order Status
 Request Type: GET
-Endpoint: /api/v1/seller/bulk-orders/:orderId/status
+Endpoint: /api/v2/seller/bulk-orders/:orderId/status
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -730,7 +851,7 @@ Response: {
 
 // Cancel Bulk Order
 Request Type: POST
-Endpoint: /api/v1/seller/bulk-orders/:orderId/cancel
+Endpoint: /api/v2/seller/bulk-orders/:orderId/cancel
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -742,7 +863,7 @@ Response: {
 
 // Download Bulk Order Template
 Request Type: GET
-Endpoint: /api/v1/seller/bulk-orders/template
+Endpoint: /api/v2/seller/bulk-orders/template
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -752,7 +873,7 @@ Response: Blob (file download)
 
 // Get Shipments
 Request Type: GET
-Endpoint: /api/v1/seller/shipments
+Endpoint: /api/v2/seller/shipments
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -792,7 +913,7 @@ Response: {
 
 // Get Shipment Details
 Request Type: GET
-Endpoint: /api/v1/seller/shipments/:shipmentId
+Endpoint: /api/v2/seller/shipments/:shipmentId
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -855,7 +976,7 @@ Response: {
 
 // Track Shipment
 Request Type: GET
-Endpoint: /api/v1/seller/shipments/:awb/track
+Endpoint: /api/v2/seller/shipments/:awb/track
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -881,7 +1002,7 @@ Response: {
 
 // Cancel Shipment
 Request Type: POST
-Endpoint: /api/v1/seller/shipments/:awb/cancel
+Endpoint: /api/v2/seller/shipments/:awb/cancel
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -899,7 +1020,7 @@ Response: {
 
 // Bulk Track Shipments
 Request Type: POST
-Endpoint: /api/v1/seller/shipments/bulk-track
+Endpoint: /api/v2/seller/shipments/bulk-track
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -920,7 +1041,7 @@ Response: {
 
 // Get Shipping Rates
 Request Type: GET
-Endpoint: /api/v1/seller/shipments/rates
+Endpoint: /api/v2/seller/shipments/rates
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -946,7 +1067,7 @@ Response: {
 
 // Print Label
 Request Type: GET
-Endpoint: /api/v1/seller/shipments/:awb/label
+Endpoint: /api/v2/seller/shipments/:awb/label
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -957,7 +1078,7 @@ Response: Blob (file download)
 
 // Print Manifest
 Request Type: POST
-Endpoint: /api/v1/seller/shipments/manifest
+Endpoint: /api/v2/seller/shipments/manifest
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -972,7 +1093,7 @@ Response: Blob (file download)
 
 // Get Received Shipments
 Request Type: GET
-Endpoint: /api/v1/seller/received
+Endpoint: /api/v2/seller/received
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1005,7 +1126,7 @@ Response: {
 
 // Upload Received AWBs
 Request Type: POST
-Endpoint: /api/v1/seller/received/upload
+Endpoint: /api/v2/seller/received/upload
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "multipart/form-data"
@@ -1029,7 +1150,7 @@ Response: {
 
 // Download Sample AWB List
 Request Type: GET
-Endpoint: /api/v1/seller/received/sample
+Endpoint: /api/v2/seller/received/sample
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1037,7 +1158,7 @@ Response: Blob (file download of Excel sample)
 
 // Update Received Shipment
 Request Type: PATCH
-Endpoint: /api/v1/seller/received/:id
+Endpoint: /api/v2/seller/received/:id
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1059,7 +1180,7 @@ Response: {
 
 // Bulk Update Received Shipments
 Request Type: PATCH
-Endpoint: /api/v1/seller/received/bulk
+Endpoint: /api/v2/seller/received/bulk
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json" 
@@ -1081,7 +1202,7 @@ Response: {
 #### NDR Management
 // Get NDR Shipments
 Request Type: GET
-Endpoint: /api/v1/seller/ndr
+Endpoint: /api/v2/seller/ndr
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1127,7 +1248,7 @@ Response: {
 
 // Get NDR Details
 Request Type: GET
-Endpoint: /api/v1/seller/ndr/:awb
+Endpoint: /api/v2/seller/ndr/:awb
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1167,7 +1288,7 @@ Response: {
 
 // Return NDR Shipment
 Request Type: POST
-Endpoint: /api/v1/seller/ndr/:awb/return
+Endpoint: /api/v2/seller/ndr/:awb/return
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1188,7 +1309,7 @@ Response: {
 
 // Reattempt NDR Shipment
 Request Type: POST
-Endpoint: /api/v1/seller/ndr/:awb/reattempt
+Endpoint: /api/v2/seller/ndr/:awb/reattempt
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1220,7 +1341,7 @@ Response: {
 
 // Get NDR Report
 Request Type: GET
-Endpoint: /api/v1/seller/ndr/report
+Endpoint: /api/v2/seller/ndr/report
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1233,7 +1354,7 @@ Response: Blob (file download)
 
 // Bulk NDR Upload
 Request Type: POST
-Endpoint: /api/v1/seller/ndr/bulk-upload
+Endpoint: /api/v2/seller/ndr/bulk-upload
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "multipart/form-data"
@@ -1259,7 +1380,7 @@ Response: {
 #### Rate Card Management
 // Get Seller Rate Card
 Request Type: GET
-Endpoint: /api/v1/seller/rate-card
+Endpoint: /api/v2/seller/rate-card
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1286,7 +1407,7 @@ Response: {
 
 // Calculate Shipping Rate
 Request Type: POST
-Endpoint: /api/v1/seller/rate-card/calculate
+Endpoint: /api/v2/seller/rate-card/calculate
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1321,7 +1442,7 @@ Response: {
 
 // Get Invoices
 Request Type: GET
-Endpoint: /api/v1/seller/billing/invoices
+Endpoint: /api/v2/seller/billing/invoices
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1343,7 +1464,7 @@ Response: {
 
 // Get Invoice Summary
 Request Type: GET
-Endpoint: /api/v1/seller/billing/invoices/summary
+Endpoint: /api/v2/seller/billing/invoices/summary
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1363,7 +1484,7 @@ Response: {
 
 // Get Invoice Shipments
 Request Type: GET
-Endpoint: /api/v1/seller/billing/invoices/:id/shipments
+Endpoint: /api/v2/seller/billing/invoices/:id/shipments
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1402,7 +1523,7 @@ Response: {
 
 // Get Ledger Transactions
 Request Type: GET
-Endpoint: /api/v1/seller/billing/ledger
+Endpoint: /api/v2/seller/billing/ledger
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1451,7 +1572,7 @@ Response: {
 
 // Get Ledger Summary
 Request Type: GET
-Endpoint: /api/v1/seller/billing/ledger/summary
+Endpoint: /api/v2/seller/billing/ledger/summary
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1467,7 +1588,7 @@ Response: {
 
 // Export Ledger Transactions
 Request Type: GET
-Endpoint: /api/v1/seller/billing/ledger/export
+Endpoint: /api/v2/seller/billing/ledger/export
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1487,7 +1608,7 @@ Response: Blob (file download)
 
 // Export Single Transaction
 Request Type: GET
-Endpoint: /api/v1/seller/billing/ledger/:transactionId/export
+Endpoint: /api/v2/seller/billing/ledger/:transactionId/export
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1501,7 +1622,7 @@ Response: Blob (file download)
 #### Profile Management
 // Get Profile
 Request Type: GET
-Endpoint: /api/v1/customer/profile
+Endpoint: /api/v2/customer/profile
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1521,7 +1642,7 @@ Response: {
 
 // Update Profile
 Request Type: PUT
-Endpoint: /api/v1/customer/profile
+Endpoint: /api/v2/customer/profile
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1546,7 +1667,7 @@ Request Body: {
 #### Orders
 // Create Order
 Request Type: POST
-Endpoint: /api/v1/customer/orders
+Endpoint: /api/v2/customer/orders
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1588,7 +1709,7 @@ Request Body: {
 
 // Get Orders
 Request Type: GET
-Endpoint: /api/v1/customer/orders
+Endpoint: /api/v2/customer/orders
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1649,7 +1770,7 @@ Response: {
 
 // Get Order Details
 Request Type: GET
-Endpoint: /api/v1/customer/orders/:orderId
+Endpoint: /api/v2/customer/orders/:orderId
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1704,7 +1825,7 @@ Response: {
 
 // Cancel Order
 Request Type: POST
-Endpoint: /api/v1/customer/orders/:orderId/cancel
+Endpoint: /api/v2/customer/orders/:orderId/cancel
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1718,7 +1839,7 @@ Request Body: {
 #### User Management
 // Get Users
 Request Type: GET
-Endpoint: /api/v1/admin/users
+Endpoint: /api/v2/admin/users
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1749,7 +1870,7 @@ Response: {
 
 // Update User Status
 Request Type: PATCH
-Endpoint: /api/v1/admin/users/:userId/status
+Endpoint: /api/v2/admin/users/:userId/status
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1761,7 +1882,7 @@ Request Body: {
 #### Order Management
 // Get All Orders
 Request Type: GET
-Endpoint: /api/v1/admin/orders
+Endpoint: /api/v2/admin/orders
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1796,7 +1917,7 @@ Response: {
 
 // Update Order
 Request Type: PATCH
-Endpoint: /api/v1/admin/orders/:orderId
+Endpoint: /api/v2/admin/orders/:orderId
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1809,7 +1930,7 @@ Request Body: {
 #### Rate Band Management
 // Get Rate Bands
 Request Type: GET
-Endpoint: /api/v1/admin/rate-bands
+Endpoint: /api/v2/admin/rate-bands
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1828,7 +1949,7 @@ Response: {
 
 // Create Rate Band
 Request Type: POST
-Endpoint: /api/v1/admin/rate-bands
+Endpoint: /api/v2/admin/rate-bands
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1851,7 +1972,7 @@ Response: {
 
 // Get Rate Band Details
 Request Type: GET
-Endpoint: /api/v1/admin/rate-bands/:bandId
+Endpoint: /api/v2/admin/rate-bands/:bandId
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1902,7 +2023,7 @@ Response: {
 
 // Update Rate Band
 Request Type: PUT
-Endpoint: /api/v1/admin/rate-bands/:bandId
+Endpoint: /api/v2/admin/rate-bands/:bandId
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1925,7 +2046,7 @@ Response: {
 
 // Delete Rate Band
 Request Type: DELETE
-Endpoint: /api/v1/admin/rate-bands/:bandId
+Endpoint: /api/v2/admin/rate-bands/:bandId
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1938,7 +2059,7 @@ Response: {
 
 // Upload Rate Card
 Request Type: POST
-Endpoint: /api/v1/admin/rate-bands/:bandId/upload
+Endpoint: /api/v2/admin/rate-bands/:bandId/upload
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "multipart/form-data"
@@ -1962,7 +2083,7 @@ Response: {
 
 // Download Rate Card Template
 Request Type: GET
-Endpoint: /api/v1/admin/rate-bands/template
+Endpoint: /api/v2/admin/rate-bands/template
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -1970,7 +2091,7 @@ Response: Blob (Excel file download)
 
 // Assign Rate Band to Seller
 Request Type: POST
-Endpoint: /api/v1/admin/users/:userId/rate-band
+Endpoint: /api/v2/admin/users/:userId/rate-band
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -1990,7 +2111,7 @@ Response: {
 
 // Get Custom Seller Rates
 Request Type: GET
-Endpoint: /api/v1/admin/users/:userId/custom-rates
+Endpoint: /api/v2/admin/users/:userId/custom-rates
 Headers: {
   "Authorization": "Bearer ${token}"
 }
@@ -2018,7 +2139,7 @@ Response: {
 
 // Update Custom Seller Rates
 Request Type: PUT
-Endpoint: /api/v1/admin/users/:userId/custom-rates
+Endpoint: /api/v2/admin/users/:userId/custom-rates
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "application/json"
@@ -2494,6 +2615,51 @@ interface RateBand {
 }
 ```
 
+### WeightDisputeData
+```typescript
+interface WeightDisputeData {
+  disputeDate: string;
+  awbNumber: string;
+  orderId: string;
+  given: number;
+  applied: number;
+  revised: number;
+  accepted: boolean;
+  difference: number;
+  product: string;
+  comments: string;
+  status: "Action Required" | "Open Dispute" | "Closed Dispute" | "Closed Resolved";
+}
+
+interface OrderDetails {
+  awbNumber: string;
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  address: string;
+  product: string;
+  price: number;
+  quantity: number;
+  status: string;
+  courierPartner: string;
+  trackingStatus: string;
+  pickupDate: string;
+  deliveryDate: string;
+  deliveryAttempts: number;
+  paymentMethod: string;
+  codAmount: number;
+  sellerName: string;
+  sellerSKU: string;
+  givenWeight: number;
+  appliedWeight: number;
+  revisedWeight: number;
+  shippingCharge: number;
+  weightChargeDiscount: number;
+  weightDifferenceCharge: number;
+  comments: string;
+}
+```
+
 ## Error Handling
 
 All API responses follow a standard format:
@@ -2521,6 +2687,8 @@ Common error codes:
 - `NOT_FOUND`: Resource not found
 - `VALIDATION_ERROR`: Request validation failed
 - `SERVER_ERROR`: Internal server error
+- `DUPLICATE_ENTITY`: Entity already exists
+- `RESOURCE_EXHAUSTED`: Rate limit exceeded
 
 ## Rate Limiting
 
@@ -2537,7 +2705,7 @@ X-RateLimit-Reset: 1620000000
 
 ## WebSocket Events
 
-WebSocket connection: `ws://api.rocketrybox.com/ws`
+WebSocket connection: `wss://api.rocketrybox.com/ws`
 
 ### Events
 
@@ -2566,23 +2734,37 @@ WebSocket connection: `ws://api.rocketrybox.com/ws`
 }
 ```
 
+#### Weight Dispute Update
+```json
+{
+  "event": "weight_dispute_update",
+  "data": {
+    "disputeId": "string",
+    "status": "string",
+    "timestamp": "string"
+  }
+}
+```
+
 ## File Upload
 
 ### Upload File
 Request Type: POST
-Endpoint: /api/v1/upload
+Endpoint: /api/v2/upload
 Headers: {
   "Authorization": "Bearer ${token}",
   "Content-Type": "multipart/form-data"
 }
 Form Data:
   file: File
+  type?: "invoice" | "evidence" | "profile" | "product" | "document"
 Response: {
   data: {
     url: string,
     filename: string,
     mimeType: string,
-    size: number
+    size: number,
+    uploadedAt: string
   }
 }
 
@@ -2594,4 +2776,14 @@ Base URL: https://test-api.rocketrybox.com
 ### Test Credentials
 Customer: customer@test.com / Test123!
 Seller: seller@test.com / Test123!
-Admin: admin@test.com / Test123! 
+Admin: admin@test.com / Test123!
+
+### API Status
+Request Type: GET
+Endpoint: /api/v2/status
+Response: {
+  status: "operational" | "maintenance" | "partial_outage" | "major_outage",
+  version: string,
+  uptime: string,
+  timestamp: string
+} 
