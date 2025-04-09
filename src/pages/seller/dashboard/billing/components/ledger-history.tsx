@@ -233,39 +233,61 @@ const LedgerHistory = () => {
             const fromDate = date?.from ? date.from.toISOString().split('T')[0] : '';
             const toDate = date?.to ? date.to.toISOString().split('T')[0] : '';
             
-            // Create a timeout promise
+            // Increased timeout to 15 seconds to allow for slower network conditions
             const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Request timed out')), 5000);
+                setTimeout(() => reject(new Error('Request timed out')), 15000);
             });
             
             // Get ledger transactions with timeout
-            const responsePromise = axios.get('/api/seller/billing/ledger', {
-                params: { 
-                    from: fromDate,
-                    to: toDate,
-                    page: currentPage,
-                    limit: rowsPerPage
+            let response, summaryResponse;
+            
+            try {
+                // Use baseURL for consistent API paths that will work in both development and production
+                const baseURL = import.meta.env.VITE_API_BASE_URL || '';
+
+                const responsePromise = axios.get(`${baseURL}/api/seller/billing/ledger`, {
+                    params: { 
+                        from: fromDate,
+                        to: toDate,
+                        page: currentPage,
+                        limit: rowsPerPage
+                    }
+                });
+                
+                // Race between the API call and the timeout
+                response = await Promise.race([responsePromise, timeoutPromise]) as any;
+                
+                // Get summary data with timeout
+                const summaryPromise = axios.get(`${baseURL}/api/seller/billing/ledger/summary`);
+                summaryResponse = await Promise.race([summaryPromise, timeoutPromise]) as any;
+                
+                if (response.data.success && summaryResponse.data.success) {
+                    setTransactions(response.data.transactions);
+                    setSummary(summaryResponse.data.summary);
+                    return; // Exit early on success
+                } else {
+                    throw new Error(response.data.message || 'Failed to fetch ledger data');
                 }
-            });
-            
-            // Race between the API call and the timeout
-            const response = await Promise.race([responsePromise, timeoutPromise]) as any;
-            
-            // Get summary data with timeout
-            const summaryPromise = axios.get('/api/seller/billing/ledger/summary');
-            const summaryResponse = await Promise.race([summaryPromise, timeoutPromise]) as any;
-            
-            if (response.data.success && summaryResponse.data.success) {
-                setTransactions(response.data.transactions);
-                setSummary(summaryResponse.data.summary);
-            } else {
-                throw new Error(response.data.message || 'Failed to fetch ledger data');
+            } catch (apiError) {
+                console.error('API Error:', apiError);
+                throw apiError; // Re-throw to be caught by outer try/catch
             }
         } catch (err) {
             console.error('Error fetching ledger data:', err);
-            setError('Failed to load ledger data. Using mock data instead.');
             
-            // Fallback to mock data
+            // More detailed error message based on the specific error
+            let errorMessage = 'Failed to load ledger data. Using mock data instead.';
+            if (err instanceof Error) {
+                if (err.message.includes('timeout')) {
+                    errorMessage = 'API request timed out. Using mock data instead.';
+                } else if (err.message.includes('Network Error')) {
+                    errorMessage = 'Network error occurred. Using mock data instead.';
+                }
+            }
+            
+            setError(errorMessage);
+            
+            // Always fallback to mock data when API fails
             setTransactions(mockTransactionData);
             setSummary(mockSummary);
         } finally {
