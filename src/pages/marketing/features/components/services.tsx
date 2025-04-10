@@ -1,15 +1,23 @@
 import { ArrowRightIcon } from "lucide-react";
-import { Link } from 'react-router-dom';
 import { motion } from "framer-motion";
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogHeader, 
+    DialogTitle,
+    DialogDescription,
+    DialogTrigger
+} from "@/components/ui/dialog";
 
 interface ServiceCardProps {
     title: string;
     description: string;
     imagePath: string;
     index: number;
+    detailDescription: string;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, imagePath, index }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, imagePath, index, detailDescription }) => {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -53,10 +61,29 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, imagePath
                         viewport={{ once: true }}
                         transition={{ duration: 0.3, delay: 0.25 + index * 0.05 }}
                     >
-                        <Link to="#" className="inline-flex items-center text-purple-600 hover:text-purple-700">
-                            Learn More
-                            <ArrowRightIcon className="w-4 h-4 ml-1" />
-                        </Link>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <button className="inline-flex items-center text-purple-600 hover:text-purple-700 bg-transparent border-none cursor-pointer">
+                                    Learn More
+                                    <ArrowRightIcon className="w-4 h-4 ml-1" />
+                                </button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[700px]">
+                                <DialogHeader>
+                                    <DialogTitle className="text-xl font-semibold text-purple-600">{title}</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex flex-col gap-6 mt-4">
+                                    <img 
+                                        src={imagePath} 
+                                        alt={title} 
+                                        className="w-full rounded-lg object-contain"
+                                    />
+                                    <DialogDescription className="text-base text-gray-700">
+                                        {detailDescription}
+                                    </DialogDescription>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </motion.div>
                 </motion.div>
                 <motion.div
@@ -87,12 +114,14 @@ const Services = () => {
                         description="Process your undelivered orders easily using an automated non-delivery tab. Maintain a thorough flow so your return orders don't stay stuck."
                         imagePath="/images/feature-four.png"
                         index={0}
+                        detailDescription="Our advanced NDR (Non-Delivery Report) management system revolutionizes how you handle undelivered shipments. The intelligent dashboard categorizes NDRs by reason, urgency, and age, helping you prioritize actions effectively. Automated customer communication allows buyers to reschedule deliveries or provide alternate addresses without your intervention. Customizable workflows let you set specific actions for different NDR scenarios based on your business rules. Real-time analytics track NDR rates by location, courier, and product category to identify patterns and reduce future failures. The system auto-escalates aging NDRs to prevent shipments from remaining undelivered for extended periods."
                     />
                     <ServiceCard
                         title="API integration"
                         description="Selling on different eCommerce platforms? Our API integration solution will help you manage your shipping operations on one platform."
                         imagePath="/images/feature-size.png"
                         index={1}
+                        detailDescription="Our robust API integration capabilities allow seamless connection with your existing systems and sales channels. The RESTful API architecture supports all major shipping functions including order creation, rate calculation, tracking, and NDR management. Comprehensive documentation with code samples in multiple languages makes integration straightforward for your development team. Webhook support enables real-time event notifications for order status changes and delivery updates. The sandbox environment allows testing before going live to ensure everything works perfectly. Our API supports batch operations for efficient processing of multiple orders simultaneously, ideal for high-volume sellers."
                     />
                 </div>
 
@@ -144,6 +173,7 @@ const Services = () => {
                         description="Automatically fetch orders and sync inventory from various sales channels and marketplaces like Shopify, Woocommerce, Amazon and the like."
                         imagePath="/images/feature-five.png"
                         index={2}
+                        detailDescription="Our comprehensive channel integration system connects your shipping operations with all major eCommerce platforms and marketplaces. Automated order import eliminates manual data entry, pulling orders from platforms like Shopify, WooCommerce, Amazon, Flipkart, and more. Real-time inventory synchronization across all channels prevents overselling and stock discrepancies. Status updates flow back to each platform, keeping your customers informed regardless of where they purchased. The single dashboard view consolidates orders from all channels, simplifying operations management. Our smart order routing automatically assigns the optimal courier based on destination, package characteristics, and your shipping rules."
                     />
                 </div>
             </div>

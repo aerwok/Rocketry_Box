@@ -79,7 +79,7 @@ const SellerNewOrderPage = () => {
             items: [],
             sku: "",
             itemName: "",
-            quantity: 1,
+            quantity: undefined,
             itemWeight: undefined,
             itemPrice: undefined,
             collectibleAmount: undefined,
@@ -334,6 +334,7 @@ const SellerNewOrderPage = () => {
         const itemWeight = Number(form.getValues('itemWeight')) || 0;
         const itemPrice = Number(form.getValues('itemPrice')) || 0;
         const itemName = form.getValues('itemName');
+        const quantity = Number(form.getValues('quantity')) || 1;
         
         if (!itemName || itemWeight === 0 || itemPrice === 0) {
             toast.error("Please fill in all item details");
@@ -343,7 +344,7 @@ const SellerNewOrderPage = () => {
         const newItem = {
             sku: form.getValues('sku') || '',
             itemName: itemName,
-            quantity: Number(form.getValues('quantity')) || 1,
+            quantity: quantity,
             itemWeight,
             itemPrice
         };
@@ -356,7 +357,7 @@ const SellerNewOrderPage = () => {
         // Reset item form fields
         form.setValue('sku', '');
         form.setValue('itemName', '');
-        form.setValue('quantity', 1);
+        form.setValue('quantity', undefined);
         form.setValue('itemWeight', undefined);
         form.setValue('itemPrice', undefined);
     };
@@ -737,7 +738,11 @@ const SellerNewOrderPage = () => {
                                                     type="number"
                                                     placeholder="Enter quantity"
                                                     {...field}
-                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                    value={field.value === undefined ? '' : field.value}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value === '' ? undefined : Number(e.target.value);
+                                                        field.onChange(value);
+                                                    }}
                                                     className="mt-1"
                                                 />
                                             </FormControl>

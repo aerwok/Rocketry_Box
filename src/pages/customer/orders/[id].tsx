@@ -612,7 +612,7 @@ const OrderDetailsPage = () => {
                             <div className="flex justify-end">
                                 <Button
                                     type="submit"
-                                    disabled={isSubmitting || (!form.getValues("remarks") || !form.getValues("rating"))}
+                                    disabled={isSubmitting || !form.getValues("rating")}
                                     className="bg-purple-600 hover:bg-purple-700 text-white"
                                 >
                                     {isSubmitting ? "Submitting..." : "Submit Rating"}

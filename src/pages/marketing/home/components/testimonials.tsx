@@ -23,65 +23,65 @@ const StarRating = ({ rating }: { rating: number }) => (
 
 const testimonials = [
     {
-        content: "We took the 4 courses menu. It was incredibly good! Mix of fish and (slow cooked) meat. The dessert was amazing. A small family is running the restaurant and I found the atmosphere super cozy.",
-        author: "Janette Berry",
-        role: "Food Critic",
+        content: "Switching to Rocketry Box reduced our shipping costs by 30% and cut delivery times in half. Their rate comparison tool is a game-changer for our growing business.",
+        author: "Rajiv Mehta",
+        role: "Founder, TrendyFashion.in",
         rating: 5,
         image: "/images/user1.jpeg"
     },
     {
-        content: "Great place! Delicious food with Asian influence made and served by dedicated people passionate about their work. Keep up the good work!",
-        author: "Karry Omer",
-        role: "Restaurant Owner",
+        content: "After struggling with logistics for years, I found Rocketry Box. Their NDR management system alone has saved us countless hours and improved our delivery success rate by 25%.",
+        author: "Priya Sharma",
+        role: "CEO, HomeCrafts",
         rating: 4.5,
         image: "/images/user2.jpeg"
     },
     {
-        content: "If you're looking for the best shipping solution, look no further. Perfectly priced, amazing service, and the support team is incredible!",
+        content: "If you're looking for the best shipping solution, look no further. Their multi-courier platform gives us the flexibility to choose the best option for each delivery zone, significantly reducing RTO rates.",
         author: "James Knight",
-        role: "E-commerce Seller",
+        role: "Operations Manager, ElectroGadgets",
         rating: 5,
         image: "/images/user3.jpeg"
     },
     {
-        content: "This platform has a very friendly interface and serves great solutions with fresh innovations! In times of the Covid-19 they offer tables in line with the national and local measurements.",
+        content: "The automated tracking updates have dramatically reduced our customer service inquiries about order status. Our buyers love the real-time notifications via WhatsApp and SMS.",
         author: "Pam Cornwell",
-        role: "Business Owner",
+        role: "Customer Experience Head, BeautyEssentials",
         rating: 5,
         image: "/images/user4.jpeg"
     },
     {
-        content: "Exceptional service and super easy to use! Tracking all my deliveries from one place has been a game-changer.",
-        author: "Priya M.",
-        role: "Handmade Crafts Seller",
+        content: "As a small handicraft business, managing shipping was overwhelming until I found Rocketry Box. Their platform is intuitive, and I can now reach customers in remote areas I couldn't serve before.",
+        author: "Meera Patel",
+        role: "Owner, HandmadeTreasures",
         rating: 4.5,
         image: "/images/user5.jpeg"
     },
     {
-        content: "The best platform for shipping management. I saved so much time and money with their transparent rate comparisons!",
-        author: "Rahul K.",
-        role: "E-commerce Seller",
+        content: "The transparency in shipping rates and delivery estimates has been crucial for our business model. We've seen a 15% increase in conversions since we implemented their checkout integration.",
+        author: "Rahul Kumar",
+        role: "E-commerce Director, UrbanWear",
         rating: 4,
         image: "/images/user6.jpeg"
     },
     {
-        content: "Thanks to Rocketry Box, I now focus on growing my business while they handle all my shipping needs efficiently.",
-        author: "Nikhil R.",
-        role: "Apparel Store Owner",
-        rating: 3.5,
+        content: "Handling returns was our biggest pain point until we integrated with Rocketry Box. Their reverse logistics solution has streamlined our process and improved customer satisfaction scores.",
+        author: "Nikhil Reddy",
+        role: "Logistics Manager, PremiumApparel",
+        rating: 5,
         image: "/images/user7.jpeg"
     },
     {
-        content: "Affordable, efficient, and reliable. My go-to platform for all shipping needs.",
-        author: "Sunita J.",
-        role: "Wholesale Distributor",
+        content: "As a wholesale distributor, we ship hundreds of parcels daily. Their bulk order processing and automated label generation save us at least 4 hours every day.",
+        author: "Sunita Joshi",
+        role: "Operations Head, BulkSupplies",
         rating: 4.5,
         image: "/images/user8.jpeg"
     },
     {
-        content: "Their platform is so intuitive! Premium shipping services at my fingertips.",
-        author: "Meera P.",
-        role: "Jewelry Designer",
+        content: "The weight discrepancy protection feature has saved us from unexpected shipping cost adjustments. Their pre-shipment verification process ensures we're always charged correctly.",
+        author: "Amit Patel",
+        role: "Founder, JewelCraft",
         rating: 4,
         image: "/images/user9.jpeg"
     }
