@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { EyeIcon, DownloadIcon } from "lucide-react";
+import axios from "axios";
 
 // Empty sellers array
 const sellers: { id: string, name: string }[] = [];
@@ -40,15 +41,46 @@ const InitiateRemittance = () => {
         amount: '',
         paymentType: '',
         paymentStatus: '',
-        excelFile: null as File | null
+        excelFile: null as File | null,
+        orderIds: [] as string[]
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Load saved transactions from localStorage on component mount
+    // Load saved transactions from API on component mount
     useEffect(() => {
-        const savedTransactions = localStorage.getItem('remittanceTransactions');
-        if (savedTransactions) {
-            setTransactions(JSON.parse(savedTransactions));
-        }
+        const fetchTransactions = async () => {
+            try {
+                const response = await axios.get('/api/v2/admin/cod/remittance', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.data && response.data.data && response.data.data.remittances) {
+                    setTransactions(response.data.data.remittances.map((item: any) => ({
+                        id: item.remittanceId,
+                        type: item.transactionType || 'COD Remittance',
+                        date: item.paymentDate,
+                        sellerId: item.sellerId,
+                        sellerName: item.sellerName,
+                        amount: item.remittanceAmount,
+                        paymentType: item.paymentType || 'credit',
+                        status: item.status.toLowerCase(),
+                    })));
+                }
+            } catch (err) {
+                console.error('Error fetching remittance transactions:', err);
+                toast.error('Failed to load remittance history');
+                
+                // Fallback to localStorage if API fails
+                const savedTransactions = localStorage.getItem('remittanceTransactions');
+                if (savedTransactions) {
+                    setTransactions(JSON.parse(savedTransactions));
+                }
+            }
+        };
+        
+        fetchTransactions();
     }, []);
 
     const handleInputChange = (field: string, value: string) => {
@@ -87,7 +119,7 @@ const InitiateRemittance = () => {
         return `TRX${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         // Validate form
@@ -96,44 +128,158 @@ const InitiateRemittance = () => {
             return;
         }
 
-        // Create new transaction
-        const newTransaction: Transaction = {
-            id: formData.transactionId || generateTransactionId(),
-            type: formData.transactionType,
-            date: new Date().toISOString().slice(0, 10),
-            sellerId: formData.sellerId,
-            sellerName: formData.sellerName,
-            amount: formData.amount.startsWith('₹') ? formData.amount : `₹${formData.amount}`,
-            paymentType: formData.paymentType,
-            status: formData.paymentStatus || (formData.paymentType === 'wallet' ? 'paid' : 'due'),
-            excelFile: formData.excelFile ? formData.excelFile.name : undefined
-        };
+        setIsSubmitting(true);
 
-        // Add to transactions list
-        const updatedTransactions = [...transactions, newTransaction];
-        setTransactions(updatedTransactions);
+        try {
+            // Handle file upload first if there's a file
+            if (formData.excelFile) {
+                const fileFormData = new FormData();
+                fileFormData.append('file', formData.excelFile);
+                
+                const fileUploadResponse = await axios.post('/api/v2/admin/cod/remittance/bulk', fileFormData, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                
+                if (fileUploadResponse.data && fileUploadResponse.data.data) {
+                    toast.success(`Bulk file processed: ${fileUploadResponse.data.data.processedRemittances} remittances created`);
+                    
+                    // Refresh transactions list
+                    const refreshResponse = await axios.get('/api/v2/admin/cod/remittance', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (refreshResponse.data && refreshResponse.data.data && refreshResponse.data.data.remittances) {
+                        setTransactions(refreshResponse.data.data.remittances.map((item: any) => ({
+                            id: item.remittanceId,
+                            type: item.transactionType || 'COD Remittance',
+                            date: item.paymentDate,
+                            sellerId: item.sellerId,
+                            sellerName: item.sellerName,
+                            amount: item.remittanceAmount,
+                            paymentType: item.paymentType || 'credit',
+                            status: item.status.toLowerCase(),
+                        })));
+                    }
+                    
+                    // Reset form
+                    setFormData({
+                        transactionType: '',
+                        transactionId: '',
+                        sellerId: '',
+                        sellerName: '',
+                        amount: '',
+                        paymentType: '',
+                        paymentStatus: '',
+                        excelFile: null,
+                        orderIds: []
+                    });
+                    
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+            
+            // Create new remittance through API
+            const payload = {
+                sellerId: formData.sellerId,
+                transactionType: formData.transactionType,
+                amount: formData.amount.startsWith('₹') ? formData.amount.substring(1) : formData.amount,
+                paymentType: formData.paymentType,
+                paymentStatus: formData.paymentStatus || (formData.paymentType === 'wallet' ? 'paid' : 'due'),
+                orders: formData.orderIds.length > 0 ? formData.orderIds : undefined
+            };
+            
+            const response = await axios.post('/api/v2/admin/cod/remittance', payload, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.data && response.data.data) {
+                // Add to transactions list for immediate UI update
+                const newTransaction: Transaction = {
+                    id: response.data.data.remittanceId,
+                    type: formData.transactionType,
+                    date: response.data.data.paymentDate || new Date().toISOString().slice(0, 10),
+                    sellerId: formData.sellerId,
+                    sellerName: formData.sellerName,
+                    amount: response.data.data.remittanceAmount || `₹${formData.amount}`,
+                    paymentType: formData.paymentType,
+                    status: response.data.data.status.toLowerCase(),
+                    excelFile: formData.excelFile ? formData.excelFile.name : undefined
+                };
+                
+                // Update local state
+                const updatedTransactions = [...transactions, newTransaction];
+                setTransactions(updatedTransactions);
+                
+                // Success message
+                toast.success(`Remittance initiated successfully. ID: ${response.data.data.remittanceId}`);
+                
+                // Reset form
+                setFormData({
+                    transactionType: '',
+                    transactionId: '',
+                    sellerId: '',
+                    sellerName: '',
+                    amount: '',
+                    paymentType: '',
+                    paymentStatus: '',
+                    excelFile: null,
+                    orderIds: []
+                });
+            }
+        } catch (err) {
+            console.error('Error initiating remittance:', err);
+            toast.error('Failed to initiate remittance');
+            
+            // Fallback to localStorage
+            try {
+                // Create new transaction (existing fallback code)
+                const newTransaction: Transaction = {
+                    id: formData.transactionId || generateTransactionId(),
+                    type: formData.transactionType,
+                    date: new Date().toISOString().slice(0, 10),
+                    sellerId: formData.sellerId,
+                    sellerName: formData.sellerName,
+                    amount: formData.amount.startsWith('₹') ? formData.amount : `₹${formData.amount}`,
+                    paymentType: formData.paymentType,
+                    status: formData.paymentStatus || (formData.paymentType === 'wallet' ? 'paid' : 'due'),
+                    excelFile: formData.excelFile ? formData.excelFile.name : undefined
+                };
 
-        // Save to localStorage (simulating database storage)
-        localStorage.setItem('remittanceTransactions', JSON.stringify(updatedTransactions));
-
-        // Save to seller COD page (simulating database relation)
-        const sellerTransactions = JSON.parse(localStorage.getItem(`seller_${formData.sellerId}_transactions`) || '[]');
-        localStorage.setItem(`seller_${formData.sellerId}_transactions`, JSON.stringify([...sellerTransactions, newTransaction]));
-
-        // Success message
-        toast.success(`Transaction initiated successfully. ID: ${newTransaction.id}`);
-
-        // Reset form
-        setFormData({
-            transactionType: '',
-            transactionId: '',
-            sellerId: '',
-            sellerName: '',
-            amount: '',
-            paymentType: '',
-            paymentStatus: '',
-            excelFile: null
-        });
+                // Fallback localStorage operations - (existing code)
+                const updatedTransactions = [...transactions, newTransaction];
+                setTransactions(updatedTransactions);
+                localStorage.setItem('remittanceTransactions', JSON.stringify(updatedTransactions));
+                const sellerTransactions = JSON.parse(localStorage.getItem(`seller_${formData.sellerId}_transactions`) || '[]');
+                localStorage.setItem(`seller_${formData.sellerId}_transactions`, JSON.stringify([...sellerTransactions, newTransaction]));
+                toast.info('Saved remittance to local storage due to API error');
+                
+                // Reset form
+                setFormData({
+                    transactionType: '',
+                    transactionId: '',
+                    sellerId: '',
+                    sellerName: '',
+                    amount: '',
+                    paymentType: '',
+                    paymentStatus: '',
+                    excelFile: null,
+                    orderIds: []
+                });
+            } catch (localErr) {
+                console.error('Error in localStorage fallback:', localErr);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleViewTransaction = (transaction: Transaction) => {
@@ -348,8 +494,8 @@ const InitiateRemittance = () => {
                                 </div>
                             </div>
 
-                            <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white h-9">
-                                Initiate
+                            <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white h-9" disabled={isSubmitting}>
+                                {isSubmitting ? 'Processing...' : 'Initiate'}
                             </Button>
                         </div>
                     </form>

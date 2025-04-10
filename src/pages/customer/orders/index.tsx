@@ -1,10 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Search, ArrowUp, ArrowDown, ArrowUpDown, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Search, ArrowUp, ArrowDown, ArrowUpDown, Loader2, AlertCircle, RefreshCw, FilterX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface Order {
     date: string;
@@ -166,48 +173,80 @@ const orders: Order[] = [
     },
 ];
 
-// API functions for future implementation
+// API functions for production use
 // --------------------------------------
-// async function fetchOrders(page: number, limit: number, searchQuery: string, sortField: string, sortDirection: string): Promise<{orders: Order[], total: number}> {
-//   try {
-//     const queryParams = new URLSearchParams({
-//       page: page.toString(),
-//       limit: limit.toString(),
-//       query: searchQuery,
-//       sortField: sortField || '',
-//       sortDirection: sortDirection || ''
-//     });
-//     
-//     const response = await fetch(`/api/customer/orders?${queryParams}`);
-//     if (!response.ok) throw new Error('Failed to fetch orders');
-//     
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error('Error fetching orders:', error);
-//     throw error;
-//   }
-// }
-//
-// async function downloadOrderLabel(awb: string): Promise<Blob> {
-//   try {
-//     const response = await fetch(`/api/customer/orders/${awb}/label`);
-//     if (!response.ok) throw new Error('Failed to download label');
-//     
-//     const blob = await response.blob();
-//     return blob;
-//   } catch (error) {
-//     console.error('Error downloading label:', error);
-//     throw error;
-//   }
-// }
+async function fetchOrders(page: number, limit: number, searchQuery: string, sortField: string, sortDirection: string, statusFilter: string | null): Promise<{orders: Order[], total: number}> {
+  try {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      query: searchQuery,
+      sortField: sortField || '',
+      sortDirection: sortDirection || ''
+    });
+    
+    // Add status filter if present
+    if (statusFilter) {
+      queryParams.append('status', statusFilter);
+    }
+    
+    const response = await fetch(`/api/customer/orders?${queryParams}`);
+    if (!response.ok) throw new Error('Failed to fetch orders');
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    throw error;
+  }
+}
+
+async function fetchStatusCounts(): Promise<Record<string, number>> {
+  try {
+    const response = await fetch('/api/customer/orders/status-counts');
+    if (!response.ok) throw new Error('Failed to fetch status counts');
+    
+    const data = await response.json();
+    return data.counts;
+  } catch (error) {
+    console.error('Error fetching status counts:', error);
+    // Return empty counts as fallback
+    return {
+      All: 0,
+      Booked: 0,
+      Processing: 0,
+      "In Transit": 0,
+      "Out for Delivery": 0,
+      Delivered: 0,
+      Returned: 0
+    };
+  }
+}
+
+async function downloadOrderLabel(awb: string): Promise<Blob> {
+  try {
+    const response = await fetch(`/api/customer/orders/${awb}/label`);
+    if (!response.ok) throw new Error('Failed to download label');
+    
+    const blob = await response.blob();
+    return blob;
+  } catch (error) {
+    console.error('Error downloading label:', error);
+    throw error;
+  }
+}
 // --------------------------------------
 
 const ITEMS_PER_PAGE = 10;
 
 const CustomerOrdersPage = () => {
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const statusFromUrl = queryParams.get('status');
+
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string | null>(statusFromUrl);
     const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({
         key: null,
         direction: null
@@ -217,6 +256,12 @@ const CustomerOrdersPage = () => {
     const [orderData, setOrderData] = useState<Order[]>([]);
     const [totalOrders, setTotalOrders] = useState(0);
     const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
+    const [apiStatusCounts, setApiStatusCounts] = useState<Record<string, number> | null>(null);
+
+    // Update statusFilter when URL param changes
+    useEffect(() => {
+        setStatusFilter(statusFromUrl);
+    }, [statusFromUrl]);
 
     // Fetch orders data
     useEffect(() => {
@@ -225,29 +270,51 @@ const CustomerOrdersPage = () => {
                 setLoading(true);
                 setError(null);
                 
-                // For development we'll use the dummy data
-                // When API is ready, this section will be replaced with:
-                // const data = await fetchOrders(
-                //   currentPage, 
-                //   ITEMS_PER_PAGE, 
-                //   searchQuery, 
-                //   sortConfig.key || '', 
-                //   sortConfig.direction || ''
-                // );
-                // setOrderData(data.orders);
-                // setTotalOrders(data.total);
+                // For production, use actual API calls
+                if (process.env.NODE_ENV === 'production') {
+                    try {
+                        // Get status counts for the dropdown
+                        const counts = await fetchStatusCounts();
+                        setApiStatusCounts(counts);
+                        
+                        // Fetch orders with all parameters
+                        const data = await fetchOrders(
+                            currentPage, 
+                            ITEMS_PER_PAGE, 
+                            searchQuery, 
+                            sortConfig.key || '', 
+                            sortConfig.direction || '',
+                            statusFilter
+                        );
+                        
+                        setOrderData(data.orders);
+                        setTotalOrders(data.total);
+                        return;
+                    } catch (error) {
+                        console.error("API error:", error);
+                        throw new Error("Failed to fetch data from server");
+                    }
+                }
                 
+                // Development fallback using mock data
                 // Simulate API call delay
                 await new Promise(resolve => setTimeout(resolve, 800));
                 
-                // Filter orders based on search query
-                const filteredOrders = orders.filter(order =>
-                    order.awb.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                // Filter orders based on search query and status
+                let filteredOrders = orders.filter(order =>
+                    (order.awb.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     order.consigne.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     order.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     order.courier.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    order.status.toLowerCase().includes(searchQuery.toLowerCase())
+                    order.status.toLowerCase().includes(searchQuery.toLowerCase()))
                 );
+                
+                // Apply status filter if present
+                if (statusFilter) {
+                    filteredOrders = filteredOrders.filter(order =>
+                        order.status === statusFilter
+                    );
+                }
                 
                 // Sort orders based on sort config
                 let sortedOrders = [...filteredOrders];
@@ -278,7 +345,39 @@ const CustomerOrdersPage = () => {
         };
         
         fetchData();
-    }, [currentPage, searchQuery, sortConfig]);
+    }, [currentPage, searchQuery, sortConfig, statusFilter]);
+
+    // Fetch status counts separately for real-time updates
+    useEffect(() => {
+        const getApiStatusCounts = async () => {
+            if (process.env.NODE_ENV === 'production') {
+                try {
+                    const counts = await fetchStatusCounts();
+                    setApiStatusCounts(counts);
+                } catch (error) {
+                    console.error("Error fetching status counts:", error);
+                }
+            }
+        };
+        
+        getApiStatusCounts();
+        // Only fetch when status filter changes
+    }, [statusFilter]);
+
+    const handleStatusChange = (value: string) => {
+        setStatusFilter(value === "All" ? null : value);
+        setCurrentPage(1); // Reset to first page when filtering
+    };
+
+    const clearFilters = () => {
+        setStatusFilter(null);
+        setSearchQuery("");
+        setCurrentPage(1);
+        // Update the URL to remove status parameter
+        const url = new URL(window.location.href);
+        url.searchParams.delete('status');
+        window.history.pushState({}, '', url.toString());
+    };
 
     const handleSort = (key: string) => {
         setSortConfig(prevConfig => {
@@ -302,13 +401,26 @@ const CustomerOrdersPage = () => {
         try {
             setDownloadingLabel(awb);
             
-            // When API is ready, this will be replaced with:
-            // const blob = await downloadOrderLabel(awb);
+            // In production, use actual API
+            if (process.env.NODE_ENV === 'production') {
+                const blob = await downloadOrderLabel(awb);
+                
+                // Create a download link and trigger it
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `label-${awb}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                toast.success("Label downloaded successfully");
+                return;
+            }
             
-            // Simulate API call delay
+            // For development, we'll just simulate a delay and open mock PDF
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // For development, we'll just open the dummy PDF in a new tab
             window.open(pdfUrl, '_blank');
             
             toast.success("Label downloaded successfully");
@@ -328,6 +440,27 @@ const CustomerOrdersPage = () => {
     // Calculate total pages
     const totalPages = Math.ceil(totalOrders / ITEMS_PER_PAGE);
 
+    const getStatusCounts = () => {
+        // Use API counts in production if available
+        if (process.env.NODE_ENV === 'production' && apiStatusCounts) {
+            return apiStatusCounts;
+        }
+        
+        // Fallback to calculated counts from mock data for development
+        const counts = {
+            All: orders.length,
+            Booked: orders.filter(order => order.status === "Booked").length,
+            Processing: orders.filter(order => order.status === "Processing").length,
+            "In Transit": orders.filter(order => order.status === "In Transit").length,
+            "Out for Delivery": orders.filter(order => order.status === "Out for Delivery").length,
+            Delivered: orders.filter(order => order.status === "Delivered").length,
+            Returned: orders.filter(order => order.status === "Returned").length,
+        };
+        return counts;
+    };
+
+    const statusCounts = getStatusCounts();
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="space-y-6">
@@ -340,7 +473,7 @@ const CustomerOrdersPage = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row justify-between gap-4">
+                <div className="flex flex-col md:flex-row justify-between gap-4 items-end">
                     <form onSubmit={handleSearch} className="relative w-full md:max-w-xs">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                         <Input
@@ -351,6 +484,40 @@ const CustomerOrdersPage = () => {
                         />
                     </form>
                     
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="w-48">
+                            <Select
+                                value={statusFilter || "All"}
+                                onValueChange={handleStatusChange}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All Orders</SelectItem>
+                                    <SelectItem value="Booked">Booked ({statusCounts.Booked})</SelectItem>
+                                    <SelectItem value="Processing">Processing ({statusCounts.Processing})</SelectItem>
+                                    <SelectItem value="In Transit">In Transit ({statusCounts["In Transit"]})</SelectItem>
+                                    <SelectItem value="Out for Delivery">Out for Delivery ({statusCounts["Out for Delivery"]})</SelectItem>
+                                    <SelectItem value="Delivered">Delivered ({statusCounts.Delivered})</SelectItem>
+                                    <SelectItem value="Returned">Returned ({statusCounts.Returned})</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        {(statusFilter || searchQuery) && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={clearFilters}
+                                className="h-10 w-10"
+                                title="Clear filters"
+                            >
+                                <FilterX className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+
                     {error && (
                         <Button 
                             variant="outline" 

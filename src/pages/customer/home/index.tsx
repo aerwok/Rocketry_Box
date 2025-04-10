@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 const images = [
     "/images/customer/home1.png",
@@ -11,18 +12,45 @@ const images = [
     "/images/customer/home4.png",
 ];
 
-const statusButtons = [
-    { id: 6, label: "Manifested", count: 67, color: "bg-blue-500" },
-    { id: 5, label: "Picked Up", count: 34, color: "bg-[#1AA1B7]" },
-    { id: 4, label: "In Transit", count: 89, color: "bg-yellow-500" },
-    { id: 2, label: "Out for Delivery", count: 43, color: "bg-green-400" },
-    { id: 1, label: "Delivered", count: 156, color: "bg-emerald-700" },
-    { id: 3, label: "Returned", count: 12, color: "bg-neutral-500" },
+// Interface for status button data
+interface StatusButton {
+    id: number;
+    label: string;
+    count: number;
+    color: string;
+    status: string;
+}
+
+// Default status buttons with static counts for development/fallback
+const defaultStatusButtons: StatusButton[] = [
+    { id: 6, label: "Manifested", count: 67, color: "bg-blue-500", status: "Booked" },
+    { id: 5, label: "Picked Up", count: 34, color: "bg-[#1AA1B7]", status: "Processing" },
+    { id: 4, label: "In Transit", count: 89, color: "bg-yellow-500", status: "In Transit" },
+    { id: 2, label: "Out for Delivery", count: 43, color: "bg-green-400", status: "Out for Delivery" },
+    { id: 1, label: "Delivered", count: 156, color: "bg-emerald-700", status: "Delivered" },
+    { id: 3, label: "Returned", count: 12, color: "bg-neutral-500", status: "Returned" },
 ];
 
-const CustomerHomePage = () => {
+// Function to fetch status counts from API
+async function fetchStatusCounts(): Promise<Record<string, number>> {
+    try {
+        const response = await fetch('/api/customer/orders/status-counts');
+        if (!response.ok) throw new Error('Failed to fetch status counts');
+        
+        const data = await response.json();
+        return data.counts;
+    } catch (error) {
+        console.error('Error fetching status counts:', error);
+        // Return empty counts as fallback
+        return {};
+    }
+}
 
+const CustomerHomePage = () => {
+    const navigate = useNavigate();
     const [currentImage, setCurrentImage] = useState(0);
+    const [statusButtons, setStatusButtons] = useState<StatusButton[]>(defaultStatusButtons);
+    const [loadingCounts, setLoadingCounts] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -31,6 +59,68 @@ const CustomerHomePage = () => {
 
         return () => clearInterval(timer);
     }, []);
+
+    // Fetch real-time status counts on component mount
+    useEffect(() => {
+        const getStatusCounts = async () => {
+            if (process.env.NODE_ENV === 'production') {
+                try {
+                    setLoadingCounts(true);
+                    const counts = await fetchStatusCounts();
+                    
+                    if (Object.keys(counts).length > 0) {
+                        // Update status buttons with real counts
+                        setStatusButtons(prevButtons => 
+                            prevButtons.map(button => ({
+                                ...button,
+                                count: counts[button.status] || 0
+                            }))
+                        );
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch status counts:", error);
+                } finally {
+                    setLoadingCounts(false);
+                }
+            } else {
+                // When in development, simulate API call
+                setLoadingCounts(true);
+                
+                // Mock data calculation for development - simulate counts from orders array
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                // Get orders from another file or use defaults
+                try {
+                    // This is just for simulation - in development we use mock data
+                    const mockCounts: Record<string, number> = {
+                        "Booked": 4,
+                        "Processing": 2,
+                        "In Transit": 3,
+                        "Out for Delivery": 1,
+                        "Delivered": 5,
+                        "Returned": 2
+                    };
+                    
+                    setStatusButtons(prevButtons => 
+                        prevButtons.map(button => ({
+                            ...button,
+                            count: mockCounts[button.status] || button.count
+                        }))
+                    );
+                } catch (error) {
+                    console.error("Error simulating counts:", error);
+                } finally {
+                    setLoadingCounts(false);
+                }
+            }
+        };
+        
+        getStatusCounts();
+    }, []);
+
+    const handleStatusButtonClick = (status: string) => {
+        navigate(`/customer/orders?status=${status}`);
+    };
 
     return (
         <div className="container mx-auto px-4 h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -128,13 +218,19 @@ const CustomerHomePage = () => {
                                 transition={{ delay: 0.1 * index }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
+                                onClick={() => handleStatusButtonClick(button.status)}
+                                className="cursor-pointer"
                             >
                                 <div className={cn(
                                     "flex items-center justify-start gap-1 text-start px-4 py-2 rounded-lg text-white",
                                     button.color
                                 )}>
-                                    <span className="text-sm font-semibold">
-                                        {button.count}
+                                    <span className="text-sm font-semibold flex items-center">
+                                        {loadingCounts ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                            button.count
+                                        )}
                                     </span>
                                     <span className="text-xs lg:text-sm">
                                         {button.label}

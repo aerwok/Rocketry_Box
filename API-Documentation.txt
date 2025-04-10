@@ -1525,7 +1525,9 @@ Response: {
 Request Type: GET
 Endpoint: /api/v2/seller/billing/ledger
 Headers: {
-  "Authorization": "Bearer ${token}"
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json",
+  "Cache-Control": "no-cache"
 }
 Query Parameters: {
   from?: string (YYYY-MM-DD),
@@ -1574,7 +1576,9 @@ Response: {
 Request Type: GET
 Endpoint: /api/v2/seller/billing/ledger/summary
 Headers: {
-  "Authorization": "Bearer ${token}"
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json",
+  "Cache-Control": "no-cache"
 }
 Response: {
   success: boolean,
@@ -1614,6 +1618,103 @@ Headers: {
 }
 Query Parameters: {
   format: "xlsx" | "csv"
+}
+Response: Blob (file download)
+
+#### COD Remittance Management
+
+// Get COD Remittance Summary
+Request Type: GET
+Endpoint: /api/v2/seller/cod/summary
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    totalCOD: string,
+    remittedTillDate: string,
+    lastRemittance: string,
+    totalRemittanceDue: string,
+    nextRemittance: string
+  }
+}
+
+// Get COD Remittance History
+Request Type: GET
+Endpoint: /api/v2/seller/cod/remittance-history
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  status?: "Pending" | "Completed" | "Failed",
+  from?: string (YYYY-MM-DD),
+  to?: string (YYYY-MM-DD),
+  page?: number,
+  limit?: number
+}
+Response: {
+  data: {
+    remittances: [
+      {
+        remittanceId: string,
+        status: "Pending" | "Completed" | "Failed",
+        paymentDate: string,
+        remittanceAmount: string,
+        freightDeduction: string,
+        convenienceFee: string,
+        total: string,
+        paymentRef: string
+      }
+    ],
+    pagination: {
+      total: number,
+      page: number,
+      limit: number,
+      pages: number
+    }
+  }
+}
+
+// Get COD Remittance Details
+Request Type: GET
+Endpoint: /api/v2/seller/cod/remittance/:remittanceId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    remittanceId: string,
+    status: "Pending" | "Completed" | "Failed",
+    paymentDate: string,
+    remittanceAmount: string,
+    freightDeduction: string,
+    convenienceFee: string,
+    total: string,
+    paymentRef: string,
+    shipments: [
+      {
+        awb: string,
+        orderId: string,
+        orderDate: string,
+        deliveryDate: string,
+        customerName: string,
+        amount: string
+      }
+    ]
+  }
+}
+
+// Export COD Remittance Report
+Request Type: GET
+Endpoint: /api/v2/seller/cod/export
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  remittanceId?: string,
+  format: "xlsx" | "csv",
+  from?: string (YYYY-MM-DD),
+  to?: string (YYYY-MM-DD)
 }
 Response: Blob (file download)
 
@@ -1765,6 +1866,25 @@ Response: {
     page: number,
     limit: number,
     pages: number
+  }
+}
+
+// Get Order Status Counts
+Request Type: GET
+Endpoint: /api/v2/customer/orders/status-counts
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  success: boolean,
+  counts: {
+    All: number,
+    Booked: number,
+    Processing: number,
+    "In Transit": number,
+    "Out for Delivery": number,
+    Delivered: number,
+    Returned: number
   }
 }
 
@@ -2168,6 +2288,169 @@ Response: {
     lastUpdated: string
   }
 }
+
+#### COD Management
+
+// Initiate COD Remittance
+Request Type: POST
+Endpoint: /api/v2/admin/cod/remittance
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  sellerId: string,
+  transactionType: string,
+  amount: string,
+  paymentType: "credit" | "wallet",
+  paymentStatus?: "due" | "paid",
+  orders?: string[] // Array of order IDs included in this remittance
+}
+Response: {
+  data: {
+    remittanceId: string,
+    sellerId: string,
+    sellerName: string,
+    status: "Pending" | "Completed" | "Failed",
+    paymentDate: string,
+    remittanceAmount: string,
+    freightDeduction: string,
+    convenienceFee: string,
+    total: string,
+    paymentRef: string,
+    message: string
+  }
+}
+
+// Bulk Upload COD Remittance
+Request Type: POST
+Endpoint: /api/v2/admin/cod/remittance/bulk
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "multipart/form-data"
+}
+Request Body: {
+  file: File // Excel file containing remittance details
+}
+Response: {
+  data: {
+    batchId: string,
+    totalRemittances: number,
+    processedRemittances: number,
+    failedRemittances: number,
+    errors?: [
+      {
+        row: number,
+        sellerId: string,
+        message: string
+      }
+    ]
+  }
+}
+
+// Get All COD Remittances
+Request Type: GET
+Endpoint: /api/v2/admin/cod/remittance
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  status?: "Pending" | "Completed" | "Failed",
+  sellerId?: string,
+  from?: string (YYYY-MM-DD),
+  to?: string (YYYY-MM-DD),
+  page?: number,
+  limit?: number
+}
+Response: {
+  data: {
+    remittances: [
+      {
+        remittanceId: string,
+        sellerId: string,
+        sellerName: string,
+        status: "Pending" | "Completed" | "Failed",
+        paymentDate: string,
+        remittanceAmount: string,
+        freightDeduction: string,
+        convenienceFee: string,
+        total: string,
+        paymentRef: string
+      }
+    ],
+    pagination: {
+      total: number,
+      page: number,
+      limit: number,
+      pages: number
+    }
+  }
+}
+
+// Get COD Remittance Details
+Request Type: GET
+Endpoint: /api/v2/admin/cod/remittance/:remittanceId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    remittanceId: string,
+    sellerId: string,
+    sellerName: string,
+    status: "Pending" | "Completed" | "Failed",
+    paymentDate: string,
+    remittanceAmount: string,
+    freightDeduction: string,
+    convenienceFee: string,
+    total: string,
+    paymentRef: string,
+    orders: [
+      {
+        orderId: string,
+        awb: string,
+        orderDate: string,
+        deliveryDate: string,
+        customerName: string,
+        amount: string
+      }
+    ]
+  }
+}
+
+// Update Remittance Status
+Request Type: PATCH
+Endpoint: /api/v2/admin/cod/remittance/:remittanceId/status
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  status: "Pending" | "Completed" | "Failed",
+  paymentRef?: string
+}
+Response: {
+  data: {
+    remittanceId: string,
+    status: "Pending" | "Completed" | "Failed",
+    message: string
+  }
+}
+
+// Export COD Remittance Report
+Request Type: GET
+Endpoint: /api/v2/admin/cod/remittance/export
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters: {
+  sellerId?: string,
+  remittanceId?: string,
+  format: "xlsx" | "csv",
+  from?: string (YYYY-MM-DD),
+  to?: string (YYYY-MM-DD)
+}
+Response: Blob (file download)
 
 ## Data Models
 
@@ -2660,6 +2943,52 @@ interface OrderDetails {
 }
 ```
 
+### CODRemittance
+```typescript
+interface CODRemittance {
+  remittanceId: string;
+  sellerId: string;
+  sellerName: string;
+  status: "Pending" | "Completed" | "Failed";
+  paymentDate: string;
+  remittanceAmount: string;
+  freightDeduction: string;
+  convenienceFee: string;
+  total: string;
+  paymentRef: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CODRemittanceDetail extends CODRemittance {
+  orders: Array<{
+    orderId: string;
+    awb: string;
+    orderDate: string;
+    deliveryDate: string;
+    customerName: string;
+    amount: string;
+  }>;
+}
+
+interface CODRemittanceSummary {
+  totalCOD: string;
+  remittedTillDate: string;
+  lastRemittance: string;
+  totalRemittanceDue: string;
+  nextRemittance: string;
+}
+
+interface CODRemittanceFilters {
+  status?: "Pending" | "Completed" | "Failed";
+  sellerId?: string;
+  dateRange?: {
+    from: string;
+    to: string;
+  };
+}
+```
+
 ## Error Handling
 
 All API responses follow a standard format:
@@ -2707,44 +3036,52 @@ X-RateLimit-Reset: 1620000000
 
 WebSocket connection: `wss://api.rocketrybox.com/ws`
 
-### Events
+The following events are available for real-time updates:
 
-#### Order Status Update
-```json
-{
-  "event": "order_status_update",
-  "data": {
-    "orderId": "string",
-    "status": "string",
-    "timestamp": "string"
-  }
+### Order Status Updates
+Event: order_status_update
+Data: {
+  order_id: string,
+  status: string,
+  timestamp: string
 }
-```
 
-#### New Order
-```json
-{
-  "event": "new_order",
-  "data": {
-    "orderId": "string",
-    "customer": "string",
-    "amount": "string",
-    "timestamp": "string"
-  }
+### New Orders
+Event: new_order
+Data: {
+  order_id: string,
+  customer: {
+    name: string,
+    email: string
+  },
+  total: number,
+  timestamp: string
 }
-```
 
-#### Weight Dispute Update
-```json
-{
-  "event": "weight_dispute_update",
-  "data": {
-    "disputeId": "string",
-    "status": "string",
-    "timestamp": "string"
-  }
+### Ledger Transaction Updates
+Event: ledger_transaction
+Data: {
+  transactionId: string,
+  transactionNumber: string,
+  transactionType: string,
+  amount: string,
+  creditDebit: "Credit" | "Debit",
+  closingBalance: string,
+  timestamp: string
 }
-```
+
+### Weight Dispute Updates
+Event: weight_dispute_update
+Data: {
+  disputeId: string,
+  orderId: string,
+  awbNumber: string,
+  status: "Raised" | "Under Review" | "Resolved" | "Rejected",
+  originalWeight: string,
+  chargedWeight: string,
+  difference: string,
+  timestamp: string
+}
 
 ## File Upload
 
