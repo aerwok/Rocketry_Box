@@ -131,8 +131,7 @@ const WalletHistory = () => {
     });
     const [showDateDropdown, setShowDateDropdown] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
-    const [selectedMonth, setSelectedMonth] = useState(new Date());
-    const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null });
+    const [selectedDateRange, setSelectedDateRange] = useState<DateRange>({ start: null, end: null });
     const [nextMonth, setNextMonth] = useState(new Date(new Date().setMonth(new Date().getMonth() + 1)));
     const dateDropdownRef = useRef<HTMLDivElement>(null);
     const calendarRef = useRef<HTMLDivElement>(null);
@@ -397,12 +396,10 @@ const WalletHistory = () => {
 
     // Navigate months
     const prevMonth = () => {
-        setSelectedMonth(new Date(selectedMonth.setMonth(selectedMonth.getMonth() - 1)));
         setNextMonth(new Date(nextMonth.setMonth(nextMonth.getMonth() - 1)));
     };
 
     const nextMonthNav = () => {
-        setSelectedMonth(new Date(selectedMonth.setMonth(selectedMonth.getMonth() + 1)));
         setNextMonth(new Date(nextMonth.setMonth(nextMonth.getMonth() + 1)));
     };
 
@@ -449,30 +446,30 @@ const WalletHistory = () => {
 
     // Select date in calendar
     const selectDate = (date: Date) => {
-        if (!dateRange.start || (dateRange.start && dateRange.end)) {
-            setDateRange({ start: date, end: null });
-        } else if (dateRange.start) {
-            if (date < dateRange.start) {
-                setDateRange({ start: date, end: dateRange.start });
+        if (!selectedDateRange.start || (selectedDateRange.start && selectedDateRange.end)) {
+            setSelectedDateRange({ start: date, end: null });
+        } else if (selectedDateRange.start) {
+            if (date < selectedDateRange.start) {
+                setSelectedDateRange({ start: date, end: selectedDateRange.start });
             } else {
-                setDateRange({ start: dateRange.start, end: date });
+                setSelectedDateRange({ start: selectedDateRange.start, end: date });
             }
         }
     };
 
     // Apply selected date range
     const applyDateRange = () => {
-        if (dateRange.start && dateRange.end) {
-            const startStr = formatDate(dateRange.start);
-            const endStr = formatDate(dateRange.end);
+        if (selectedDateRange?.start && selectedDateRange?.end) {
+            const startStr = formatDate(selectedDateRange.start);
+            const endStr = formatDate(selectedDateRange.end);
             setFilters(prev => ({
                 ...prev,
                 date: `${startStr} to ${endStr}`
             }));
-        } else if (dateRange.start) {
+        } else if (selectedDateRange?.start) {
             setFilters(prev => ({
                 ...prev,
-                date: formatDate(dateRange.start)
+                date: formatDate(selectedDateRange.start)
             }));
         }
         setShowCalendar(false);
@@ -480,7 +477,7 @@ const WalletHistory = () => {
 
     // Discard selected date range
     const discardDateRange = () => {
-        setDateRange({ start: null, end: null });
+        setSelectedDateRange({ start: null, end: null });
         setShowCalendar(false);
     };
 
@@ -542,14 +539,14 @@ const WalletHistory = () => {
         }
         
         const formattedDate = formatDate(day.date);
-        const start = formatDate(dateRange.start);
-        const end = formatDate(dateRange.end);
+        const start = selectedDateRange?.start ? formatDate(selectedDateRange.start) : null;
+        const end = selectedDateRange?.end ? formatDate(selectedDateRange.end) : null;
         
         if (start && formattedDate === start) {
             classes += "bg-blue-500 text-white ";
         } else if (end && formattedDate === end) {
             classes += "bg-blue-500 text-white ";
-        } else if (dateRange.start && dateRange.end && day.date > dateRange.start && day.date < dateRange.end) {
+        } else if (selectedDateRange.start && selectedDateRange.end && day.date > selectedDateRange.start && day.date < selectedDateRange.end) {
             classes += "bg-blue-100 ";
         }
         
@@ -892,7 +889,7 @@ const WalletHistory = () => {
                                                 <ChevronLeft className="h-4 w-4" />
                                             </button>
                                             <h3 className="text-sm font-medium">
-                                                {selectedMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                                {nextMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
                                             </h3>
                                         </div>
                                         <div className="flex items-center space-x-4">
@@ -920,8 +917,8 @@ const WalletHistory = () => {
                                             </div>
                                             <div className="grid grid-cols-7 gap-1">
                                                 {generateCalendarDays(
-                                                    selectedMonth.getFullYear(),
-                                                    selectedMonth.getMonth()
+                                                    nextMonth.getFullYear(),
+                                                    nextMonth.getMonth()
                                                 ).slice(0, 35).map((day, index) => (
                                                     <div 
                                                         key={index}
@@ -971,10 +968,10 @@ const WalletHistory = () => {
                                     {/* Selected date range display */}
                                     <div className="mt-4 pt-3 border-t flex justify-between items-center">
                                         <div className="text-sm">
-                                            {dateRange.start && dateRange.end
-                                                ? `${formatDate(dateRange.start)} to ${formatDate(dateRange.end)}`
-                                                : dateRange.start
-                                                ? `${formatDate(dateRange.start)}`
+                                            {selectedDateRange.start && selectedDateRange.end
+                                                ? `${formatDate(selectedDateRange.start)} to ${formatDate(selectedDateRange.end)}`
+                                                : selectedDateRange.start
+                                                ? `${formatDate(selectedDateRange.start)}`
                                                 : ''
                                             }
                                         </div>

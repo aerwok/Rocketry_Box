@@ -3,54 +3,39 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
     ArrowLeftIcon,
-    CopyIcon,
+    Copy,
     Edit,
-    Copy as Duplicate,
     Printer,
-    FileText,
     X,
-    Truck,
     RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 // Order details interface
 interface OrderDetails {
     orderId: string;
-    date: string;
-    customer: string;
-    contact: string;
-    items: string;
-    amount: string;
+        date: string;
+    totalAmount: string;
     payment: "COD" | "Prepaid";
-    chanel: "MANUAL" | "EXCEL" | "SHOPIFY" | "WOOCOMMERCE" | "AMAZON" | "FLIPKART" | "OPENCART" | "API";
+    channel: "MANUAL" | "EXCEL" | "SHOPIFY" | "WOOCOMMERCE" | "AMAZON" | "FLIPKART" | "OPENCART" | "API";
     shipmentType: "Forward" | "Reverse";
     weight: string;
-    tags: string;
-    action: string;
-    whatsapp: string;
+    category: string;
     status: "not-booked" | "processing" | "booked" | "cancelled" | "shipment-cancelled" | "error";
     customerDetails: {
         name: string;
-        address1: string;
-        address2: string;
-        city: string;
-        state: string;
-        pincode: string;
-        country: string;
+        address: string;
         phone: string;
     };
     warehouseDetails: {
         name: string;
-        address1: string;
-        city: string;
-        state: string;
-        pincode: string;
-        country: string;
+        address: string;
         phone: string;
     };
     products: {
@@ -58,6 +43,7 @@ interface OrderDetails {
         sku: string;
         quantity: number;
         price: number;
+        total: number;
         image: string;
     }[];
 }
@@ -71,38 +57,24 @@ const SellerOrderDetailsPage = () => {
     const [cancelReason, setCancelReason] = useState("");
 
     // Mock order details data
-    const orderDetails: OrderDetails = {
+    const [orderDetails] = useState<OrderDetails>({
         orderId: id || "ORD-2024-001",
         date: "2024-02-20",
-        customer: "Rahul Sharma",
-        contact: "9876543210",
-        items: "4",
-        amount: "97497.00",
+        totalAmount: "₹97497.00",
         payment: "COD",
-        chanel: "MANUAL",
+        channel: "MANUAL",
         shipmentType: "Forward",
-        weight: "2.5",
-        tags: "Gaming",
-        action: "Ship",
-        whatsapp: "9876543210",
+        weight: "2.5 kg",
+        category: "Gaming",
         status: "not-booked",
         customerDetails: {
             name: "Rahul Sharma",
-            address1: "Flat 303, Tower B, Green Valley Apartments",
-            address2: "Sector 62, Noida",
-            city: "NOIDA",
-            state: "UTTAR PRADESH",
-            pincode: "201309",
-            country: "India",
+            address: "Flat 303, Tower B, Green Valley Apartments\nSector 62, Noida\nNOIDA, UTTAR PRADESH 201309\nIndia",
             phone: "9876543210"
         },
         warehouseDetails: {
             name: "RocketryBox Warehouse",
-            address1: "Plot No. 123, Industrial Area",
-            city: "PUNE",
-            state: "MAHARASHTRA",
-            pincode: "411014",
-            country: "India",
+            address: "Plot No. 123, Industrial Area\nPUNE, MAHARASHTRA 411014\nIndia",
             phone: "020-12345678"
         },
         products: [
@@ -111,23 +83,31 @@ const SellerOrderDetailsPage = () => {
                 sku: "LAP-GAM-001",
                 quantity: 1,
                 price: 89999.00,
-                image: "/images/products/laptop.jpg"
+                total: 89999.00,
+                image: "/images/gaming-laptop.jpg"
             },
             {
                 name: "Gaming Mouse",
                 sku: "MOU-GAM-001",
                 quantity: 2,
                 price: 2499.00,
-                image: "/images/products/mouse.jpg"
+                total: 4998.00,
+                image: "/images/gaming-mouse.jpg"
             },
             {
                 name: "Gaming Headset",
                 sku: "HEA-GAM-001",
                 quantity: 1,
                 price: 4999.00,
-                image: "/images/products/headset.jpg"
+                total: 4999.00,
+                image: "/images/gaming-headset.jpg"
             }
         ]
+    });
+
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success("Copied to clipboard");
     };
 
     const handleEdit = () => {
@@ -147,7 +127,47 @@ const SellerOrderDetailsPage = () => {
             new Promise((resolve) => setTimeout(resolve, 2000)),
             {
                 loading: 'Generating shipping label...',
-                success: 'Shipping label generated successfully',
+                success: () => {
+                    // Create a simple text content for the PDF (in a real app, this would be actual PDF content)
+                    const textContent = `
+                    SHIPPING LABEL
+                    ------------------
+                    Order ID: ${orderDetails.orderId}
+                    Date: ${orderDetails.date}
+                    
+                    Customer:
+                    ${orderDetails.customerDetails.name}
+                    ${orderDetails.customerDetails.address}
+                    Phone: ${orderDetails.customerDetails.phone}
+                    
+                    Warehouse:
+                    ${orderDetails.warehouseDetails.name}
+                    ${orderDetails.warehouseDetails.address}
+                    
+                    Weight: ${orderDetails.weight}
+                    Shipment Type: ${orderDetails.shipmentType}
+                    
+                    Products:
+                    ${orderDetails.products.map(p => `${p.quantity}x ${p.name} (${p.sku})`).join('\n')}
+                    `;
+                    
+                    // Create a blob with the text content
+                    const blob = new Blob([textContent], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Create a download link and trigger the download
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `shipping-label-${orderDetails.orderId}.txt`);
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    // Clean up
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    return 'Shipping label downloaded successfully';
+                },
                 error: 'Failed to generate shipping label'
             }
         );
@@ -158,7 +178,55 @@ const SellerOrderDetailsPage = () => {
             new Promise((resolve) => setTimeout(resolve, 2000)),
             {
                 loading: 'Generating invoice...',
-                success: 'Invoice generated successfully',
+                success: () => {
+                    // Calculate total
+                    const subtotal = orderDetails.products.reduce((sum, product) => sum + product.total, 0);
+                    const tax = subtotal * 0.18; // Assuming 18% tax
+                    const total = subtotal + tax;
+                    
+                    // Create a simple text content for the PDF (in a real app, this would be actual PDF content)
+                    const textContent = `
+                    INVOICE
+                    ------------------
+                    Invoice #: INV-${orderDetails.orderId}
+                    Date: ${orderDetails.date}
+                    
+                    Billed To:
+                    ${orderDetails.customerDetails.name}
+                    ${orderDetails.customerDetails.address}
+                    Phone: ${orderDetails.customerDetails.phone}
+                    
+                    Products:
+                    ${orderDetails.products.map(p => 
+                        `${p.quantity}x ${p.name} (${p.sku}) - ₹${p.price.toFixed(2)}/item - ₹${p.total.toFixed(2)}`
+                    ).join('\n')}
+                    
+                    Subtotal: ₹${subtotal.toFixed(2)}
+                    Tax (18%): ₹${tax.toFixed(2)}
+                    Total: ₹${total.toFixed(2)}
+                    
+                    Payment Method: ${orderDetails.payment}
+                    
+                    Thank you for your business!
+                    `;
+                    
+                    // Create a blob with the text content
+                    const blob = new Blob([textContent], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Create a download link and trigger the download
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `invoice-${orderDetails.orderId}.txt`);
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    // Clean up
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    return 'Invoice downloaded successfully';
+                },
                 error: 'Failed to generate invoice'
             }
         );
@@ -225,247 +293,183 @@ const SellerOrderDetailsPage = () => {
     };
 
     return (
-        <div className="container mx-auto p-6 max-w-7xl">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    <Link
-                        to="/seller/dashboard/orders"
-                        className="flex items-center justify-center size-10 rounded-lg border hover:bg-accent"
-                    >
-                        <ArrowLeftIcon className="size-6" />
-                    </Link>
-                    <h1 className="text-2xl font-semibold">Order Details</h1>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleEdit}>
-                        <Edit className="size-4 mr-2" />
+        <div className="container py-4 max-w-7xl mx-auto">
+            {/* Header with back button and actions */}
+            <div className="flex items-center mb-4">
+                <Link to="/seller/dashboard/orders" className="mr-4">
+                    <ArrowLeftIcon className="h-5 w-5" />
+                </Link>
+                <h1 className="text-lg font-semibold">Order Details</h1>
+
+                <div className="flex ml-auto space-x-2">
+                    <Button variant="outline" size="sm" onClick={handleEdit}>
+                        <Edit className="h-4 w-4 mr-2" />
                         Edit
                     </Button>
-                    <Button variant="outline" onClick={handleDuplicate}>
-                        <Duplicate className="size-4 mr-2" />
+                    <Button variant="outline" size="sm" onClick={handleDuplicate}>
+                        <Copy className="h-4 w-4 mr-2" />
                         Duplicate
                     </Button>
-                    <Button variant="outline" onClick={handlePrintLabel}>
-                        <Printer className="size-4 mr-2" />
+                    <Button variant="outline" size="sm" onClick={handlePrintLabel}>
+                        <Printer className="h-4 w-4 mr-2" />
                         Print Label
                     </Button>
-                    <Button variant="outline" onClick={handlePrintInvoice}>
-                        <FileText className="size-4 mr-2" />
+                    <Button variant="outline" size="sm" onClick={handlePrintInvoice}>
+                        <Printer className="h-4 w-4 mr-2" />
                         Print Invoice
                     </Button>
-                    <Button variant="destructive" onClick={handleCancelOrder}>
-                        <X className="size-4 mr-2" />
+                    <Button variant="destructive" size="sm" onClick={handleCancelOrder}>
+                        <X className="h-4 w-4 mr-2" />
                         Cancel Order
                     </Button>
-                    <Button variant="outline" onClick={handleMarkAsShipped}>
-                        <Truck className="size-4 mr-2" />
+                    <Button variant="outline" size="sm" onClick={handleMarkAsShipped}>
                         Mark as Shipped
                     </Button>
-                    <Button variant="outline" onClick={handleUpdateTracking}>
-                        <RefreshCw className="size-4 mr-2" />
+                    <Button variant="outline" size="sm" onClick={handleUpdateTracking}>
+                        <RefreshCw className="h-4 w-4 mr-2" />
                         Update Tracking
-                    </Button>
+                        </Button>
                 </div>
-            </div>
+                </div>
 
-            {/* Order Info */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle>Order Information</CardTitle>
-                </CardHeader>
-                <CardContent>
+            {/* Order information section */}
+            <Card className="mb-4">
+                <CardContent className="p-6">
+                    <h2 className="text-lg font-semibold mb-4">Order Information</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
-                            <p className="text-sm text-muted-foreground mb-2">Order ID</p>
-                            <div className="flex items-center gap-2">
-                                <p className="font-medium">#{orderDetails.orderId}</p>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(orderDetails.orderId);
-                                        toast.success("Order ID copied to clipboard");
-                                    }}
-                                >
-                                    <CopyIcon className="h-4 w-4" />
-                                </Button>
+                            <div className="text-sm text-gray-500">Order ID</div>
+                            <div className="flex items-center">
+                                <span className="font-medium">{orderDetails.orderId}</span>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2" onClick={() => handleCopy(orderDetails.orderId)}>
+                                    <Copy className="h-4 w-4" />
+                            </Button>
                             </div>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground mb-2">Order Date</p>
-                            <p className="font-medium">{orderDetails.date}</p>
+                            <div className="text-sm text-gray-500">Order Date</div>
+                            <div className="font-medium">{orderDetails.date}</div>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground mb-2">Total Amount</p>
-                            <p className="font-medium">₹{orderDetails.amount}</p>
+                            <div className="text-sm text-gray-500">Total Amount</div>
+                            <div className="font-medium">{orderDetails.totalAmount}</div>
+                            </div>
+                        <div>
+                            <div className="text-sm text-gray-500">Payment Type</div>
+                            <div className="font-medium">{orderDetails.payment}</div>
+                            </div>
+                        <div>
+                            <div className="text-sm text-gray-500">Order Channel</div>
+                            <div className="font-medium">{orderDetails.channel}</div>
+                            </div>
+                        <div>
+                            <div className="text-sm text-gray-500">Shipment Type</div>
+                            <div className="font-medium">{orderDetails.shipmentType}</div>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground mb-2">Payment Type</p>
-                            <p className="font-medium">{orderDetails.payment}</p>
-                        </div>
+                            <div className="text-sm text-gray-500">Weight</div>
+                            <div className="font-medium">{orderDetails.weight}</div>
+                            </div>
                         <div>
-                            <p className="text-sm text-muted-foreground mb-2">Status</p>
-                            <p className="font-medium">{orderDetails.status}</p>
-                        </div>
+                            <div className="text-sm text-gray-500">Status</div>
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
+                                {orderDetails.status}
+                            </Badge>
+                            </div>
                         <div>
-                            <p className="text-sm text-muted-foreground mb-2">Order Creation Type</p>
-                            <p className="font-medium">
-                                {orderDetails.chanel === "MANUAL" ? "Single (Manual) Order" : 
-                                 orderDetails.chanel === "EXCEL" ? "Multiple (Bulk) Order" : 
-                                 orderDetails.chanel}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-2">Shipment Type</p>
-                            <p className="font-medium">{orderDetails.shipmentType} Shipment</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-2">Weight</p>
-                            <p className="font-medium">{orderDetails.weight} kg</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-2">Tags</p>
-                            <p className="font-medium">{orderDetails.tags}</p>
+                            <div className="text-sm text-gray-500">Category</div>
+                            <div className="font-medium">{orderDetails.category}</div>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Customer & Warehouse Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Customer and Warehouse details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Customer details */}
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Customer Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
+                    <CardContent className="p-6">
+                        <h2 className="text-lg font-semibold mb-4">Customer Details</h2>
+                        <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground mb-1">Name</p>
-                                <p className="font-medium">{orderDetails.customerDetails.name}</p>
+                                <div className="text-sm text-gray-500">Name</div>
+                                <div className="font-medium">{orderDetails.customerDetails.name}</div>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground mb-1">Address</p>
-                                <p className="font-medium">{orderDetails.customerDetails.address1}</p>
-                                <p className="font-medium">{orderDetails.customerDetails.address2}</p>
-                                <p className="font-medium">
-                                    {orderDetails.customerDetails.city}, {orderDetails.customerDetails.state} {orderDetails.customerDetails.pincode}
-                                </p>
-                                <p className="font-medium">{orderDetails.customerDetails.country}</p>
-                            </div>
+                                <div className="text-sm text-gray-500">Address</div>
+                                <div className="whitespace-pre-line">{orderDetails.customerDetails.address}</div>
+                                        </div>
                             <div>
-                                <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                                <p className="font-medium">{orderDetails.customerDetails.phone}</p>
-                            </div>
-                        </div>
+                                <div className="text-sm text-gray-500">Phone</div>
+                                <div className="font-medium">{orderDetails.customerDetails.phone}</div>
+                                        </div>
+                                    </div>
                     </CardContent>
                 </Card>
 
+                {/* Warehouse details */}
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Warehouse Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
+                    <CardContent className="p-6">
+                        <h2 className="text-lg font-semibold mb-4">Warehouse Details</h2>
+                        <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground mb-1">Name</p>
-                                <p className="font-medium">{orderDetails.warehouseDetails.name}</p>
-                            </div>
+                                <div className="text-sm text-gray-500">Name</div>
+                                <div className="font-medium">{orderDetails.warehouseDetails.name}</div>
+                                </div>
                             <div>
-                                <p className="text-sm text-muted-foreground mb-1">Address</p>
-                                <p className="font-medium">{orderDetails.warehouseDetails.address1}</p>
-                                <p className="font-medium">
-                                    {orderDetails.warehouseDetails.city}, {orderDetails.warehouseDetails.state} {orderDetails.warehouseDetails.pincode}
-                                </p>
-                                <p className="font-medium">{orderDetails.warehouseDetails.country}</p>
-                            </div>
+                                <div className="text-sm text-gray-500">Address</div>
+                                <div className="whitespace-pre-line">{orderDetails.warehouseDetails.address}</div>
+                                                    </div>
                             <div>
-                                <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                                <p className="font-medium">{orderDetails.warehouseDetails.phone}</p>
-                            </div>
-                        </div>
+                                <div className="text-sm text-gray-500">Phone</div>
+                                <div className="font-medium">{orderDetails.warehouseDetails.phone}</div>
+                                                            </div>
+                                                        </div>
                     </CardContent>
                 </Card>
-            </div>
+                                                    </div>
 
-            {/* Products */}
+            {/* Products table */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Products</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="relative overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs uppercase bg-muted">
-                                <tr>
-                                    <th className="px-6 py-3">Product</th>
-                                    <th className="px-6 py-3">SKU</th>
-                                    <th className="px-6 py-3">Quantity</th>
-                                    <th className="px-6 py-3">Price</th>
-                                    <th className="px-6 py-3">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {orderDetails.products.map((product, index) => (
-                                    <tr key={index} className="bg-white border-b">
-                                        <td className="px-6 py-4 font-medium">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={product.image}
-                                                    alt={product.name}
-                                                    className="size-12 rounded-lg object-cover"
-                                                />
-                                                <span>{product.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">{product.sku}</td>
-                                        <td className="px-6 py-4">{product.quantity}</td>
-                                        <td className="px-6 py-4">₹{product.price.toFixed(2)}</td>
-                                        <td className="px-6 py-4">₹{(product.price * product.quantity).toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                                <tr className="bg-muted">
-                                    <td colSpan={4} className="px-6 py-4 text-right font-medium">
-                                        Total Amount:
-                                    </td>
-                                    <td className="px-6 py-4 font-medium">
-                                        ₹{orderDetails.products.reduce((total, product) => total + (product.price * product.quantity), 0).toFixed(2)}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Cancel Order Dialog */}
-            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Cancel Order</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="reason">Reason for Cancellation</Label>
-                            <Input
-                                id="reason"
-                                placeholder="Enter reason for cancellation"
-                                value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={confirmCancelOrder}>
-                            Confirm Cancellation
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                <CardContent className="p-6">
+                    <h2 className="text-lg font-semibold mb-4">Products</h2>
+                    <Table>
+                        <TableHeader className="bg-gray-50">
+                            <TableRow>
+                                <TableHead className="w-12">PRODUCT</TableHead>
+                                <TableHead>SKU</TableHead>
+                                <TableHead className="text-center">QUANTITY</TableHead>
+                                <TableHead className="text-right">PRICE</TableHead>
+                                <TableHead className="text-right">TOTAL</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {orderDetails.products.map((product, index) => (
+                                <TableRow key={index}>
+                                    <TableCell className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+                                            <img src={product.image} alt={product.name} className="h-8 w-8 object-contain" />
+                                                        </div>
+                                        <span className="font-medium">{product.name}</span>
+                                    </TableCell>
+                                    <TableCell>{product.sku}</TableCell>
+                                    <TableCell className="text-center">{product.quantity}</TableCell>
+                                    <TableCell className="text-right">₹{product.price.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">₹{product.total.toFixed(2)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <div className="flex justify-end mt-6">
+                        <div className="w-64">
+                            <div className="flex justify-between font-medium text-lg">
+                                <span>Total Amount:</span>
+                                <span>{orderDetails.totalAmount}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                    </Card>
 
             {/* Update Tracking Dialog */}
             <Dialog open={isUpdateTrackingOpen} onOpenChange={setIsUpdateTrackingOpen}>
@@ -473,24 +477,50 @@ const SellerOrderDetailsPage = () => {
                     <DialogHeader>
                         <DialogTitle>Update Tracking Number</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="tracking">Tracking Number</Label>
-                            <Input
-                                id="tracking"
-                                placeholder="Enter tracking number"
-                                value={trackingNumber}
-                                onChange={(e) => setTrackingNumber(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    <div className="py-4">
+                        <Label htmlFor="tracking-number">Tracking Number</Label>
+                        <Input
+                            id="tracking-number"
+                            value={trackingNumber}
+                            onChange={(e) => setTrackingNumber(e.target.value)}
+                            placeholder="Enter tracking number"
+                            className="mt-2"
+                                                                />
+                                                            </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsUpdateTrackingOpen(false)}>
                             Cancel
                         </Button>
                         <Button onClick={confirmUpdateTracking}>
-                            Update Tracking
+                            Update
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Cancel Order Dialog */}
+            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cancel Order</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="cancel-reason">Reason for Cancellation</Label>
+                        <Input
+                            id="cancel-reason"
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                            placeholder="Enter reason for cancellation"
+                            className="mt-2"
+                        />
+                                                            </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                            Go Back
+                            </Button>
+                        <Button variant="destructive" onClick={confirmCancelOrder}>
+                                Cancel Order
+                            </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

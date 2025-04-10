@@ -1966,6 +1966,9 @@ Headers: {
 Query Parameters:
   role?: "customer" | "seller" | "admin"
   search?: string
+  status?: "active" | "inactive" | "suspended"
+  sortBy?: "name" | "email" | "createdAt" | "lastLogin"
+  sortOrder?: "asc" | "desc"
   page?: number
   limit?: number
 Response: {
@@ -1977,7 +1980,10 @@ Response: {
       phone: string,
       role: "customer" | "seller" | "admin",
       status: "active" | "inactive" | "suspended",
-      createdAt: string
+      lastLogin: string,
+      createdAt: string,
+      walletBalance?: number,
+      orderCount?: number
     }
   ],
   pagination: {
@@ -1985,6 +1991,36 @@ Response: {
     page: number,
     limit: number,
     pages: number
+  }
+}
+
+// Get User Details
+Request Type: GET
+Endpoint: /api/v2/admin/users/:userId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    id: string,
+    name: string,
+    email: string,
+    phone: string,
+    role: "customer" | "seller" | "admin",
+    status: "active" | "inactive" | "suspended",
+    lastLogin: string,
+    createdAt: string,
+    updatedAt: string,
+    verificationStatus: {
+      email: boolean,
+      phone: boolean,
+      documents: boolean
+    },
+    walletBalance?: number,
+    orderCount?: number,
+    address?: object,
+    permissions?: string[],
+    notes?: string
   }
 }
 
@@ -1996,7 +2032,56 @@ Headers: {
   "Content-Type": "application/json"
 }
 Request Body: {
-  status: "active" | "inactive" | "suspended"
+  status: "active" | "inactive" | "suspended",
+  reason?: string
+}
+Response: {
+  data: {
+    id: string,
+    status: string,
+    message: string
+  }
+}
+
+// Update User Permissions
+Request Type: PATCH
+Endpoint: /api/v2/admin/users/:userId/permissions
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  permissions: string[]  // Array of permission keys
+}
+Response: {
+  data: {
+    id: string,
+    permissions: string[],
+    message: string
+  }
+}
+
+// Add Admin Notes
+Request Type: POST
+Endpoint: /api/v2/admin/users/:userId/notes
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  note: string
+}
+Response: {
+  data: {
+    id: string,
+    note: {
+      id: string,
+      content: string,
+      createdBy: string,
+      createdAt: string
+    },
+    message: string
+  }
 }
 
 #### Order Management
@@ -2009,9 +2094,16 @@ Headers: {
 Query Parameters:
   from?: string (ISO date)
   to?: string (ISO date)
-  status?: string
+  status?: string | string[] // Can now accept multiple statuses as an array
   sellerId?: string
   customerId?: string
+  paymentType?: "COD" | "Prepaid"
+  priority?: "High" | "Medium" | "Low"
+  courier?: string
+  awbNumber?: string
+  search?: string
+  sortBy?: string
+  sortOrder?: "asc" | "desc"
   page?: number
   limit?: number
 Response: {
@@ -2022,9 +2114,23 @@ Response: {
       sellerId: string,
       customerId: string,
       status: string,
+      actualStatus: string,
+      paymentType: string,
+      amount: string,
+      weight: string,
+      courier?: string,
+      awbNumber?: string,
       createdAt: string,
       updatedAt: string,
-      details: object
+      details: object,
+      seller: {
+        name: string,
+        email: string
+      },
+      customer: {
+        name: string,
+        email: string
+      }
     }
   ],
   pagination: {
@@ -2032,6 +2138,109 @@ Response: {
     page: number,
     limit: number,
     pages: number
+  }
+}
+
+// Get Order Details
+Request Type: GET
+Endpoint: /api/v2/admin/orders/:orderId
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    id: string,
+    orderId: string,
+    sellerId: string,
+    customerId: string,
+    status: string,
+    actualStatus: string,
+    paymentType: string,
+    amount: string,
+    weight: string,
+    courier?: string,
+    awbNumber?: string,
+    createdAt: string,
+    updatedAt: string,
+    seller: {
+      id: string,
+      name: string,
+      email: string,
+      phone: string
+    },
+    customer: {
+      name: string,
+      email: string,
+      phone: string,
+      address: {
+        street: string,
+        city: string,
+        state: string,
+        pincode: string,
+        country: string
+      }
+    },
+    shippingDetails: {
+      origin: {
+        warehouse: string,
+        address: string
+      },
+      destination: {
+        address: string,
+        city: string,
+        state: string,
+        pincode: string
+      },
+      package: {
+        items: [
+          {
+            name: string,
+            sku: string,
+            quantity: number,
+            price: number,
+            weight: number
+          }
+        ],
+        dimensions: {
+          length: number,
+          width: number,
+          height: number,
+          weight: number
+        }
+      },
+      courier: {
+        name: string,
+        trackingUrl: string,
+        awbNumber: string
+      },
+      tracking: [
+        {
+          status: string,
+          location: string,
+          timestamp: string,
+          description: string
+        }
+      ]
+    },
+    payment: {
+      type: "COD" | "Prepaid",
+      status: string,
+      subtotal: number,
+      shippingCharge: number,
+      codCharge: number,
+      tax: number,
+      discount: number,
+      total: number
+    },
+    notes: string,
+    history: [
+      {
+        action: string,
+        performedBy: string,
+        timestamp: string,
+        details: string
+      }
+    ]
   }
 }
 
@@ -2043,8 +2252,211 @@ Headers: {
   "Content-Type": "application/json"
 }
 Request Body: {
-  status: string,
-  notes: string
+  status?: string,
+  notes?: string,
+  courier?: string,
+  awbNumber?: string,
+  trackingUrl?: string,
+  payment?: {
+    status?: string,
+    shippingCharge?: number,
+    codCharge?: number,
+    tax?: number,
+    discount?: number
+  }
+}
+Response: {
+  data: {
+    id: string,
+    orderId: string,
+    status: string,
+    message: string
+  }
+}
+
+// Add Order History Entry
+Request Type: POST
+Endpoint: /api/v2/admin/orders/:orderId/history
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  action: string,
+  details: string
+}
+Response: {
+  data: {
+    id: string,
+    action: string,
+    performedBy: string,
+    timestamp: string,
+    details: string
+  }
+}
+
+// Get Order Status Counts
+Request Type: GET
+Endpoint: /api/v2/admin/orders/status-counts
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (ISO date)
+  to?: string (ISO date)
+  sellerId?: string
+Response: {
+  data: {
+    total: number,
+    booked: number,
+    processing: number,
+    inTransit: number,
+    outForDelivery: number,
+    delivered: number,
+    returned: number,
+    cancelled: number
+  }
+}
+
+#### Admin Dashboard
+// Get Dashboard Stats
+Request Type: GET
+Endpoint: /api/v2/admin/dashboard/stats
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  period?: "today" | "yesterday" | "week" | "month" | "year"
+Response: {
+  data: {
+    users: {
+      total: number,
+      sellers: number,
+      customers: number,
+      newToday: number,
+      activeToday: number
+    },
+    orders: {
+      total: number,
+      pending: number,
+      processing: number,
+      shipped: number,
+      delivered: number,
+      cancelled: number,
+      todayCount: number
+    },
+    revenue: {
+      total: number,
+      today: number,
+      growth: number
+    },
+    shipments: {
+      total: number,
+      inTransit: number,
+      delivered: number,
+      returned: number,
+      todayCount: number
+    },
+    disputes: {
+      total: number,
+      open: number,
+      resolved: number
+    },
+    tickets: {
+      total: number,
+      open: number,
+      closed: number
+    }
+  }
+}
+
+// Get Key Performance Indicators
+Request Type: GET
+Endpoint: /api/v2/admin/dashboard/kpi
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  from?: string (ISO date)
+  to?: string (ISO date)
+Response: {
+  data: {
+    averageOrderValue: number,
+    orderCompletionRate: number,
+    returnRate: number,
+    averageDeliveryTime: number,
+    userAcquisitionCost: number,
+    revenueGrowth: number,
+    activeSellers: number,
+    topPerformingSellers: [
+      {
+        id: string,
+        name: string,
+        orderCount: number,
+        revenue: number
+      }
+    ],
+    topCouriers: [
+      {
+        name: string,
+        shipmentCount: number,
+        performanceScore: number
+      }
+    ]
+  }
+}
+
+// Get Order Trends
+Request Type: GET
+Endpoint: /api/v2/admin/dashboard/order-trends
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  granularity: "daily" | "weekly" | "monthly"
+  from?: string (ISO date)
+  to?: string (ISO date)
+Response: {
+  data: [
+    {
+      period: string,
+      orders: number,
+      revenue: number,
+      returnRate: number
+    }
+  ]
+}
+
+// Get System Health
+Request Type: GET
+Endpoint: /api/v2/admin/dashboard/system-health
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    apiStatus: "operational" | "degraded" | "maintenance",
+    serverLoad: number,
+    responseTime: number,
+    databaseStatus: "healthy" | "degraded" | "critical",
+    serviceStatus: {
+      payment: "operational" | "degraded" | "down",
+      email: "operational" | "degraded" | "down",
+      sms: "operational" | "degraded" | "down",
+      tracking: "operational" | "degraded" | "down"
+    },
+    errors: {
+      count: number,
+      recentErrors: [
+        {
+          timestamp: string,
+          endpoint: string,
+          errorType: string,
+          count: number
+        }
+      ]
+    }
+  }
 }
 
 #### Rate Band Management
@@ -2054,6 +2466,11 @@ Endpoint: /api/v2/admin/rate-bands
 Headers: {
   "Authorization": "Bearer ${token}"
 }
+Query Parameters:
+  search?: string
+  isDefault?: boolean
+  page?: number
+  limit?: number
 Response: {
   data: [
     {
@@ -2061,10 +2478,17 @@ Response: {
       name: string,
       description: string,
       isDefault: boolean,
+      sellerCount: number,
       createdAt: string,
       updatedAt: string
     }
-  ]
+  ],
+  pagination: {
+    total: number,
+    page: number,
+    limit: number,
+    pages: number
+  }
 }
 
 // Create Rate Band
@@ -2077,7 +2501,8 @@ Headers: {
 Request Body: {
   name: string,
   description: string,
-  isDefault: boolean
+  isDefault: boolean,
+  copyFromId?: string  // Optional - copy rates from existing band
 }
 Response: {
   data: {
@@ -2105,6 +2530,7 @@ Response: {
     rates: [
       {
         courier: string,
+        courierName: string,
         rates: {
           withinCity: {
             base: string,
@@ -2133,11 +2559,25 @@ Response: {
           }
         },
         cod: string,
-        codPercent: string
+        codPercent: string,
+        weightSlabs: [
+          {
+            from: number,
+            to: number,
+            price: number
+          }
+        ]
       }
     ],
     createdAt: string,
-    updatedAt: string
+    updatedAt: string,
+    assignedSellers: [
+      {
+        id: string,
+        name: string,
+        email: string
+      }
+    ]
   }
 }
 
@@ -2250,7 +2690,14 @@ Response: {
           northEastJK: number
         },
         codCharge: number,
-        codPercent: number
+        codPercent: number,
+        weightSlabs: [
+          {
+            from: number,
+            to: number,
+            price: number
+          }
+        ]
       }
     ],
     lastUpdated: string
@@ -2276,7 +2723,14 @@ Request Body: {
         northEastJK: number
       },
       codCharge: number,
-      codPercent: number
+      codPercent: number,
+      weightSlabs?: [
+        {
+          from: number,
+          to: number,
+          price: number
+        }
+      ]
     }
   ]
 }
@@ -2304,6 +2758,7 @@ Request Body: {
   amount: string,
   paymentType: "credit" | "wallet",
   paymentStatus?: "due" | "paid",
+  transactionDate?: string,
   orders?: string[] // Array of order IDs included in this remittance
 }
 Response: {
@@ -2451,6 +2906,262 @@ Query Parameters: {
   to?: string (YYYY-MM-DD)
 }
 Response: Blob (file download)
+
+#### Shipping Partners Management
+
+// Get All Partners
+Request Type: GET
+Endpoint: /api/v2/admin/partners
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Query Parameters:
+  status?: "active" | "inactive" | "maintenance" | "all"
+  search?: string
+  page?: number
+  limit?: number
+Response: {
+  data: [
+    {
+      id: string,
+      name: string,
+      logoUrl?: string,
+      apiStatus: "active" | "inactive" | "maintenance",
+      performanceScore: string,
+      lastUpdated: string,
+      shipmentCount: number,
+      deliverySuccess: string,
+      supportContact: string,
+      supportEmail: string,
+      serviceTypes: string[],
+      serviceAreas: string[],
+      weightLimits: {
+        min: number,
+        max: number
+      },
+      dimensionLimits?: {
+        maxLength: number,
+        maxWidth: number,
+        maxHeight: number,
+        maxSum: number
+      },
+      rates: {
+        baseRate: number,
+        weightRate: number,
+        dimensionalFactor: number
+      }
+    }
+  ],
+  pagination: {
+    total: number,
+    page: number,
+    limit: number,
+    pages: number
+  }
+}
+
+// Get Partner Details
+Request Type: GET
+Endpoint: /api/v2/admin/partners/:id
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    id: string,
+    name: string,
+    logoUrl?: string,
+    apiStatus: "active" | "inactive" | "maintenance",
+    performanceScore: string,
+    lastUpdated: string,
+    shipmentCount: number,
+    deliverySuccess: string,
+    supportContact: string,
+    supportEmail: string,
+    apiKey?: string,
+    apiEndpoint?: string,
+    serviceTypes: string[],
+    serviceAreas: string[],
+    weightLimits: {
+      min: number,
+      max: number
+    },
+    dimensionLimits?: {
+      maxLength: number,
+      maxWidth: number,
+      maxHeight: number,
+      maxSum: number
+    },
+    rates: {
+      baseRate: number,
+      weightRate: number,
+      dimensionalFactor: number
+    },
+    zones?: [
+      {
+        name: string,
+        baseRate: number,
+        additionalRate: number
+      }
+    ],
+    trackingUrl?: string,
+    integrationDate: string,
+    notes?: string
+  }
+}
+
+// Create Partner
+Request Type: POST
+Endpoint: /api/v2/admin/partners
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  name: string,
+  logoUrl?: string,
+  apiStatus: "active" | "inactive" | "maintenance",
+  supportContact: string,
+  supportEmail: string,
+  apiKey?: string,
+  apiEndpoint?: string,
+  serviceTypes: string[],
+  serviceAreas: string[],
+  weightLimits: {
+    min: number,
+    max: number
+  },
+  dimensionLimits?: {
+    maxLength: number,
+    maxWidth: number,
+    maxHeight: number,
+    maxSum: number
+  },
+  rates: {
+    baseRate: number,
+    weightRate: number,
+    dimensionalFactor: number
+  },
+  zones?: [
+    {
+      name: string,
+      baseRate: number,
+      additionalRate: number
+    }
+  ],
+  trackingUrl?: string,
+  notes?: string
+}
+Response: {
+  data: {
+    id: string,
+    name: string,
+    apiStatus: string,
+    createdAt: string,
+    message: string
+  }
+}
+
+// Update Partner
+Request Type: PUT
+Endpoint: /api/v2/admin/partners/:id
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  name?: string,
+  logoUrl?: string,
+  apiStatus?: "active" | "inactive" | "maintenance",
+  supportContact?: string,
+  supportEmail?: string,
+  apiKey?: string,
+  apiEndpoint?: string,
+  serviceTypes?: string[],
+  serviceAreas?: string[],
+  weightLimits?: {
+    min: number,
+    max: number
+  },
+  dimensionLimits?: {
+    maxLength: number,
+    maxWidth: number,
+    maxHeight: number,
+    maxSum: number
+  },
+  rates?: {
+    baseRate: number,
+    weightRate: number,
+    dimensionalFactor: number
+  },
+  zones?: [
+    {
+      name: string,
+      baseRate: number,
+      additionalRate: number
+    }
+  ],
+  trackingUrl?: string,
+  notes?: string
+}
+Response: {
+  data: {
+    id: string,
+    name: string,
+    apiStatus: string,
+    updatedAt: string,
+    message: string
+  }
+}
+
+// Delete Partner
+Request Type: DELETE
+Endpoint: /api/v2/admin/partners/:id
+Headers: {
+  "Authorization": "Bearer ${token}"
+}
+Response: {
+  data: {
+    success: boolean,
+    message: string
+  }
+}
+
+// Delete Multiple Partners
+Request Type: POST
+Endpoint: /api/v2/admin/partners/batch-delete
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  ids: string[]
+}
+Response: {
+  data: {
+    success: boolean,
+    count: number,
+    message: string
+  }
+}
+
+// Refresh Partner APIs
+Request Type: POST
+Endpoint: /api/v2/admin/partners/refresh-api
+Headers: {
+  "Authorization": "Bearer ${token}",
+  "Content-Type": "application/json"
+}
+Request Body: {
+  ids: string[]
+}
+Response: {
+  data: {
+    successful: string[],
+    failed: string[],
+    message: string
+  }
+}
 
 ## Data Models
 
@@ -2986,6 +3697,51 @@ interface CODRemittanceFilters {
     from: string;
     to: string;
   };
+}
+```
+
+### Partner
+```typescript
+interface Zone {
+  name: string;
+  baseRate: number;
+  additionalRate: number;
+}
+
+interface Partner {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  apiStatus: "active" | "inactive" | "maintenance";
+  performanceScore: string;
+  lastUpdated: string;
+  shipmentCount: number;
+  deliverySuccess: string;
+  supportContact: string;
+  supportEmail: string;
+  apiKey?: string;
+  apiEndpoint?: string;
+  serviceTypes: string[];
+  serviceAreas: string[];
+  weightLimits: {
+    min: number;
+    max: number;
+  };
+  dimensionLimits?: {
+    maxLength: number;
+    maxWidth: number;
+    maxHeight: number;
+    maxSum: number;
+  };
+  rates: {
+    baseRate: number;
+    weightRate: number;
+    dimensionalFactor: number;
+  };
+  zones?: Zone[];
+  trackingUrl?: string;
+  integrationDate: string;
+  notes?: string;
 }
 ```
 

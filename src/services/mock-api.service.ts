@@ -428,4 +428,255 @@ export class MockApiService {
       limit: 10
     });
   }
+
+  /**
+   * Simulate fetching shipping partners
+   */
+  static async getPartners(filters?: { status?: string }): Promise<ApiResponse<any>> {
+    const mockPartners = [
+      {
+        id: "bluedart",
+        name: "BlueDart",
+        logoUrl: "https://example.com/logos/bluedart.png",
+        apiStatus: "active",
+        performanceScore: "94%",
+        lastUpdated: "2023-06-15",
+        shipmentCount: 12453,
+        deliverySuccess: "96%",
+        supportContact: "+91 9876543210",
+        supportEmail: "support@bluedart.com",
+        apiKey: "bd_api_key_12345",
+        apiEndpoint: "https://api.bluedart.com/v2",
+        serviceTypes: ["domestic", "express", "standard"],
+        serviceAreas: ["All India"],
+        weightLimits: {
+            min: 0.1,
+            max: 30
+        },
+        dimensionLimits: {
+            maxLength: 150,
+            maxWidth: 100,
+            maxHeight: 100,
+            maxSum: 300
+        },
+        rates: {
+            baseRate: 100,
+            weightRate: 20,
+            dimensionalFactor: 5000
+        },
+        trackingUrl: "https://www.bluedart.com/tracking?awb={tracking_number}",
+        integrationDate: "2022-10-05",
+        notes: "Preferred partner for express deliveries"
+      },
+      {
+        id: "delhivery",
+        name: "Delhivery",
+        logoUrl: "https://example.com/logos/delhivery.png",
+        apiStatus: "active",
+        performanceScore: "92%",
+        lastUpdated: "2023-06-12",
+        shipmentCount: 18765,
+        deliverySuccess: "94%",
+        supportContact: "+91 9876543211",
+        supportEmail: "support@delhivery.com",
+        apiKey: "dl_api_key_67890",
+        apiEndpoint: "https://api.delhivery.com/v3",
+        serviceTypes: ["domestic", "express", "surface"],
+        serviceAreas: ["All India", "Tier 1 Cities", "Tier 2 Cities"],
+        weightLimits: {
+            min: 0.1,
+            max: 50
+        },
+        dimensionLimits: {
+            maxLength: 200,
+            maxWidth: 150,
+            maxHeight: 150,
+            maxSum: 400
+        },
+        rates: {
+            baseRate: 80,
+            weightRate: 18,
+            dimensionalFactor: 4000
+        },
+        trackingUrl: "https://www.delhivery.com/track?waybill={tracking_number}",
+        integrationDate: "2022-08-15",
+        notes: "Good coverage in tier 2 and tier 3 cities"
+      },
+      {
+        id: "fedex",
+        name: "FedEx",
+        logoUrl: "https://example.com/logos/fedex.png",
+        apiStatus: "maintenance",
+        performanceScore: "96%",
+        lastUpdated: "2023-06-08",
+        shipmentCount: 7654,
+        deliverySuccess: "98%",
+        supportContact: "+91 9876543213",
+        supportEmail: "support@fedex.com",
+        apiKey: "fedex_api_key_13579",
+        apiEndpoint: "https://api.fedex.com/v1",
+        serviceTypes: ["domestic", "international", "express", "air"],
+        serviceAreas: ["Global", "All India"],
+        weightLimits: {
+            min: 0.1,
+            max: 70
+        },
+        dimensionLimits: {
+            maxLength: 250,
+            maxWidth: 180,
+            maxHeight: 180,
+            maxSum: 500
+        },
+        rates: {
+            baseRate: 150,
+            weightRate: 25,
+            dimensionalFactor: 5000
+        },
+        trackingUrl: "https://www.fedex.com/tracking?tracknumbers={tracking_number}",
+        integrationDate: "2022-07-10",
+        notes: "Preferred for international shipments"
+      },
+      {
+        id: "xpressbees",
+        name: "Xpressbees",
+        logoUrl: "https://example.com/logos/xpressbees.png",
+        apiStatus: "inactive",
+        performanceScore: "87%",
+        lastUpdated: "2023-06-02",
+        shipmentCount: 5432,
+        deliverySuccess: "90%",
+        supportContact: "+91 9876543215",
+        supportEmail: "support@xpressbees.com",
+        apiKey: "xb_api_key_10101",
+        apiEndpoint: "https://api.xpressbees.com/v1",
+        serviceTypes: ["domestic", "express", "standard"],
+        serviceAreas: ["All India", "Tier 1 Cities"],
+        weightLimits: {
+            min: 0.1,
+            max: 25
+        },
+        rates: {
+            baseRate: 70,
+            weightRate: 15,
+            dimensionalFactor: 4000
+        },
+        trackingUrl: "https://www.xpressbees.com/track?tracking_id={tracking_number}",
+        integrationDate: "2022-11-15",
+        notes: "Good for e-commerce deliveries"
+      }
+    ];
+    
+    // Apply status filter if provided
+    const filteredPartners = filters?.status && filters.status !== 'all'
+      ? mockPartners.filter(partner => partner.apiStatus === filters.status)
+      : mockPartners;
+    
+    return this.request("/api/admin/partners", filteredPartners);
+  }
+  
+  /**
+   * Simulate getting a single partner by ID
+   */
+  static async getPartnerById(id: string): Promise<ApiResponse<any>> {
+    const mockPartners = await this.getPartners();
+    const partner = mockPartners.data.find((p: any) => p.id === id);
+    
+    if (!partner) {
+      throw {
+        response: {
+          status: 404,
+          data: {
+            message: "Partner not found",
+            code: "PARTNER_NOT_FOUND"
+          }
+        }
+      };
+    }
+    
+    return this.request(`/api/admin/partners/${id}`, partner);
+  }
+  
+  /**
+   * Simulate creating a partner
+   */
+  static async createPartner(partnerData: any): Promise<ApiResponse<any>> {
+    // Generate a unique ID for the new partner
+    const id = `partner_${Date.now()}`;
+    const newPartner = {
+      id,
+      ...partnerData,
+      lastUpdated: new Date().toISOString().split('T')[0],
+      integrationDate: new Date().toISOString().split('T')[0]
+    };
+    
+    return this.request("/api/admin/partners", newPartner);
+  }
+  
+  /**
+   * Simulate updating a partner
+   */
+  static async updatePartner(id: string, partnerData: any): Promise<ApiResponse<any>> {
+    const mockPartners = await this.getPartners();
+    const partnerIndex = mockPartners.data.findIndex((p: any) => p.id === id);
+    
+    if (partnerIndex === -1) {
+      throw {
+        response: {
+          status: 404,
+          data: {
+            message: "Partner not found",
+            code: "PARTNER_NOT_FOUND"
+          }
+        }
+      };
+    }
+    
+    const updatedPartner = {
+      ...mockPartners.data[partnerIndex],
+      ...partnerData,
+      lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    
+    return this.request(`/api/admin/partners/${id}`, updatedPartner);
+  }
+  
+  /**
+   * Simulate deleting a partner
+   */
+  static async deletePartner(id: string): Promise<ApiResponse<any>> {
+    const mockPartners = await this.getPartners();
+    const partnerIndex = mockPartners.data.findIndex((p: any) => p.id === id);
+    
+    if (partnerIndex === -1) {
+      throw {
+        response: {
+          status: 404,
+          data: {
+            message: "Partner not found",
+            code: "PARTNER_NOT_FOUND"
+          }
+        }
+      };
+    }
+    
+    return this.request(`/api/admin/partners/${id}`, { success: true });
+  }
+  
+  /**
+   * Simulate deleting multiple partners
+   */
+  static async deleteManyPartners(ids: string[]): Promise<ApiResponse<any>> {
+    return this.request("/api/admin/partners/batch-delete", { success: true, count: ids.length });
+  }
+  
+  /**
+   * Simulate refreshing partner APIs
+   */
+  static async refreshPartnerAPIs(ids: string[]): Promise<ApiResponse<any>> {
+    // Simulate some successful and some failed refreshes
+    const successful = ids.filter((_, index) => index % 4 !== 3);
+    const failed = ids.filter((_, index) => index % 4 === 3);
+    
+    return this.request("/api/admin/partners/refresh-api", { successful, failed });
+  }
 } 

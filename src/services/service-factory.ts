@@ -116,6 +116,74 @@ export class ServiceFactory {
   };
   
   /**
+   * Partners Services
+   */
+  static partners = {
+    async getPartners(filters?: { status?: string }): Promise<ApiResponse<any>> {
+      if (ServiceFactory.shouldUseMockApi()) {
+        return MockApiService.getPartners(filters);
+      }
+      
+      // TODO: Implement real API calls when backend is available
+      throw new Error('Real API not implemented yet');
+    },
+    
+    async getPartnerById(id: string): Promise<ApiResponse<any>> {
+      if (ServiceFactory.shouldUseMockApi()) {
+        return MockApiService.getPartnerById(id);
+      }
+      
+      // TODO: Implement real API calls when backend is available
+      throw new Error('Real API not implemented yet');
+    },
+    
+    async createPartner(partnerData: any): Promise<ApiResponse<any>> {
+      if (ServiceFactory.shouldUseMockApi()) {
+        return MockApiService.createPartner(partnerData);
+      }
+      
+      // TODO: Implement real API calls when backend is available
+      throw new Error('Real API not implemented yet');
+    },
+    
+    async updatePartner(id: string, partnerData: any): Promise<ApiResponse<any>> {
+      if (ServiceFactory.shouldUseMockApi()) {
+        return MockApiService.updatePartner(id, partnerData);
+      }
+      
+      // TODO: Implement real API calls when backend is available
+      throw new Error('Real API not implemented yet');
+    },
+    
+    async deletePartner(id: string): Promise<ApiResponse<any>> {
+      if (ServiceFactory.shouldUseMockApi()) {
+        return MockApiService.deletePartner(id);
+      }
+      
+      // TODO: Implement real API calls when backend is available
+      throw new Error('Real API not implemented yet');
+    },
+    
+    async deleteManyPartners(ids: string[]): Promise<ApiResponse<any>> {
+      if (ServiceFactory.shouldUseMockApi()) {
+        return MockApiService.deleteManyPartners(ids);
+      }
+      
+      // TODO: Implement real API calls when backend is available
+      throw new Error('Real API not implemented yet');
+    },
+    
+    async refreshPartnerAPIs(ids: string[]): Promise<ApiResponse<any>> {
+      if (ServiceFactory.shouldUseMockApi()) {
+        return MockApiService.refreshPartnerAPIs(ids);
+      }
+      
+      // TODO: Implement real API calls when backend is available
+      throw new Error('Real API not implemented yet');
+    }
+  };
+  
+  /**
    * Wallet Services
    */
   static wallet = {

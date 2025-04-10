@@ -58,6 +58,7 @@ import SellerOrderDetailsPage from "./pages/seller/dashboard/orders/[id]";
 import SellerNDRDetailsPage from "./pages/seller/dashboard/ndr/[id]";
 import SellerReportsPage from "./pages/seller/dashboard/reports";
 import EditOrderPage from "./pages/seller/dashboard/orders/edit/[id]";
+import AdminEditOrderPage from "./pages/admin/dashboard/orders/edit/[id]";
 
 // Admin Pages
 import AdminPartnersPage from "./pages/admin/dashboard/partners";
@@ -154,8 +155,8 @@ const App = () => {
         <Route path="/seller/dashboard" element={<SellerDashboardLayout />}>
           <Route index element={<SellerDashboardPage />} />
           <Route path="orders" element={<SellerOrdersPage />} />
-          <Route path="orders/:id" element={<SellerOrderDetailsPage />} />
           <Route path="orders/edit/:id" element={<EditOrderPage />} />
+          <Route path="orders/:id" element={<SellerOrderDetailsPage />} />
           <Route path="shipments" element={<SellerShipmentsPage />} />
           <Route path="shipments/:id" element={<SellerShipmentDetailsPage />} />
           <Route path="received" element={<SellerReceivedPage />} />
@@ -205,6 +206,7 @@ const App = () => {
             <Route path="teams/handler" element={<AdminRegisterHandler />} />
             <Route path="partners" element={<AdminPartnersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="orders/edit/:id" element={<AdminEditOrderPage />} />
             <Route path="orders/:id" element={<AdminOrderDetailsPage />} />
             <Route path="shipments" element={<AdminShipmentsPage />} />
             <Route path="shipments/:id" element={<AdminShipmentDetailsPage />} />

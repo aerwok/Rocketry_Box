@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, Download, Filter, Search, Tag, Truck, X, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowUpDown, Download, Filter, Search, Tag, Truck, X, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -15,6 +15,13 @@ import { Link } from "react-router-dom";
 import AdminShippingOptionsModal from "@/components/admin/shipping-options-modal";
 import DateRangePicker from "@/components/admin/date-range-picker";
 import { DateRange } from "react-day-picker";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import * as XLSX from 'xlsx';
+
 
 type OrderStatus = "Active" | "Inactive";
 type TabType = "seller" | "customer";
@@ -43,11 +50,196 @@ interface ExportHistory {
     status: string;
 }
 
-const SELLER_ORDERS_DATA: Order[] = [];
+interface StatusButton {
+    id: number;
+    label: string;
+    count: number;
+    color: string;
+    status: string;
+}
 
-const CUSTOMER_ORDERS_DATA: Order[] = [];
+// Define expanded order interface with more fields for filtering
+interface OrderWithFilters extends Order {
+    paymentType: "Prepaid" | "COD";
+    priority: "High" | "Medium" | "Low";
+    actualStatus: string; // Tracking actual status for filtering
+}
+
+// Mock data for seller orders
+const SELLER_ORDERS_DATA: OrderWithFilters[] = [
+    {
+        id: "SE12345",
+        orderId: "ORD-001",
+        name: "Acme Corp",
+        email: "contact@acmecorp.com",
+        status: "Active",
+        registrationDate: "2023-06-15",
+        transactionAmount: "₹2,500",
+        senderName: "John Smith",
+        paymentType: "Prepaid",
+        priority: "High",
+        actualStatus: "Booked"
+    },
+    {
+        id: "SE12346",
+        orderId: "ORD-002",
+        name: "Globex Inc",
+        email: "orders@globex.com",
+        status: "Active",
+        registrationDate: "2023-06-16",
+        transactionAmount: "₹1,850",
+        senderName: "Sarah Johnson",
+        paymentType: "COD",
+        priority: "Medium",
+        actualStatus: "Processing"
+    },
+    {
+        id: "SE12347",
+        orderId: "ORD-003",
+        name: "Initech Systems",
+        email: "sales@initech.com",
+        status: "Active",
+        registrationDate: "2023-06-17",
+        transactionAmount: "₹3,200",
+        senderName: "Michael Brown",
+        paymentType: "Prepaid",
+        priority: "Low",
+        actualStatus: "In Transit"
+    },
+    {
+        id: "SE12348",
+        orderId: "ORD-004",
+        name: "Umbrella Corp",
+        email: "info@umbrella.com",
+        status: "Inactive",
+        registrationDate: "2023-06-18",
+        transactionAmount: "₹4,500",
+        senderName: "Emily Davis",
+        paymentType: "COD",
+        priority: "High",
+        actualStatus: "Out for Delivery"
+    },
+    {
+        id: "SE12349",
+        orderId: "ORD-005",
+        name: "Stark Industries",
+        email: "orders@stark.com",
+        status: "Active",
+        registrationDate: "2023-06-19",
+        transactionAmount: "₹6,750",
+        senderName: "Tony Stark",
+        paymentType: "Prepaid",
+        priority: "Medium",
+        actualStatus: "Delivered"
+    },
+    {
+        id: "SE12350",
+        orderId: "ORD-006",
+        name: "Wayne Enterprises",
+        email: "shipping@wayne.com",
+        status: "Active",
+        registrationDate: "2023-06-20",
+        transactionAmount: "₹5,100",
+        senderName: "Bruce Wayne",
+        paymentType: "COD",
+        priority: "Low",
+        actualStatus: "Returned"
+    }
+];
+
+// Mock data for customer orders
+const ADDITIONAL_CUSTOMER_ORDERS_DATA: OrderWithFilters[] = [
+    {
+        id: "CU12345",
+        orderId: "CORD-001",
+        name: "Raj Sharma",
+        email: "raj.sharma@email.com",
+        status: "Active",
+        registrationDate: "2023-06-15",
+        transactionAmount: "₹1,200",
+        senderName: "Raj Sharma",
+        paymentType: "Prepaid",
+        priority: "Medium",
+        actualStatus: "Booked"
+    },
+    {
+        id: "CU12346",
+        orderId: "CORD-002",
+        name: "Priya Patel",
+        email: "priya.patel@email.com",
+        status: "Active",
+        registrationDate: "2023-06-16",
+        transactionAmount: "₹950",
+        senderName: "Priya Patel",
+        paymentType: "COD",
+        priority: "Low",
+        actualStatus: "Processing"
+    },
+    {
+        id: "CU12347",
+        orderId: "CORD-003",
+        name: "Amit Kumar",
+        email: "amit.kumar@email.com",
+        status: "Active",
+        registrationDate: "2023-06-17",
+        transactionAmount: "₹2,300",
+        senderName: "Amit Kumar",
+        paymentType: "Prepaid",
+        priority: "High",
+        actualStatus: "In Transit"
+    },
+    {
+        id: "CU12348",
+        orderId: "CORD-004",
+        name: "Neha Singh",
+        email: "neha.singh@email.com",
+        status: "Inactive",
+        registrationDate: "2023-06-18",
+        transactionAmount: "₹1,800",
+        senderName: "Neha Singh",
+        paymentType: "COD",
+        priority: "Medium",
+        actualStatus: "Out for Delivery"
+    },
+    {
+        id: "CU12349",
+        orderId: "CORD-005",
+        name: "Vikram Mehta",
+        email: "vikram.mehta@email.com",
+        status: "Active",
+        registrationDate: "2023-06-19",
+        transactionAmount: "₹3,500",
+        senderName: "Vikram Mehta",
+        paymentType: "Prepaid",
+        priority: "Low",
+        actualStatus: "Delivered"
+    },
+    {
+        id: "CU12350",
+        orderId: "CORD-006",
+        name: "Ananya Gupta",
+        email: "ananya.gupta@email.com",
+        status: "Active",
+        registrationDate: "2023-06-20",
+        transactionAmount: "₹2,100",
+        senderName: "Ananya Gupta",
+        paymentType: "COD",
+        priority: "High",
+        actualStatus: "Returned"
+    }
+];
 
 const EXPORT_HISTORY: ExportHistory[] = [];
+
+// Default status buttons with static counts for development/fallback
+const defaultStatusButtons: StatusButton[] = [
+    { id: 6, label: "Manifested", count: 178, color: "bg-blue-500", status: "Booked" },
+    { id: 5, label: "Processing", count: 89, color: "bg-[#1AA1B7]", status: "Processing" },
+    { id: 4, label: "In Transit", count: 156, color: "bg-yellow-500", status: "In Transit" },
+    { id: 2, label: "Out for Delivery", count: 54, color: "bg-green-400", status: "Out for Delivery" },
+    { id: 1, label: "Delivered", count: 432, color: "bg-emerald-700", status: "Delivered" },
+    { id: 3, label: "Returned", count: 32, color: "bg-neutral-500", status: "Returned" },
+];
 
 const getStatusStyle = (status: OrderStatus) => {
     return {
@@ -70,10 +262,25 @@ const AdminOrdersPage = () => {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [statusButtons, setStatusButtons] = useState<StatusButton[]>(defaultStatusButtons);
     
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
     const [totalItems] = useState(0);
+
+    const [activeFilters, setActiveFilters] = useState<{
+        status: string | null;
+        paymentType: string | null;
+        dateRange: DateRange | null;
+        priority: string | null;
+    }>({
+        status: null,
+        paymentType: null,
+        dateRange: null,
+        priority: null,
+    });
+    
+    const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
     const form = useForm<WarehouseBookingValues>({
         resolver: zodResolver(warehouseBookingSchema),
@@ -85,6 +292,72 @@ const AdminOrdersPage = () => {
         },
     });
 
+    // Update the count display based on actual data
+    useEffect(() => {
+        const allOrders = [...SELLER_ORDERS_DATA, ...ADDITIONAL_CUSTOMER_ORDERS_DATA];
+        
+        // Update status buttons with actual counts
+        const updatedCounts = defaultStatusButtons.map(button => {
+            const count = allOrders.filter(order => order.actualStatus === button.status).length;
+            return {
+                ...button,
+                count
+            };
+        });
+        
+        setStatusButtons(updatedCounts);
+    }, []);
+
+    // Apply all filters to the data
+    const applyAllFilters = (data: OrderWithFilters[]) => {
+        let filteredData = [...data];
+        
+        // Filter by status
+        if (activeFilters.status) {
+            filteredData = filteredData.filter(order => order.actualStatus === activeFilters.status);
+        }
+        
+        // Filter by payment type
+        if (activeFilters.paymentType) {
+            filteredData = filteredData.filter(order => order.paymentType === activeFilters.paymentType);
+        }
+        
+        // Filter by priority
+        if (activeFilters.priority) {
+            filteredData = filteredData.filter(order => order.priority === activeFilters.priority);
+        }
+        
+        // Filter by date range
+        if (activeFilters.dateRange?.from && activeFilters.dateRange?.to) {
+            const fromDate = new Date(activeFilters.dateRange.from);
+            const toDate = new Date(activeFilters.dateRange.to);
+            
+            filteredData = filteredData.filter(order => {
+                const orderDate = new Date(order.registrationDate);
+                return orderDate >= fromDate && orderDate <= toDate;
+            });
+        }
+        
+        // Also apply search query filter if exists
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filteredData = filteredData.filter(order => 
+                order.id.toLowerCase().includes(query) ||
+                order.orderId.toLowerCase().includes(query) ||
+                order.name.toLowerCase().includes(query) ||
+                order.email.toLowerCase().includes(query) ||
+                order.senderName.toLowerCase().includes(query)
+            );
+        }
+        
+        return filteredData;
+    };
+
+    // Get the filtered data based on active tab
+    const filteredData = activeTab === "seller" 
+        ? applyAllFilters(SELLER_ORDERS_DATA) 
+        : applyAllFilters(ADDITIONAL_CUSTOMER_ORDERS_DATA);
+
     const onSubmit = (data: WarehouseBookingValues) => {
         console.log(data);
         toast.success("Orders booked successfully");
@@ -92,8 +365,6 @@ const AdminOrdersPage = () => {
         setSelectedOrders([]);
         form.reset();
     };
-
-    const currentData = activeTab === "seller" ? SELLER_ORDERS_DATA : CUSTOMER_ORDERS_DATA;
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -133,13 +404,14 @@ const AdminOrdersPage = () => {
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
-            setSelectedOrders(currentData.map(order => order.id));
+            setSelectedOrders(filteredData.map(order => order.id));
         } else {
             setSelectedOrders([]);
         }
     };
 
-    const sortedData = [...currentData].sort((a, b) => {
+    // Update the sortedData to use the filtered data
+    const sortedData = [...filteredData].sort((a, b) => {
         const aValue = String(a[sortField] ?? "");
         const bValue = String(b[sortField] ?? "");
         return sortOrder === "asc"
@@ -166,28 +438,76 @@ const AdminOrdersPage = () => {
         if (page < totalItems / pageSize) setPage(page + 1);
     };
 
-    const handleFilter = () => {
-        // Implement filter functionality
+    const handleExport = () => {
+        // Create a worksheet with the filtered data
+        const worksheet = XLSX.utils.json_to_sheet(
+            filteredData.map(order => ({
+                'User ID': order.id,
+                'Order ID': order.orderId,
+                'Name': order.name,
+                'Email': order.email,
+                'Sender Name': order.senderName,
+                'Status': order.status,
+                'Registration Date': order.registrationDate,
+                'Transaction Amount': order.transactionAmount,
+                'Payment Type': order.paymentType,
+                'Priority': order.priority,
+                'Order Status': order.actualStatus
+            }))
+        );
+
+        // Set column widths for better readability
+        const columnWidths = [
+            { wch: 10 },  // User ID
+            { wch: 12 },  // Order ID
+            { wch: 20 },  // Name
+            { wch: 25 },  // Email
+            { wch: 20 },  // Sender Name
+            { wch: 10 },  // Status
+            { wch: 15 },  // Registration Date
+            { wch: 15 },  // Transaction Amount
+            { wch: 12 },  // Payment Type
+            { wch: 10 },  // Priority
+            { wch: 15 }   // Order Status
+        ];
+        worksheet['!cols'] = columnWidths;
+
+        // Create a workbook and add the worksheet
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+
+        // Generate file name with current date
+        const date = new Date().toISOString().split('T')[0];
+        const fileName = `Orders_Export_${date}.xlsx`;
+
+        // Generate Excel file and trigger download
+        XLSX.writeFile(workbook, fileName);
+        
+        toast.success("Orders exported successfully");
     };
 
-    const handleExport = () => {
-        toast.success("Export started. Your file will be ready soon.");
-        // Implement export functionality
+    // Modify the handleFilterSelection function to apply filters immediately
+    const handleFilterSelection = (filterType: keyof typeof activeFilters, value: string | null) => {
+        setActiveFilters(prev => {
+            const newValue = value === prev[filterType] ? null : value;
+            return {
+                ...prev,
+                [filterType]: newValue
+            };
+        });
+    };
+
+    const getActiveFiltersCount = () => {
+        return Object.values(activeFilters).filter(value => value !== null).length;
     };
 
     useEffect(() => {
         const fetchOrders = async () => {
             setLoading(true);
             try {
-                // Replace with actual API endpoint
-                // const response = await fetch(`/api/orders?page=${page}&pageSize=${pageSize}`);
-                // if (!response.ok) throw new Error('Failed to fetch orders');
-                // const data = await response.json();
-                // setTotalItems(data.totalCount);
-                
-                // Simulating API response while backend is not ready
+                // In a real app, we would fetch orders from an API
+                // For this example, we'll simulate a delay to match the real behavior
                 setTimeout(() => {
-                    // setTotalItems(data.totalCount);
                     setLoading(false);
                 }, 1000);
             } catch (err) {
@@ -236,9 +556,6 @@ const AdminOrdersPage = () => {
                         Manage order accounts and permissions
                     </p>
                 </div>
-                <Button variant="primary">
-                    Create order
-                </Button>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -322,13 +639,135 @@ const AdminOrdersPage = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full md:w-auto">
                 <DateRangePicker
                     date={dateRange}
-                    setDate={setDateRange}
+                    setDate={(newDateRange) => {
+                        setDateRange(newDateRange);
+                        setActiveFilters(prev => ({
+                            ...prev,
+                            dateRange: newDateRange || null
+                        }));
+                    }}
                 />
                 
-                <Button variant="outline" className="flex items-center gap-2" onClick={handleFilter}>
-                    <Filter className="h-4 w-4" />
-                    Filter
-                </Button>
+                <Popover open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+                    <PopoverTrigger asChild>
+                        <Button 
+                            variant="outline" 
+                            className="flex items-center gap-2"
+                        >
+                            <Filter className="h-4 w-4" />
+                            Filters
+                            {getActiveFiltersCount() > 0 && (
+                                <span className="flex items-center justify-center rounded-full bg-primary w-5 h-5 text-[10px] text-white font-semibold">
+                                    {getActiveFiltersCount()}
+                                </span>
+                            )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-4">
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-medium">Filters</h3>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => {
+                                        setActiveFilters({
+                                            status: null,
+                                            paymentType: null,
+                                            dateRange: null,
+                                            priority: null,
+                                        });
+                                        setDateRange(undefined);
+                                        toast.success("All filters cleared");
+                                    }}
+                                    className="h-8 px-2 text-xs"
+                                >
+                                    Clear all
+                                </Button>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium">Order Status</h4>
+                                <div className="grid grid-cols-2 gap-1">
+                                    {statusButtons.map(button => (
+                                        <div
+                                            key={button.id}
+                                            className={cn(
+                                                "flex items-center gap-2 p-2 rounded cursor-pointer text-sm",
+                                                activeFilters.status === button.status 
+                                                    ? "bg-primary/10 text-primary"
+                                                    : "hover:bg-gray-100"
+                                            )}
+                                            onClick={() => handleFilterSelection('status', button.status)}
+                                        >
+                                            {activeFilters.status === button.status && (
+                                                <Check className="h-3 w-3" />
+                                            )}
+                                            <span>{button.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium">Payment Type</h4>
+                                <div className="grid grid-cols-2 gap-1">
+                                    {['Prepaid', 'COD'].map(type => (
+                                        <div
+                                            key={type}
+                                            className={cn(
+                                                "flex items-center gap-2 p-2 rounded cursor-pointer text-sm",
+                                                activeFilters.paymentType === type 
+                                                    ? "bg-primary/10 text-primary"
+                                                    : "hover:bg-gray-100"
+                                            )}
+                                            onClick={() => handleFilterSelection('paymentType', type)}
+                                        >
+                                            {activeFilters.paymentType === type && (
+                                                <Check className="h-3 w-3" />
+                                            )}
+                                            <span>{type}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium">Priority</h4>
+                                <div className="grid grid-cols-2 gap-1">
+                                    {['High', 'Medium', 'Low'].map(priority => (
+                                        <div
+                                            key={priority}
+                                            className={cn(
+                                                "flex items-center gap-2 p-2 rounded cursor-pointer text-sm",
+                                                activeFilters.priority === priority 
+                                                    ? "bg-primary/10 text-primary"
+                                                    : "hover:bg-gray-100"
+                                            )}
+                                            onClick={() => handleFilterSelection('priority', priority)}
+                                        >
+                                            {activeFilters.priority === priority && (
+                                                <Check className="h-3 w-3" />
+                                            )}
+                                            <span>{priority}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <Button 
+                                className="w-full" 
+                                variant="default"
+                                onClick={() => {
+                                    toast.success("Filters applied");
+                                    setFilterMenuOpen(false);
+                                }}
+                            >
+                                Apply Filters
+                            </Button>
+                        </div>
+                    </PopoverContent>
+                </Popover>
                 
                 <Button 
                     variant="outline" 
@@ -725,6 +1164,7 @@ const AdminOrdersPage = () => {
                 orderNumber={selectedOrderForShipping}
                 weight={1}
                 onShipSelected={handleShipSelected}
+                isSellerTab={activeTab === "seller"}
             />
         </div>
     );
