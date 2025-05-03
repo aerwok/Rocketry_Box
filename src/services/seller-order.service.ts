@@ -1,5 +1,6 @@
 import { ApiService, ApiResponse } from './api.service';
 import api from '@/config/api.config';
+import { secureStorage } from '@/utils/secureStorage';
 
 export interface OrderItem {
     name: string;
@@ -59,6 +60,26 @@ class SellerOrderService extends ApiService {
         return SellerOrderService.instance;
     }
 
+    private static async getAuthHeader(): Promise<Record<string, string>> {
+        const token = await secureStorage.getItem('token');
+        return { 'Authorization': `Bearer ${token}` };
+    }
+
+    private static async getCsrfHeader(): Promise<Record<string, string>> {
+        const csrfToken = await secureStorage.getItem('csrf_token');
+        return { 'X-CSRF-Token': csrfToken || '' };
+    }
+
+    private static async handleRequest<T>(promise: Promise<any>): Promise<ApiResponse<T>> {
+        const response = await promise;
+        return {
+            data: response.data,
+            message: 'Request successful',
+            status: response.status,
+            success: true
+        };
+    }
+
     async getOrders(filters: OrderFilters): Promise<ApiResponse<OrderData[]>> {
         return SellerOrderService.handleRequest<OrderData[]>(
             api.get('/seller/orders', {
@@ -69,8 +90,8 @@ class SellerOrderService extends ApiService {
                     search: filters.search
                 },
                 headers: {
-                    ...SellerOrderService.getAuthHeader(),
-                    ...SellerOrderService.getCsrfHeader()
+                    ...(await SellerOrderService.getAuthHeader()),
+                    ...(await SellerOrderService.getCsrfHeader())
                 }
             })
         );
@@ -85,8 +106,8 @@ class SellerOrderService extends ApiService {
                     status: filters.status
                 },
                 headers: {
-                    ...SellerOrderService.getAuthHeader(),
-                    ...SellerOrderService.getCsrfHeader()
+                    ...(await SellerOrderService.getAuthHeader()),
+                    ...(await SellerOrderService.getCsrfHeader())
                 }
             })
         );
@@ -98,8 +119,8 @@ class SellerOrderService extends ApiService {
                 status
             }, {
                 headers: {
-                    ...SellerOrderService.getAuthHeader(),
-                    ...SellerOrderService.getCsrfHeader()
+                    ...(await SellerOrderService.getAuthHeader()),
+                    ...(await SellerOrderService.getCsrfHeader())
                 }
             })
         );
@@ -112,8 +133,8 @@ class SellerOrderService extends ApiService {
                 status
             }, {
                 headers: {
-                    ...SellerOrderService.getAuthHeader(),
-                    ...SellerOrderService.getCsrfHeader()
+                    ...(await SellerOrderService.getAuthHeader()),
+                    ...(await SellerOrderService.getCsrfHeader())
                 }
             })
         );

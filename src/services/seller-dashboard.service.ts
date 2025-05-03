@@ -1,6 +1,7 @@
 import { ApiService, ApiResponse } from './api.service';
 import api from '@/config/api.config';
 import { mockDashboardStats, mockChartData, mockCourierData, mockTopProducts } from './mockDashboardData';
+import { secureStorage } from '@/utils/secureStorage';
 
 export interface DashboardStats {
     orders: {
@@ -124,21 +125,43 @@ class SellerDashboardService extends ApiService {
         return SellerDashboardService.instance;
     }
 
+    private static async getAuthHeader(): Promise<Record<string, string>> {
+        const token = await secureStorage.getItem('token');
+        return { 'Authorization': `Bearer ${token}` };
+    }
+
+    private static async getCsrfHeader(): Promise<Record<string, string>> {
+        const csrfToken = await secureStorage.getItem('csrf_token');
+        return { 'X-CSRF-Token': csrfToken || '' };
+    }
+
+    private static async handleRequest<T>(promise: Promise<any>): Promise<ApiResponse<T>> {
+        const response = await promise;
+        return {
+            data: response.data,
+            message: 'Request successful',
+            status: response.status,
+            success: true
+        };
+    }
+
     async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
         if (USE_MOCK_DATA) {
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 1000));
             return {
                 data: mockDashboardStats,
-                status: 200
+                status: 200,
+                message: 'Request successful',
+                success: true
             };
         }
 
         return SellerDashboardService.handleRequest<DashboardStats>(
             api.get('/seller/dashboard/stats', {
                 headers: {
-                    ...SellerDashboardService.getAuthHeader(),
-                    ...SellerDashboardService.getCsrfHeader()
+                    ...(await SellerDashboardService.getAuthHeader()),
+                    ...(await SellerDashboardService.getCsrfHeader())
                 }
             })
         );
@@ -150,7 +173,9 @@ class SellerDashboardService extends ApiService {
             await new Promise(resolve => setTimeout(resolve, 1500));
             return {
                 data: mockChartData,
-                status: 200
+                status: 200,
+                message: 'Request successful',
+                success: true
             };
         }
 
@@ -162,8 +187,8 @@ class SellerDashboardService extends ApiService {
                     timeFilter: filters.timeFilter
                 },
                 headers: {
-                    ...SellerDashboardService.getAuthHeader(),
-                    ...SellerDashboardService.getCsrfHeader()
+                    ...(await SellerDashboardService.getAuthHeader()),
+                    ...(await SellerDashboardService.getCsrfHeader())
                 }
             })
         );
@@ -175,15 +200,17 @@ class SellerDashboardService extends ApiService {
             await new Promise(resolve => setTimeout(resolve, 800));
             return {
                 data: mockCourierData,
-                status: 200
+                status: 200,
+                message: 'Request successful',
+                success: true
             };
         }
 
         return SellerDashboardService.handleRequest<CourierData[]>(
             api.get('/seller/dashboard/courier-performance', {
                 headers: {
-                    ...SellerDashboardService.getAuthHeader(),
-                    ...SellerDashboardService.getCsrfHeader()
+                    ...(await SellerDashboardService.getAuthHeader()),
+                    ...(await SellerDashboardService.getCsrfHeader())
                 }
             })
         );
@@ -195,15 +222,17 @@ class SellerDashboardService extends ApiService {
             await new Promise(resolve => setTimeout(resolve, 1200));
             return {
                 data: mockTopProducts,
-                status: 200
+                status: 200,
+                message: 'Request successful',
+                success: true
             };
         }
 
         return SellerDashboardService.handleRequest<ProductData[]>(
             api.get('/seller/dashboard/top-products', {
                 headers: {
-                    ...SellerDashboardService.getAuthHeader(),
-                    ...SellerDashboardService.getCsrfHeader()
+                    ...(await SellerDashboardService.getAuthHeader()),
+                    ...(await SellerDashboardService.getCsrfHeader())
                 }
             })
         );
@@ -232,8 +261,8 @@ class SellerDashboardService extends ApiService {
                 params: { format },
                 responseType: 'blob',
                 headers: {
-                    ...SellerDashboardService.getAuthHeader(),
-                    ...SellerDashboardService.getCsrfHeader()
+                    ...(await SellerDashboardService.getAuthHeader()),
+                    ...(await SellerDashboardService.getCsrfHeader())
                 }
             });
             return response.data;

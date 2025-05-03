@@ -1,6 +1,7 @@
 import { ApiService, ApiResponse } from './api.service';
 import axios from 'axios';
 import { API_CONFIG } from '@/config/api.config';
+import { secureStorage } from '@/utils/secureStorage';
 
 export type ApiStatus = "active" | "inactive" | "maintenance";
 export type ServiceType = "domestic" | "international" | "express" | "standard" | "surface" | "air" | "heavy";
@@ -61,6 +62,16 @@ class PartnersService extends ApiService {
         return PartnersService.instance;
     }
 
+    private async getAuthHeader(): Promise<Record<string, string>> {
+        const token = await secureStorage.getItem('token');
+        return { 'Authorization': `Bearer ${token}` };
+    }
+
+    private async getCsrfHeader(): Promise<Record<string, string>> {
+        const csrfToken = await secureStorage.getItem('csrf_token');
+        return { 'X-CSRF-Token': csrfToken || '' };
+    }
+
     /**
      * Get all shipping partners
      */
@@ -72,14 +83,16 @@ class PartnersService extends ApiService {
             const response = await axios.get(url, { 
                 params,
                 headers: {
-                    ...ApiService.getAuthHeader(),
-                    ...ApiService.getCsrfHeader()
+                    ...await this.getAuthHeader(),
+                    ...await this.getCsrfHeader()
                 }
             });
             
             return {
                 data: response.data,
-                status: response.status
+                status: response.status,
+                message: 'Request successful',
+                success: true
             };
         } catch (error) {
             console.error('Error fetching partners:', error);
@@ -96,14 +109,16 @@ class PartnersService extends ApiService {
             
             const response = await axios.get(url, { 
                 headers: {
-                    ...ApiService.getAuthHeader(),
-                    ...ApiService.getCsrfHeader()
+                    ...await this.getAuthHeader(),
+                    ...await this.getCsrfHeader()
                 }
             });
             
             return {
                 data: response.data,
-                status: response.status
+                status: response.status,
+                message: 'Request successful',
+                success: true
             };
         } catch (error) {
             console.error(`Error fetching partner with ID ${id}:`, error);
@@ -120,14 +135,16 @@ class PartnersService extends ApiService {
             
             const response = await axios.post(url, partnerData, { 
                 headers: {
-                    ...ApiService.getAuthHeader(),
-                    ...ApiService.getCsrfHeader()
+                    ...await this.getAuthHeader(),
+                    ...await this.getCsrfHeader()
                 }
             });
             
             return {
                 data: response.data,
-                status: response.status
+                status: response.status,
+                message: 'Request successful',
+                success: true
             };
         } catch (error) {
             console.error('Error creating partner:', error);
@@ -144,14 +161,16 @@ class PartnersService extends ApiService {
             
             const response = await axios.put(url, partnerData, { 
                 headers: {
-                    ...ApiService.getAuthHeader(),
-                    ...ApiService.getCsrfHeader()
+                    ...await this.getAuthHeader(),
+                    ...await this.getCsrfHeader()
                 }
             });
             
             return {
                 data: response.data,
-                status: response.status
+                status: response.status,
+                message: 'Request successful',
+                success: true
             };
         } catch (error) {
             console.error(`Error updating partner with ID ${id}:`, error);
@@ -168,14 +187,16 @@ class PartnersService extends ApiService {
             
             const response = await axios.delete(url, { 
                 headers: {
-                    ...ApiService.getAuthHeader(),
-                    ...ApiService.getCsrfHeader()
+                    ...await this.getAuthHeader(),
+                    ...await this.getCsrfHeader()
                 }
             });
             
             return {
                 data: response.data,
-                status: response.status
+                status: response.status,
+                message: 'Request successful',
+                success: true
             };
         } catch (error) {
             console.error(`Error deleting partner with ID ${id}:`, error);
@@ -192,14 +213,16 @@ class PartnersService extends ApiService {
             
             const response = await axios.post(url, { ids }, { 
                 headers: {
-                    ...ApiService.getAuthHeader(),
-                    ...ApiService.getCsrfHeader()
+                    ...await this.getAuthHeader(),
+                    ...await this.getCsrfHeader()
                 }
             });
             
             return {
                 data: response.data,
-                status: response.status
+                status: response.status,
+                message: 'Request successful',
+                success: true
             };
         } catch (error) {
             console.error('Error deleting multiple partners:', error);
@@ -216,14 +239,16 @@ class PartnersService extends ApiService {
             
             const response = await axios.post(url, { ids }, { 
                 headers: {
-                    ...ApiService.getAuthHeader(),
-                    ...ApiService.getCsrfHeader()
+                    ...await this.getAuthHeader(),
+                    ...await this.getCsrfHeader()
                 }
             });
             
             return {
                 data: response.data,
-                status: response.status
+                status: response.status,
+                message: 'Request successful',
+                success: true
             };
         } catch (error) {
             console.error('Error refreshing partner APIs:', error);

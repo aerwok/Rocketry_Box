@@ -40,7 +40,9 @@ export class MockApiService {
     
     return {
       data: mockData,
-      status: 200
+      status: 200,
+      message: 'Request successful',
+      success: true
     };
   }
   

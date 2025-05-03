@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse, ApiError, RateLimitHeaders } from '@/types/api';
 import { secureStorage } from '@/utils/secureStorage';
 
+export type { ApiResponse };
 export class ApiService {
   private api: AxiosInstance;
   private baseURL: string;

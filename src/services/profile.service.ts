@@ -98,21 +98,14 @@ export class ProfileService {
         }
     }
 
-    async updateProfileImage(): Promise<ApiResponse<{ imageUrl: string }>> {
+    async updateProfileImage(file: File): Promise<ApiResponse<{ imageUrl: string }>> {
         try {
-            // TODO: Replace with actual API call
-            // const response = await this.apiService.uploadFile<ApiResponse<{ imageUrl: string }>>('/profile/image', file);
-            // return response.data;
-            
-            // Mock response for development
-            return {
-                data: { imageUrl: 'https://example.com/profile/new-image.jpg' },
-                message: 'Profile image updated successfully',
-                status: 200,
-                success: true
-            };
+            const formData = new FormData();
+            formData.append('file', file);
+            return await this.apiService.post('/profile/image', formData);
         } catch (error) {
-            toast.error('Failed to update profile image');
+            const apiError = error as ApiError;
+            toast.error(apiError.message || 'Failed to update profile image');
             throw error;
         }
     }

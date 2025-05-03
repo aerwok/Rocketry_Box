@@ -149,22 +149,16 @@ class BulkOrderService extends ApiService {
             formData.append('fileId', fileId);
 
             // Create request metadata
-            const request: BulkOrderRequest = {
-                fileId,
-                fileName: file.name,
-                totalRows: 0, // Will be set by backend
-                metadata: {
-                    uploadedAt: new Date().toISOString(),
-                    uploadedBy: secureStorage.getItem('user_id') || 'unknown',
-                    clientInfo: {
-                        userAgent: navigator.userAgent,
-                        platform: navigator.platform,
-                        language: navigator.language
-                    }
+            const metadata = {
+                uploadedAt: new Date().toISOString(),
+                uploadedBy: await secureStorage.getItem('user_id') || 'unknown',
+                clientInfo: {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language
                 }
             };
-
-            formData.append('request', JSON.stringify(request));
+            formData.append('metadata', JSON.stringify(metadata));
 
             // Use XMLHttpRequest for upload progress tracking
             return new Promise<ApiResponse<BulkOrderResponse>>((resolve, reject) => {
@@ -183,7 +177,9 @@ class BulkOrderService extends ApiService {
                             const response = JSON.parse(xhr.responseText);
                             resolve({
                                 data: response,
-                                status: xhr.status
+                                message: 'File uploaded successfully',
+                                status: xhr.status,
+                                success: true
                             });
                         } catch (error) {
                             reject(new Error(ERROR_MESSAGES.SERVER_ERROR));
@@ -198,20 +194,30 @@ class BulkOrderService extends ApiService {
                 });
 
                 xhr.open('POST', '/api/bulk-orders/upload');
-                xhr.setRequestHeader('Authorization', `Bearer ${secureStorage.getItem('token')}`);
-                xhr.setRequestHeader('X-CSRF-Token', secureStorage.getItem('csrf_token') || '');
-                xhr.send(formData);
+                
+                Promise.all([
+                    secureStorage.getItem('token'),
+                    secureStorage.getItem('csrf_token')
+                ]).then(([token, csrfToken]) => {
+                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                    xhr.setRequestHeader('X-CSRF-Token', csrfToken || '');
+                    xhr.send(formData);
+                });
             });
         });
     }
 
     async getBulkOrderStatus(orderId: string): Promise<ApiResponse<BulkOrderStatus>> {
         return this.retryWithBackoff(async () => {
+            const [authHeader, csrfHeader] = await Promise.all([
+                BulkOrderService.getAuthHeader(),
+                BulkOrderService.getCsrfHeader()
+            ]);
             return BulkOrderService.handleRequest<BulkOrderStatus>(
                 fetch(`/api/bulk-orders/${orderId}/status`, {
                     headers: {
-                        ...BulkOrderService.getAuthHeader(),
-                        ...BulkOrderService.getCsrfHeader()
+                        ...authHeader,
+                        ...csrfHeader
                     }
                 }).then(response => response.json())
             );
@@ -220,12 +226,16 @@ class BulkOrderService extends ApiService {
 
     async cancelBulkOrder(orderId: string): Promise<ApiResponse<{ success: boolean }>> {
         return this.retryWithBackoff(async () => {
+            const [authHeader, csrfHeader] = await Promise.all([
+                BulkOrderService.getAuthHeader(),
+                BulkOrderService.getCsrfHeader()
+            ]);
             return BulkOrderService.handleRequest<{ success: boolean }>(
                 fetch(`/api/bulk-orders/${orderId}/cancel`, {
                     method: 'POST',
                     headers: {
-                        ...BulkOrderService.getAuthHeader(),
-                        ...BulkOrderService.getCsrfHeader()
+                        ...authHeader,
+                        ...csrfHeader
                     }
                 }).then(response => response.json())
             );
@@ -369,6 +379,26 @@ class BulkOrderService extends ApiService {
             console.error('Template generation error:', error);
             throw new Error(ERROR_MESSAGES.DOWNLOAD_ERROR);
         }
+    }
+
+    private static async getAuthHeader(): Promise<Record<string, string>> {
+        const token = await secureStorage.getItem('token');
+        return { 'Authorization': `Bearer ${token}` };
+    }
+
+    private static async getCsrfHeader(): Promise<Record<string, string>> {
+        const csrfToken = await secureStorage.getItem('csrf_token');
+        return { 'X-CSRF-Token': csrfToken || '' };
+    }
+
+    private static async handleRequest<T>(promise: Promise<any>): Promise<ApiResponse<T>> {
+        const response = await promise;
+        return {
+            data: response,
+            message: 'Request successful',
+            status: 200,
+            success: true
+        };
     }
 }
 

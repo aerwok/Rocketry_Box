@@ -57,14 +57,14 @@ class WalletService extends ApiService {
         return WalletService.instance;
     }
 
-    private getCachedBalance(): WalletBalance | null {
+    private async getCachedBalance(): Promise<WalletBalance | null> {
         try {
-            const cached = secureStorage.getItem(this.CACHE_KEY);
+            const cached = await secureStorage.getItem(this.CACHE_KEY);
             if (!cached) return null;
 
             const { data, timestamp } = JSON.parse(cached);
             if (Date.now() - timestamp > this.CACHE_DURATION) {
-                secureStorage.removeItem(this.CACHE_KEY);
+                await secureStorage.removeItem(this.CACHE_KEY);
                 return null;
             }
 
@@ -100,22 +100,44 @@ class WalletService extends ApiService {
         }
     }
 
+    private static async getAuthHeader(): Promise<Record<string, string>> {
+        const token = await secureStorage.getItem('token');
+        return { 'Authorization': `Bearer ${token}` };
+    }
+
+    private static async getCsrfHeader(): Promise<Record<string, string>> {
+        const csrfToken = await secureStorage.getItem('csrf_token');
+        return { 'X-CSRF-Token': csrfToken || '' };
+    }
+
+    private static async handleRequest<T>(promise: Promise<any>): Promise<ApiResponse<T>> {
+        const response = await promise;
+        return {
+            data: response.data,
+            message: 'Request successful',
+            status: response.status,
+            success: true
+        };
+    }
+
     async getWalletBalance(): Promise<ApiResponse<WalletBalance>> {
         return this.retryWithBackoff(async () => {
             // Check cache first
-            const cached = this.getCachedBalance();
+            const cached = await this.getCachedBalance();
             if (cached) {
                 return {
                     data: cached,
-                    status: 200
+                    status: 200,
+                    message: 'Request successful',
+                    success: true
                 };
             }
 
             const response = await WalletService.handleRequest<WalletBalance>(
                 api.get('/wallet/balance', {
                     headers: {
-                        ...WalletService.getAuthHeader(),
-                        ...WalletService.getCsrfHeader()
+                        ...(await WalletService.getAuthHeader()),
+                        ...(await WalletService.getCsrfHeader())
                     }
                 })
             );
@@ -133,8 +155,8 @@ class WalletService extends ApiService {
                 api.get('/wallet/history', {
                     params: { page, limit },
                     headers: {
-                        ...WalletService.getAuthHeader(),
-                        ...WalletService.getCsrfHeader()
+                        ...(await WalletService.getAuthHeader()),
+                        ...(await WalletService.getCsrfHeader())
                     }
                 })
             );
@@ -168,8 +190,8 @@ class WalletService extends ApiService {
             const response = await WalletService.handleRequest<WalletBalance>(
                 api.post('/wallet/recharge', rechargeRequest, {
                     headers: {
-                        ...WalletService.getAuthHeader(),
-                        ...WalletService.getCsrfHeader()
+                        ...(await WalletService.getAuthHeader()),
+                        ...(await WalletService.getCsrfHeader())
                     }
                 })
             );
@@ -190,8 +212,8 @@ class WalletService extends ApiService {
             return WalletService.handleRequest<{ verified: boolean }>(
                 api.get(`/wallet/verify-transaction/${transactionId}`, {
                     headers: {
-                        ...WalletService.getAuthHeader(),
-                        ...WalletService.getCsrfHeader()
+                        ...(await WalletService.getAuthHeader()),
+                        ...(await WalletService.getCsrfHeader())
                     }
                 })
             );

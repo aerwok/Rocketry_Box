@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { profileService, ProfileData } from '@/services/profile.service';
+import { profileService } from '@/services/profile.service';
+import { Seller } from '@/types/api';
 
 interface UseProfileReturn {
-    profile: ProfileData | null;
+    profile: Seller | null;
     isLoading: boolean;
     error: string | null;
-    updateProfile: (data: Partial<ProfileData>) => Promise<void>;
+    updateProfile: (data: Partial<Seller>) => Promise<void>;
     updateProfileImage: (file: File) => Promise<void>;
-    updateStoreLinks: (links: ProfileData['storeLinks']) => Promise<void>;
+    updateStoreLinks: (links: Seller['storeLinks']) => Promise<void>;
     refreshProfile: () => Promise<void>;
 }
 
 export const useProfile = (): UseProfileReturn => {
-    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const [profile, setProfile] = useState<Seller | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -20,8 +21,8 @@ export const useProfile = (): UseProfileReturn => {
         try {
             setIsLoading(true);
             setError(null);
-            const data = await profileService.getProfile();
-            setProfile(data);
+            const response = await profileService.getProfile();
+            setProfile(response.data);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch profile');
         } finally {
@@ -33,7 +34,7 @@ export const useProfile = (): UseProfileReturn => {
         fetchProfile();
     }, [fetchProfile]);
 
-    const updateProfile = useCallback(async (data: Partial<ProfileData>) => {
+    const updateProfile = useCallback(async (data: Partial<Seller>) => {
         try {
             setIsLoading(true);
             setError(null);
@@ -57,7 +58,7 @@ export const useProfile = (): UseProfileReturn => {
             if (profile) {
                 setProfile({
                     ...profile,
-                    profileImage: response.imageUrl
+                    profileImage: response.data.imageUrl
                 });
             }
         } catch (err) {
@@ -68,7 +69,7 @@ export const useProfile = (): UseProfileReturn => {
         }
     }, [profile]);
 
-    const updateStoreLinks = useCallback(async (links: ProfileData['storeLinks']) => {
+    const updateStoreLinks = useCallback(async (links: Seller['storeLinks']) => {
         try {
             setIsLoading(true);
             setError(null);
