@@ -1,55 +1,142 @@
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { ApiResponse, ApiError, RateLimitHeaders } from '@/types/api';
 import { secureStorage } from '@/utils/secureStorage';
-import { ERROR_MESSAGES } from '@/utils/validation';
-
-export interface ApiResponse<T> {
-    data: T;
-    message?: string;
-    status: number;
-}
-
-export interface ApiError {
-    message: string;
-    code: string;
-    status: number;
-    details?: unknown;
-}
 
 export class ApiService {
-    protected static async handleRequest<T>(
-        request: Promise<{ data: T }>
-    ): Promise<ApiResponse<T>> {
-        try {
-            const response = await request;
-            return {
-                data: response.data,
-                status: 200
-            };
-        } catch (error: any) {
-            const apiError: ApiError = {
-                message: error.response?.data?.message || ERROR_MESSAGES.SERVER_ERROR,
-                code: error.response?.data?.code || 'UNKNOWN_ERROR',
-                status: error.response?.status || 500,
-                details: error.response?.data?.details
-            };
+  private api: AxiosInstance;
+  private baseURL: string;
 
-            // Handle specific error cases
-            if (apiError.status === 401) {
-                secureStorage.removeItem('auth_token');
-                secureStorage.removeItem('csrf_token');
-                window.location.href = '/seller/login';
-            }
+  constructor() {
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v2';
+    
+    this.api = axios.create({
+      baseURL: this.baseURL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-            throw apiError;
-        }
-    }
+    this.setupInterceptors();
+  }
 
-    protected static getAuthHeader(): Record<string, string> {
+  private setupInterceptors() {
+    // Request interceptor
+    this.api.interceptors.request.use(
+      (config) => {
         const token = secureStorage.getItem('auth_token');
-        return token ? { Authorization: `Bearer ${token}` } : {};
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Response interceptor
+    this.api.interceptors.response.use(
+      (response) => {
+        // Handle rate limit headers
+        const rateLimitHeaders: RateLimitHeaders = {
+          'X-RateLimit-Limit': Number(response.headers['x-ratelimit-limit']),
+          'X-RateLimit-Remaining': Number(response.headers['x-ratelimit-remaining']),
+          'X-RateLimit-Reset': Number(response.headers['x-ratelimit-reset']),
+        };
+
+        // Check if rate limit is exceeded
+        if (rateLimitHeaders['X-RateLimit-Remaining'] === 0) {
+          const resetTime = new Date(rateLimitHeaders['X-RateLimit-Reset'] * 1000);
+          throw new Error(`Rate limit exceeded. Please try again after ${resetTime.toLocaleTimeString()}`);
+        }
+
+        return response;
+      },
+      (error) => {
+        if (error.response) {
+          const apiError: ApiError = {
+            message: error.response.data.message || 'An error occurred',
+            code: error.response.data.code || 'SERVER_ERROR',
+            status: error.response.status,
+            details: error.response.data.details,
+          };
+          return Promise.reject(apiError);
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  private async request<T>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
+    try {
+      const response: AxiosResponse<ApiResponse<T>> = await this.api.request(config);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw {
+          message: error.response?.data?.message || 'An error occurred',
+          code: error.response?.data?.code || 'SERVER_ERROR',
+          status: error.response?.status || 500,
+          details: error.response?.data?.details,
+        } as ApiError;
+      }
+      throw error;
+    }
+  }
+
+  async get<T>(endpoint: string, params?: any): Promise<ApiResponse<T>> {
+    return this.request<T>({
+      method: 'GET',
+      url: endpoint,
+      params,
+    });
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>({
+      method: 'POST',
+      url: endpoint,
+      data,
+    });
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>({
+      method: 'PUT',
+      url: endpoint,
+      data,
+    });
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>({
+      method: 'PATCH',
+      url: endpoint,
+      data,
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>({
+      method: 'DELETE',
+      url: endpoint,
+    });
+  }
+
+  async uploadFile<T>(endpoint: string, file: File, type?: string): Promise<ApiResponse<T>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (type) {
+      formData.append('type', type);
     }
 
-    protected static getCsrfHeader(): Record<string, string> {
-        const csrfToken = secureStorage.getItem('csrf_token');
-        return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
-    }
+    return this.request<T>({
+      method: 'POST',
+      url: endpoint,
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
 } 

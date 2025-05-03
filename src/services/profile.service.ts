@@ -1,231 +1,141 @@
-import { ApiService } from "./api.service";
-import { toast } from "sonner";
-
-export interface ProfileData {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    companyName: string;
-    companyCategory: string;
-    brandName?: string;
-    website?: string;
-    supportContact?: string;
-    supportEmail?: string;
-    operationsEmail?: string;
-    financeEmail?: string;
-    rechargeType?: string;
-    profileImage?: string;
-    storeLinks?: {
-        website?: string;
-        amazon?: string;
-        shopify?: string;
-        opencart?: string;
-    };
-    address?: {
-        street: string;
-        city: string;
-        state: string;
-        country: string;
-        postalCode: string;
-        landmark?: string;
-    };
-    documents?: {
-        gstin?: string;
-        pan?: string;
-        cin?: string;
-        tradeLicense?: string;
-        msmeRegistration?: string;
-        aadhaar?: string;
-        documents: {
-            name: string;
-            type: string;
-            url: string;
-            status: 'verified' | 'pending' | 'rejected';
-        }[];
-    };
-    bankDetails?: {
-        accountName: string;
-        accountNumber: string;
-        bankName: string;
-        branch: string;
-        ifscCode: string;
-        swiftCode?: string;
-        accountType: string;
-        isDefault: boolean;
-        cancelledCheque?: {
-            url: string;
-            status: 'verified' | 'pending';
-        };
-    }[];
-}
-
-export interface ProfileUpdateResponse {
-    success: boolean;
-    message: string;
-    data?: ProfileData;
-}
+import { toast } from 'sonner';
+import { Seller, ApiResponse } from '../types/api';
+import { ApiService } from './api.service';
+import { ApiError } from '@/types/api';
 
 // Mock data for frontend development
-const MOCK_PROFILE_DATA: ProfileData = {
-    id: "SELLER123",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+91 98765 43210",
-    companyName: "Tech Solutions Pvt Ltd",
-    companyCategory: "Electronics",
-    brandName: "TechPro",
-    website: "https://techpro.com",
-    supportContact: "+91 98765 43211",
-    supportEmail: "support@techpro.com",
-    operationsEmail: "operations@techpro.com",
-    financeEmail: "finance@techpro.com",
-    rechargeType: "Prepaid",
-    profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+const mockProfileData: Seller = {
+    id: '1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    phone: '+1234567890',
+    role: 'seller',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    companyName: 'Example Company',
+    companyCategory: 'Retail',
+    brandName: 'Example Brand',
+    website: 'https://example.com',
+    supportContact: '+1234567890',
+    supportEmail: 'support@example.com',
+    operationsEmail: 'operations@example.com',
+    financeEmail: 'finance@example.com',
+    rechargeType: 'Prepaid',
+    profileImage: 'https://example.com/profile.jpg',
     storeLinks: {
-        website: "https://techpro.com",
-        amazon: "https://amazon.com/techpro",
-        shopify: "https://techpro.myshopify.com",
-        opencart: "https://techpro.opencart.com"
+        website: 'https://example.com',
+        amazon: 'https://amazon.com/shop/example',
+        shopify: 'https://example.myshopify.com',
+        opencart: 'https://example.com/opencart'
     },
     address: {
-        street: "123 Business Park, Sector 62",
-        city: "Noida",
-        state: "Uttar Pradesh",
-        country: "India",
-        postalCode: "201309",
-        landmark: "Near Metro Station"
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        country: 'USA',
+        postalCode: '10001',
+        landmark: 'Near Central Park'
     },
     documents: {
-        gstin: "09AABCT1234A1Z5",
-        pan: "AABCT1234A",
-        aadhaar: "1234 5678 9012",
+        gstin: 'GST123456789',
+        pan: 'PAN123456789',
+        cin: 'CIN123456789',
+        tradeLicense: 'TL123456789',
+        msmeRegistration: 'MSME123456789',
+        aadhaar: 'AADHAAR123456789',
         documents: [
             {
-                name: "GST Certificate",
-                type: "PDF",
-                url: "https://example.com/documents/gst.pdf",
-                status: "verified"
-            },
-            {
-                name: "PAN Card",
-                type: "PDF",
-                url: "https://example.com/documents/pan.pdf",
-                status: "verified"
-            },
-            {
-                name: "Aadhaar Card",
-                type: "PDF",
-                url: "https://example.com/documents/aadhaar.pdf",
-                status: "verified"
+                name: 'GST Certificate',
+                type: 'pdf',
+                url: 'https://example.com/documents/gst.pdf',
+                status: 'verified'
             }
         ]
     },
     bankDetails: [
         {
-            accountName: "Tech Solutions Pvt Ltd",
-            accountNumber: "12345678901234",
-            bankName: "HDFC Bank",
-            branch: "Noida Sector 62",
-            ifscCode: "HDFC0001234",
-            accountType: "Current",
+            accountName: 'Example Company',
+            accountNumber: '1234567890',
+            bankName: 'Example Bank',
+            branch: 'Main Branch',
+            ifscCode: 'EXMP1234567',
+            swiftCode: 'EXMPUS123',
+            accountType: 'Current',
             isDefault: true,
             cancelledCheque: {
-                url: "https://example.com/documents/cancelled-cheque.pdf",
-                status: "verified"
+                url: 'https://example.com/documents/cheque.pdf',
+                status: 'verified'
             }
         }
     ]
 };
 
-class ProfileService extends ApiService {
-    private static instance: ProfileService;
-    // private readonly BASE_URL = "/api/v1/seller/profile";
+export class ProfileService {
+    private apiService: ApiService;
 
-    private constructor() {
-        super();
+    constructor() {
+        this.apiService = new ApiService();
     }
 
-    public static getInstance(): ProfileService {
-        if (!ProfileService.instance) {
-            ProfileService.instance = new ProfileService();
-        }
-        return ProfileService.instance;
-    }
-
-    public async getProfile(): Promise<ProfileData> {
+    async getProfile(): Promise<ApiResponse<Seller>> {
         try {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Return mock data
-            return MOCK_PROFILE_DATA;
+            return await this.apiService.get('/profile');
         } catch (error) {
-            this.handleError(error);
+            const apiError = error as ApiError;
+            toast.error(apiError.message || 'Failed to fetch profile');
             throw error;
         }
     }
 
-    public async updateProfile(data: Partial<ProfileData>): Promise<ProfileUpdateResponse> {
+    async updateProfile(profileData: Partial<Seller>): Promise<ApiResponse<Seller>> {
         try {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            return await this.apiService.put('/profile', profileData);
+        } catch (error) {
+            const apiError = error as ApiError;
+            toast.error(apiError.message || 'Failed to update profile');
+            throw error;
+        }
+    }
+
+    async updateProfileImage(): Promise<ApiResponse<{ imageUrl: string }>> {
+        try {
+            // TODO: Replace with actual API call
+            // const response = await this.apiService.uploadFile<ApiResponse<{ imageUrl: string }>>('/profile/image', file);
+            // return response.data;
             
-            // Return mock success response
+            // Mock response for development
             return {
-                success: true,
-                message: "Profile updated successfully",
-                data: { ...MOCK_PROFILE_DATA, ...data }
+                data: { imageUrl: 'https://example.com/profile/new-image.jpg' },
+                message: 'Profile image updated successfully',
+                status: 200,
+                success: true
             };
         } catch (error) {
-            this.handleError(error);
+            toast.error('Failed to update profile image');
             throw error;
         }
     }
 
-    public async updateProfileImage(file: File): Promise<{ imageUrl: string }> {
+    async updateStoreLinks(links: Seller['storeLinks']): Promise<ApiResponse<Seller>> {
         try {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // TODO: Replace with actual API call
+            // const response = await this.apiService.put<ApiResponse<Seller>>('/profile/store-links', { storeLinks: links });
+            // return response.data;
             
-            // Use file name in mock URL
-            const fileName = encodeURIComponent(file.name.split('.')[0]);
+            // Mock response for development
+            const updatedProfile = { ...mockProfileData, storeLinks: links };
             return {
-                imageUrl: `https://ui-avatars.com/api/?name=${fileName}&background=random`
+                data: updatedProfile,
+                message: 'Store links updated successfully',
+                status: 200,
+                success: true
             };
         } catch (error) {
-            this.handleError(error);
+            toast.error('Failed to update store links');
             throw error;
-        }
-    }
-
-    public async updateStoreLinks(links: ProfileData["storeLinks"]): Promise<ProfileUpdateResponse> {
-        try {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Return mock success response
-            return {
-                success: true,
-                message: "Store links updated successfully",
-                data: { ...MOCK_PROFILE_DATA, storeLinks: links }
-            };
-        } catch (error) {
-            this.handleError(error);
-            throw error;
-        }
-    }
-
-    private handleError(error: any): void {
-        if (error.response) {
-            const message = error.response.data?.message || "An error occurred";
-            toast.error(message);
-        } else if (error.request) {
-            toast.error("Network error. Please check your connection.");
-        } else {
-            toast.error("An unexpected error occurred.");
         }
     }
 }
 
-export const profileService = ProfileService.getInstance(); 
+export const profileService = new ProfileService(); 

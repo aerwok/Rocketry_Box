@@ -1,11 +1,72 @@
 import { MockApiService } from './mock-api.service';
-import { ApiResponse } from './api.service';
+import { ApiService } from './api.service';
+import { ApiResponse } from '@/types/api';
+import { AuthService } from './auth.service';
+import { CustomerService } from './customer.service';
+import { AdminService } from './admin.service';
+import { UploadService } from './upload.service';
+import { NotificationService } from './notification.service';
+import { WebSocketService } from './websocket.service';
 
 /**
  * Service factory that decides whether to use real API services or mock responses
  * This allows easy switching between development (mock) and production (real) modes
  */
 export class ServiceFactory {
+  private static instance: ServiceFactory;
+  private apiService: ApiService;
+  private authService: AuthService;
+  private customerService: CustomerService;
+  private adminService: AdminService;
+  private uploadService: UploadService;
+  private notificationService: NotificationService;
+  private webSocketService: WebSocketService;
+
+  private constructor() {
+    this.apiService = new ApiService();
+    this.authService = new AuthService();
+    this.customerService = new CustomerService();
+    this.adminService = new AdminService();
+    this.uploadService = new UploadService();
+    this.notificationService = new NotificationService();
+    this.webSocketService = new WebSocketService();
+  }
+
+  public static getInstance(): ServiceFactory {
+    if (!ServiceFactory.instance) {
+      ServiceFactory.instance = new ServiceFactory();
+    }
+    return ServiceFactory.instance;
+  }
+
+  public getApiService(): ApiService {
+    return this.apiService;
+  }
+
+  public getAuthService(): AuthService {
+    return this.authService;
+  }
+
+  public getCustomerService(): CustomerService {
+    return this.customerService;
+  }
+
+  public getAdminService(): AdminService {
+    return this.adminService;
+  }
+
+  public getUploadService(): UploadService {
+    return this.uploadService;
+  }
+
+  public getNotificationService(): NotificationService {
+    return this.notificationService;
+  }
+
+  public getWebSocketService(): WebSocketService {
+    return this.webSocketService;
+  }
+
   /**
    * Determines whether to use mock API based on localStorage setting
    * @returns Boolean indicating whether to use mock API
@@ -205,4 +266,6 @@ export class ServiceFactory {
       throw new Error('Real API not implemented yet');
     }
   };
-} 
+}
+
+export const serviceFactory = ServiceFactory.getInstance(); 

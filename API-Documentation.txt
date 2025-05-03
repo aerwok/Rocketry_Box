@@ -130,6 +130,227 @@ Request Body: {
   type: "mobile" | "email"
 }
 
+User Type-Specific Registration:
+
+1. Customer Registration (Public):
+Endpoint: /api/v2/auth/register/customer
+Request Type: POST
+Headers: {
+  "Content-Type": "application/json"
+}
+Request Body: {
+  name: string,          // min 2 characters, max 50
+  mobile: string,        // exactly 10 digits, Indian format
+  mobileOtp: string,     // exactly 6 digits
+  email: string,         // valid email format
+  emailOtp: string,      // exactly 6 digits
+  password: string,      // see password rules below
+  confirmPassword: string,// must match password
+  role: "customer",      // fixed value for customer registration
+  address1: string,      // required, max 100 chars
+  address2: string,      // optional, max 100 chars
+  city: string,         // required, max 50 chars
+  state: string,        // required, max 50 chars
+  pincode: string,      // exactly 6 digits
+  acceptTerms: boolean   // must be true
+}
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    user: {
+      id: string,
+      name: string,
+      email: string,
+      mobile: string,
+      role: "customer",
+      status: "active",
+      createdAt: string
+    },
+    token: string
+  }
+}
+Status Codes:
+- 200: Registration successful
+- 400: Validation error
+- 409: User already exists
+- 429: Too many requests
+- 500: Server error
+
+Validation Rules:
+- name: Required, 2-50 characters, letters and spaces only
+- mobile: Required, 10 digits, must start with 6-9
+- email: Required, valid email format
+- password: Required, min 8 chars, must contain uppercase, lowercase, number, special char
+- address1: Required, max 100 chars
+- city: Required, max 50 chars
+- state: Required, max 50 chars
+- pincode: Required, exactly 6 digits
+
+2. Seller Registration (Public):
+Endpoint: /api/v2/auth/register/seller
+Request Type: POST
+Headers: {
+  "Content-Type": "application/json"
+}
+Request Body: {
+  // Personal Information
+  name: string,          // min 2 characters, max 50
+  mobile: string,        // exactly 10 digits, Indian format
+  mobileOtp: string,     // exactly 6 digits
+  email: string,         // valid email format
+  emailOtp: string,      // exactly 6 digits
+  password: string,      // see password rules below
+  confirmPassword: string,// must match password
+  role: "seller",        // fixed value for seller registration
+  
+  // Business Information
+  companyName: string,   // required, max 100 chars
+  companyCategory: string,// required, one of: ["retail", "wholesale", "manufacturer", "service"]
+  gstin: string,         // 15 characters, valid GSTIN format
+  businessType: string,  // required, one of: ["proprietorship", "partnership", "llp", "private", "public"]
+  businessRegistrationNumber: string,// required, format depends on businessType
+  businessAddress: {
+    address1: string,    // required, max 100 chars
+    address2: string,    // optional, max 100 chars
+    city: string,       // required, max 50 chars
+    state: string,      // required, max 50 chars
+    pincode: string     // exactly 6 digits
+  },
+  
+  // Bank Details
+  bankAccount: {
+    accountNumber: string,// required, 9-18 digits
+    accountHolderName: string,// required, max 100 chars
+    bankName: string,    // required, max 50 chars
+    ifscCode: string,    // required, 11 chars, valid IFSC format
+    branchName: string   // required, max 50 chars
+  },
+  
+  // Store Information
+  storeLinks: {
+    website: string,     // optional, valid URL format
+    socialMedia: string[]// optional, valid URLs, max 5
+  },
+  
+  // Documents
+  documents: {
+    gstCertificate: string,// required, base64 encoded PDF/JPG/PNG, max 5MB
+    businessRegistration: string,// required, base64 encoded PDF/JPG/PNG, max 5MB
+    bankStatement: string,// required, base64 encoded PDF/JPG/PNG, max 5MB
+    identityProof: string// required, base64 encoded PDF/JPG/PNG, max 5MB
+  },
+  
+  acceptTerms: boolean   // must be true
+}
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    user: {
+      id: string,
+      name: string,
+      email: string,
+      mobile: string,
+      role: "seller",
+      status: "pending_verification",
+      companyName: string,
+      createdAt: string,
+      verificationStatus: {
+        documents: "pending" | "verified" | "rejected",
+        bank: "pending" | "verified" | "rejected",
+        gst: "pending" | "verified" | "rejected"
+      }
+    },
+    token: string
+  }
+}
+Status Codes:
+- 200: Registration successful
+- 400: Validation error
+- 409: User already exists
+- 413: File too large
+- 415: Unsupported file type
+- 429: Too many requests
+- 500: Server error
+
+Document Requirements:
+- All documents must be in PDF, JPG, or PNG format
+- Maximum file size: 5MB per document
+- GST Certificate: Must be valid and not expired
+- Business Registration: Must be valid and not expired
+- Bank Statement: Must be recent (within last 3 months)
+- Identity Proof: Must be government-issued
+
+3. Admin Registration (Admin-side only):
+Note: This endpoint is not accessible through the public website. It can only be accessed through the admin panel by a super-admin user.
+
+Endpoint: /api/v2/auth/register/admin
+Request Type: POST
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer <super-admin-token>" // Required - Only super-admin can create admin accounts
+}
+Request Body: {
+  name: string,          // min 2 characters, max 50
+  mobile: string,        // exactly 10 digits, Indian format
+  mobileOtp: string,     // exactly 6 digits
+  email: string,         // valid email format
+  emailOtp: string,      // exactly 6 digits
+  password: string,      // see password rules below
+  confirmPassword: string,// must match password
+  role: string,          // one of: ["admin", "super-admin", "support", "operations", "finance"]
+  permissions: string[], // array of permission codes from predefined list
+  department: string,    // required, one of: ["operations", "support", "finance", "technical", "management"]
+  designation: string,   // required, max 50 chars
+  acceptTerms: boolean   // must be true
+}
+Response: {
+  success: boolean,
+  message: string,
+  data: {
+    user: {
+      id: string,
+      name: string,
+      email: string,
+      mobile: string,
+      role: string,
+      status: "active",
+      department: string,
+      designation: string,
+      permissions: string[],
+      createdAt: string
+    },
+    token: string
+  }
+}
+Status Codes:
+- 200: Registration successful
+- 400: Validation error
+- 401: Unauthorized
+- 403: Forbidden
+- 409: User already exists
+- 429: Too many requests
+- 500: Server error
+
+Permission Codes:
+- user_management: Manage user accounts
+- order_management: Manage orders
+- seller_management: Manage seller accounts
+- customer_management: Manage customer accounts
+- billing_management: Manage billing and payments
+- report_management: Access and generate reports
+- system_configuration: Configure system settings
+- content_management: Manage website content
+- support_management: Handle support tickets
+- analytics_access: Access analytics and insights
+
+Rate Limiting:
+- Customer Registration: 5 attempts per hour
+- Seller Registration: 3 attempts per hour
+- Admin Registration: 2 attempts per hour
+- OTP Requests: 3 attempts per 10 minutes
+
 ## API Endpoints
 
 ### Seller Endpoints
