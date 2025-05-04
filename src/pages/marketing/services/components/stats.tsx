@@ -70,7 +70,7 @@ const Stats = () => {
                         transition={{ duration: 0.3 }}
                         className="text-center"
                     >
-                        <div className="text-4xl lg:text-5xl font-bold mb-2">
+                        <div className="text-4xl lg:text-5xl font-bold mb-2 text-black">
                             <NumberTicker value={10} delay={0.1} />
                             <span>+</span>
                         </div>
@@ -91,7 +91,7 @@ const Stats = () => {
                         transition={{ duration: 0.3, delay: 0.05 }}
                         className="text-center"
                     >
-                        <div className="text-4xl lg:text-5xl font-bold mb-2">
+                        <div className="text-4xl lg:text-5xl font-bold mb-2 text-black">
                             <NumberTicker value={20} delay={0.15} />
                             <span>+</span>
                         </div>
@@ -112,7 +112,7 @@ const Stats = () => {
                         transition={{ duration: 0.3, delay: 0.1 }}
                         className="text-center"
                     >
-                        <div className="text-4xl lg:text-5xl font-bold mb-2">
+                        <div className="text-4xl lg:text-5xl font-bold mb-2 text-black">
                             <NumberTicker value={15} delay={0.2} />
                             <span>%</span>
                         </div>
@@ -133,7 +133,7 @@ const Stats = () => {
                         transition={{ duration: 0.3, delay: 0.15 }}
                         className="text-center"
                     >
-                        <div className="text-4xl lg:text-5xl font-bold mb-2">
+                        <div className="text-4xl lg:text-5xl font-bold mb-2 text-black">
                             <NumberTicker value={40} delay={0.25} />
                             <span>%</span>
                         </div>

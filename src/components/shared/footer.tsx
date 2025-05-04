@@ -5,20 +5,20 @@ const Footer = () => {
 
     const footerLinks = {
         resources: [
-            { to: "/seller/dashboard/billing", label: "Shipping Rate Calculator" },
-            { to: "/seller/dashboard/billing", label: "Volumetric Weight Calculator" },
-            { to: "/seller/dashboard/tools", label: "Free eCommerce Tools" },
+            { to: "/services", label: "Shipping Rate Calculator" },
+            { to: "/services", label: "Volumetric Weight Calculator" },
+            { to: "/services", label: "Free eCommerce Tools" },
             { to: "/services", label: "Knowledge Base" },
-            { to: "/#customers", label: "Customer Stories" },
-            { to: "/pricing", label: "Coupons" }
+            { to: "/services", label: "Customer Stories" },
+            { to: "/services", label: "Coupons" }
         ],
         features: [
-            { to: "/features/cod", label: "Cash on Delivery" },
-            { to: "/features/pincodes", label: "Serviceable Pin Codes" },
-            { to: "/features/api", label: "API Integration" },
-            { to: "/features/pickup", label: "Multiple Pickup Locations" },
-            { to: "/features/labels", label: "Print Shipping Labels" },
-            { to: "/features/notifications", label: "Email & SMS Notifications" },
+            { to: "/features", label: "Cash on Delivery" },
+            { to: "/features", label: "Serviceable Pin Codes" },
+            { to: "/features", label: "API Integration" },
+            { to: "/features", label: "Multiple Pickup Locations" },
+            { to: "/features", label: "Print Shipping Labels" },
+            { to: "/features", label: "Email & SMS Notifications" },
             { to: "/features", label: "All Features" }
         ],
         partner: [
@@ -29,8 +29,8 @@ const Footer = () => {
         support: [
             { to: "/pricing", label: "Pricing" },
             { to: "/faqs", label: "FAQs" },
-            { to: "/contact/support", label: "Contact us" },
-            { to: "/contact/help", label: "Help Center" },
+            { to: "/contact", label: "Contact us" },
+            { to: "/contact", label: "Help Center" },
             { to: "/policy", label: "Policy" }
         ]
     };

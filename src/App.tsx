@@ -17,6 +17,9 @@ import TrackPage from "./pages/marketing/track";
 import FaqsPage from "./pages/marketing/faqs";
 import PrivacyPage from "./pages/marketing/privacy";
 import TermsPage from "./pages/marketing/terms";
+import CarrierPartnerPage from "./pages/marketing/partner/carrier";
+import TechnologyPartnerPage from "./pages/marketing/partner/technology";
+import BecomePartnerPage from "./pages/marketing/partner/join";
 
 // Customer Pages
 import CustomerLoginPage from "./pages/customer/auth/login";
@@ -124,6 +127,10 @@ const App = () => {
           <Route path="/faqs" element={<FaqsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          {/* Partner Marketing Pages */}
+          <Route path="/partner/carrier" element={<CarrierPartnerPage />} />
+          <Route path="/partner/technology" element={<TechnologyPartnerPage />} />
+          <Route path="/partner/join" element={<BecomePartnerPage />} />
         </Route>
 
         {/* Customer Routes */}
