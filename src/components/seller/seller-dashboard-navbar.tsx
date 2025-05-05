@@ -5,7 +5,7 @@ import { useSidebarStore } from '@/store/use-sidebar-store';
 import { Menu, MenuIcon, Search } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     NavigationMenu,
     NavigationMenuContent,
@@ -27,9 +27,7 @@ const SellerDashboardNavbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const toggleSidebar = useSidebarStore((state) => state.toggleSidebar);
     const [searchQuery, setSearchQuery] = useState("");
-
-    // Add debounce timer for search
-    const [searchDebounce, setSearchDebounce] = useState<NodeJS.Timeout | null>(null);
+    const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         // Check if user is authenticated
@@ -52,8 +50,12 @@ const SellerDashboardNavbar = () => {
 
     // Initialize search from URL parameters
     useEffect(() => {
+        const searchParam = searchParams.get("search");
         const awbParam = searchParams.get("awb");
-        if (awbParam) {
+        
+        if (searchParam) {
+            setSearchQuery(searchParam);
+        } else if (awbParam) {
             setSearchQuery(awbParam);
         }
     }, [searchParams]);
@@ -86,33 +88,84 @@ const SellerDashboardNavbar = () => {
         setIsMenuOpen(false);
     };
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const query = e.target.value;
-        setSearchQuery(query);
-        
-        // Clear previous timeout
-        if (searchDebounce) {
-            clearTimeout(searchDebounce);
-        }
-        
-        // Debounce the search event (300ms)
-        const timer = setTimeout(() => {
-            // Update URL search params
-            const newParams = new URLSearchParams(searchParams);
-            if (query) {
-                newParams.set("search", query);
-            } else {
-                newParams.delete("search");
-            }
-            setSearchParams(newParams);
-        }, 300);
-        
-        setSearchDebounce(timer);
+    // Helper to check if string looks like an AWB number
+    const isAwbNumber = (query: string): boolean => {
+        // AWB numbers are typically alphanumeric with specific formats
+        // This is a simple check - update with your specific AWB format rules
+        return /^[A-Z0-9]{6,18}$/i.test(query.trim());
     };
 
-    // We can remove the form submission handler since we're doing real-time search
+    // Perform the search with specified query
+    const performSearch = (queryText: string) => {
+        if (!queryText) return;
+        
+        const currentPath = location.pathname;
+        
+        // On dashboard, AWB searches go to shipments page
+        if (currentPath === "/seller/dashboard" && isAwbNumber(queryText)) {
+            navigate(`/seller/dashboard/shipments?awb=${encodeURIComponent(queryText)}`);
+            return;
+        }
+        
+        // On shipments page, use awb parameter for AWB-like queries
+        if (currentPath.includes('/seller/dashboard/shipments')) {
+            const paramName = isAwbNumber(queryText) ? "awb" : "search";
+            const newParams = new URLSearchParams(searchParams);
+            newParams.set(paramName, queryText);
+            
+            // Clear the other param to avoid conflicts
+            if (paramName === "awb") {
+                newParams.delete("search");
+            } else {
+                newParams.delete("awb");
+            }
+            
+            setSearchParams(newParams);
+            return;
+        }
+        
+        // For all other pages, just update the search param
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set("search", queryText);
+        setSearchParams(newParams);
+    };
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchQuery(value);
+        
+        // Clear previous timeout if exists
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+        
+        // Set new timeout for debounce (300ms)
+        searchDebounceRef.current = setTimeout(() => {
+            if (value.trim()) {
+                performSearch(value.trim());
+            } else {
+                // Clear search parameters if search is empty
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete("search");
+                newParams.delete("awb");
+                setSearchParams(newParams);
+            }
+        }, 300);
+    };
+
+    // Handle search submission
     const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault(); // Prevent form submission
+        e.preventDefault();
+        
+        // Clear any pending debounced search
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+        
+        const queryText = searchQuery.trim();
+        if (queryText) {
+            performSearch(queryText);
+        }
     };
 
     // Function to get the appropriate search placeholder based on current route
@@ -123,9 +176,20 @@ const SellerDashboardNavbar = () => {
             return "Search Shipments by AWB...";
         } else if (location.pathname.includes('/seller/dashboard/orders')) {
             return "Search Orders by ID, Customer...";
+        } else if (location.pathname === "/seller/dashboard") {
+            return "Search shipment by AWB number...";
         }
-        return "Search AWB number...";
+        return "Search...";
     };
+
+    // Clean up timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (searchDebounceRef.current) {
+                clearTimeout(searchDebounceRef.current);
+            }
+        };
+    }, []);
 
     return (
         <header className="fixed top-0 left-0 right-0 border-b border-border z-50 bg-white h-16">

@@ -57,6 +57,8 @@ export class MockApiService {
       name: string;
       email: string;
       role: string;
+      permissions?: string[];
+      sellerId?: string;
     }
     
     const mockUsers: Record<string, MockUser> = {
@@ -77,18 +79,57 @@ export class MockApiService {
         name: "Demo Admin",
         email: "admin@example.com",
         role: "admin"
+      },
+      // Add team member mock credentials
+      "john@example.com": {
+        id: "team1",
+        name: "John Doe",
+        email: "john@example.com",
+        role: "seller_team",
+        permissions: ["Dashboard access", "Order", "Shipments", "Manifest"],
+        sellerId: "sell1"
+      },
+      "jane@example.com": {
+        id: "team2",
+        name: "Jane Smith",
+        email: "jane@example.com",
+        role: "seller_team",
+        permissions: ["Dashboard access", "Order"],
+        sellerId: "sell1"
       }
     };
     
-    if (mockUsers[credentials.email] && credentials.password === "password123") {
-      const user = mockUsers[credentials.email];
-      // Set mock token in localStorage
-      localStorage.setItem(`${user.role}_token`, "mock_jwt_token");
+    // Check for regular credentials
+    if (mockUsers[credentials.email]) {
+      // For demo, use simple password match
+      if (credentials.password === "password123") {
+        const user = mockUsers[credentials.email];
+        // Set mock token in localStorage
+        localStorage.setItem(`${user.role}_token`, "mock_jwt_token");
+        
+        return this.request("/api/auth/login", {
+          token: "mock_jwt_token",
+          user
+        });
+      }
+    }
+    
+    // Check specifically for team member login
+    // In a real implementation, this would validate against the database
+    if (credentials.email.includes("@") && credentials.password.length >= 8) {
+      // Check if this is an existing team member
+      const teamMember = Object.values(mockUsers).find(
+        user => user.role === "seller_team" && user.email === credentials.email
+      );
       
-      return this.request("/api/auth/login", {
-        token: "mock_jwt_token",
-        user
-      });
+      if (teamMember) {
+        localStorage.setItem(`seller_team_token`, "mock_jwt_token");
+        
+        return this.request("/api/auth/login", {
+          token: "mock_jwt_token",
+          user: teamMember
+        });
+      }
     }
     
     // Simulate authentication error

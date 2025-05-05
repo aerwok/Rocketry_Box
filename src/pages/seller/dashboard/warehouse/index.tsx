@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, Package, Boxes, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface WarehouseItem {
     id: string;
@@ -207,9 +208,11 @@ const SellerWarehousePage = () => {
                             />
                         </div>
                     </div>
-                    <Button className="w-full lg:w-auto">
+                    <Button className="w-full lg:w-auto" asChild>
+                        <Link to="/seller/dashboard/new-order">
                         <Plus className="size-4 mr-2" />
                         Add New Item
+                        </Link>
                     </Button>
                 </div>
 

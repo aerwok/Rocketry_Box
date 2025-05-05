@@ -28,26 +28,6 @@ interface ServiceAvailability {
     restrictions?: string[];
 }
 
-const mockServiceData: ServiceAvailability = {
-    pincode: "400001",
-    city: "Mumbai",
-    state: "Maharashtra",
-    isAvailable: true,
-    services: {
-        standard: true,
-        express: true,
-        cod: true,
-    },
-    deliveryTime: {
-        standard: "3-5 days",
-        express: "1-2 days",
-    },
-    restrictions: [
-        "COD available for orders up to ₹50,000",
-        "Express delivery not available for remote areas",
-    ],
-};
-
 const SellerServiceCheckPage = () => {
     const [pincode, setPincode] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -61,9 +41,11 @@ const SellerServiceCheckPage = () => {
 
         setIsLoading(true);
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            setServiceData(mockServiceData);
+            // Real API call
+            const response = await fetch(`/api/v2/service-check?pincode=${pincode}`);
+            if (!response.ok) throw new Error("Failed to fetch service data");
+            const data = await response.json();
+            setServiceData(data);
         } catch (error) {
             toast.error("Failed to check service availability");
         } finally {
