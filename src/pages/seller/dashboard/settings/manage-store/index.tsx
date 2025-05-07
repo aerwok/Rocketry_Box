@@ -5,6 +5,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { useProfile } from "@/hooks/useProfile";
+
+type StoreSettings = {
+    storeType: string;
+    storeUrl: string;
+    apiKey: string;
+    apiSecret: string;
+    autoFetch: boolean;
+    autoCreate: boolean;
+    autoNotify: boolean;
+    defaultShippingMode: "standard" | "express" | "cod";
+};
 
 const STORE_TYPES = [
     { value: "amazon", label: "Amazon" },
@@ -18,8 +31,61 @@ const STORE_TYPES = [
 ];
 
 const ManageStorePage = () => {
-    const handleSave = () => {
-        toast.success("Store settings saved successfully");
+    const { profile, updateProfile } = useProfile();
+    const [loading, setLoading] = useState(false);
+    const [storeSettings, setStoreSettings] = useState<StoreSettings>({
+        storeType: "",
+        storeUrl: "",
+        apiKey: "",
+        apiSecret: "",
+        autoFetch: false,
+        autoCreate: false,
+        autoNotify: false,
+        defaultShippingMode: "standard"
+    });
+
+    useEffect(() => {
+        if (profile) {
+            // Initialize store settings from profile
+            setStoreSettings(prev => ({
+                ...prev,
+                storeType: profile.storeLinks?.amazon ? "amazon" : 
+                          profile.storeLinks?.shopify ? "shopify" : 
+                          profile.storeLinks?.opencart ? "opencart" : "custom",
+                storeUrl: profile.storeLinks?.website || "",
+            }));
+        }
+    }, [profile]);
+
+    const handleSave = async () => {
+        try {
+            setLoading(true);
+            
+            // Update store links based on store type
+            const storeLinks = {
+                ...profile?.storeLinks,
+                website: storeSettings.storeUrl,
+                [storeSettings.storeType]: storeSettings.storeUrl
+            };
+
+            // Update profile with new store settings
+            await updateProfile({
+                storeLinks,
+                settings: {
+                    autoFetch: storeSettings.autoFetch,
+                    autoCreate: storeSettings.autoCreate,
+                    autoNotify: storeSettings.autoNotify,
+                    defaultShippingMode: storeSettings.defaultShippingMode
+                }
+            });
+
+            toast.success("Store settings saved successfully");
+        } catch (error) {
+            toast.error("Failed to save store settings");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -42,12 +108,15 @@ const ManageStorePage = () => {
                             Connect your ecommerce store to automatically fetch orders
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent>
                         <div className="space-y-4">
                             <div className="grid gap-4">
                                 <div className="space-y-2">
                                     <Label>Store Type</Label>
-                                    <Select>
+                                    <Select 
+                                        value={storeSettings.storeType}
+                                        onValueChange={(value) => setStoreSettings(prev => ({ ...prev, storeType: value }))}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select store type" />
                                         </SelectTrigger>
@@ -62,19 +131,37 @@ const ManageStorePage = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Store URL</Label>
-                                    <Input placeholder="Enter your store URL" />
+                                    <Input 
+                                        placeholder="Enter your store URL"
+                                        value={storeSettings.storeUrl}
+                                        onChange={(e) => setStoreSettings(prev => ({ ...prev, storeUrl: e.target.value }))}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>API Key</Label>
-                                    <Input type="password" placeholder="Enter your API key" />
+                                    <Input 
+                                        type="password" 
+                                        placeholder="Enter your API key"
+                                        value={storeSettings.apiKey}
+                                        onChange={(e) => setStoreSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>API Secret</Label>
-                                    <Input type="password" placeholder="Enter your API secret" />
+                                    <Input 
+                                        type="password" 
+                                        placeholder="Enter your API secret"
+                                        value={storeSettings.apiSecret}
+                                        onChange={(e) => setStoreSettings(prev => ({ ...prev, apiSecret: e.target.value }))}
+                                    />
                                 </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Switch id="auto-fetch" />
+                                <Switch 
+                                    id="auto-fetch"
+                                    checked={storeSettings.autoFetch}
+                                    onCheckedChange={(checked) => setStoreSettings(prev => ({ ...prev, autoFetch: checked }))}
+                                />
                                 <Label htmlFor="auto-fetch">
                                     Automatically fetch orders
                                 </Label>
@@ -94,20 +181,31 @@ const ManageStorePage = () => {
                     <CardContent className="space-y-6">
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2">
-                                <Switch id="auto-create" />
+                                <Switch 
+                                    id="auto-create"
+                                    checked={storeSettings.autoCreate}
+                                    onCheckedChange={(checked) => setStoreSettings(prev => ({ ...prev, autoCreate: checked }))}
+                                />
                                 <Label htmlFor="auto-create">
                                     Automatically create shipping orders
                                 </Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Switch id="auto-notify" />
+                                <Switch 
+                                    id="auto-notify"
+                                    checked={storeSettings.autoNotify}
+                                    onCheckedChange={(checked) => setStoreSettings(prev => ({ ...prev, autoNotify: checked }))}
+                                />
                                 <Label htmlFor="auto-notify">
                                     Send automatic notifications to customers
                                 </Label>
                             </div>
                             <div className="space-y-2">
                                 <Label>Default Shipping Mode</Label>
-                                <Select>
+                                <Select 
+                                    value={storeSettings.defaultShippingMode}
+                                    onValueChange={(value: "standard" | "express" | "cod") => setStoreSettings(prev => ({ ...prev, defaultShippingMode: value }))}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select shipping mode" />
                                     </SelectTrigger>
@@ -124,8 +222,11 @@ const ManageStorePage = () => {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                    <Button onClick={handleSave}>
-                        Save Changes
+                    <Button 
+                        onClick={handleSave}
+                        disabled={loading}
+                    >
+                        {loading ? "Saving..." : "Save Changes"}
                     </Button>
                 </div>
             </div>

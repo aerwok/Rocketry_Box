@@ -49,6 +49,54 @@ export interface Seller extends BaseUser {
         shopify?: string;
         opencart?: string;
     };
+    settings?: {
+        autoFetch?: boolean;
+        autoCreate?: boolean;
+        autoNotify?: boolean;
+        defaultShippingMode?: "standard" | "express" | "cod";
+        autoSelectCourier?: boolean;
+        codAvailable?: boolean;
+        courierSettings?: {
+            courierId: number;
+            enabled: boolean;
+            priority: number;
+        }[];
+        labelSettings?: {
+            size: string;
+            format: string;
+            logo?: string;
+            showLogo: boolean;
+            showBarcode: boolean;
+            showReturn: boolean;
+            additionalText: string;
+        };
+        whatsappSettings?: {
+            enabled: boolean;
+            businessNumber?: string;
+            apiKey?: string;
+            notifications: {
+                orderConfirmation: boolean;
+                orderPacked: boolean;
+                outForDelivery: boolean;
+                deliveryConfirmation: boolean;
+                deliveryFailed: boolean;
+                returnInitiated: boolean;
+                returnPicked: boolean;
+                returnDelivered: boolean;
+            };
+            templates?: {
+                orderConfirmation?: string;
+                deliveryConfirmation?: string;
+            };
+        };
+        apiSettings?: {
+            apiKey: string;
+            apiSecret: string;
+            enabled: boolean;
+            webhookEnabled: boolean;
+            webhookUrl: string;
+        };
+    };
     address?: {
         street: string;
         city: string;

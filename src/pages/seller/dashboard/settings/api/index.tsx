@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useProfile } from "@/hooks/useProfile";
+import { ApiService, ApiResponse } from "@/services/api.service";
 
 const API_ENDPOINTS = [
     {
@@ -38,9 +41,95 @@ const API_ENDPOINTS = [
     },
 ];
 
+type ApiSettings = {
+    apiKey: string;
+    apiSecret: string;
+    enabled: boolean;
+    webhookEnabled: boolean;
+    webhookUrl: string;
+};
+
+interface GenerateKeyResponse {
+    apiKey: string;
+    apiSecret: string;
+}
+
 const ApiSettingsPage = () => {
-    const handleSave = () => {
-        toast.success("API settings saved successfully");
+    const { profile, updateProfile } = useProfile();
+    const [loading, setLoading] = useState(false);
+    const [testingWebhook, setTestingWebhook] = useState(false);
+    const [apiSettings, setApiSettings] = useState<ApiSettings>({
+        apiKey: '',
+        apiSecret: '',
+        enabled: false,
+        webhookEnabled: false,
+        webhookUrl: ''
+    });
+
+    useEffect(() => {
+        if (profile?.settings?.apiSettings) {
+            setApiSettings(profile.settings.apiSettings);
+        }
+    }, [profile]);
+
+    const handleSave = async () => {
+        try {
+            setLoading(true);
+            await updateProfile({
+                settings: {
+                    ...profile?.settings,
+                    apiSettings: apiSettings
+                }
+            });
+            toast.success("API settings saved successfully");
+        } catch (error) {
+            console.error('Error saving API settings:', error);
+            toast.error("Failed to save API settings");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const generateApiKey = async () => {
+        try {
+            setLoading(true);
+            const apiService = new ApiService();
+            const response = await apiService.post<ApiResponse<GenerateKeyResponse>>('/seller/api/generate-key');
+            if (response.data) {
+                setApiSettings(prev => ({
+                    ...prev,
+                    apiKey: response.data.data.apiKey,
+                    apiSecret: response.data.data.apiSecret
+                }));
+                toast.success("New API credentials generated");
+            }
+        } catch (error) {
+            console.error('Error generating API credentials:', error);
+            toast.error("Failed to generate API credentials");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const testWebhook = async () => {
+        if (!apiSettings.webhookUrl) {
+            toast.error("Please enter a webhook URL first");
+            return;
+        }
+
+        try {
+            setTestingWebhook(true);
+            const apiService = new ApiService();
+            await apiService.post<ApiResponse<void>>('/seller/api/test-webhook', {
+                url: apiSettings.webhookUrl
+            });
+            toast.success("Webhook test successful");
+        } catch (error) {
+            console.error('Error testing webhook:', error);
+            toast.error("Webhook test failed");
+        } finally {
+            setTestingWebhook(false);
+        }
     };
 
     return (
@@ -63,14 +152,25 @@ const ApiSettingsPage = () => {
                             Set up your API credentials and preferences
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent>
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label>API Key</Label>
-                                <Input 
-                                    type="password"
-                                    placeholder="Enter your API key"
-                                />
+                                <div className="flex gap-2">
+                                    <Input 
+                                        type="password"
+                                        placeholder="Enter your API key"
+                                        value={apiSettings.apiKey}
+                                        onChange={(e) => setApiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                                    />
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={generateApiKey}
+                                        disabled={loading}
+                                    >
+                                        Generate
+                                    </Button>
+                                </div>
                                 <p className="text-sm text-gray-500">
                                     Keep your API key secure and never share it publicly
                                 </p>
@@ -80,26 +180,47 @@ const ApiSettingsPage = () => {
                                 <Input 
                                     type="password"
                                     placeholder="Enter your API secret"
+                                    value={apiSettings.apiSecret}
+                                    onChange={(e) => setApiSettings(prev => ({ ...prev, apiSecret: e.target.value }))}
                                 />
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Switch id="enable-api" />
+                                <Switch 
+                                    id="enable-api"
+                                    checked={apiSettings.enabled}
+                                    onCheckedChange={(checked) => setApiSettings(prev => ({ ...prev, enabled: checked }))}
+                                />
                                 <Label htmlFor="enable-api">
                                     Enable API access
                                 </Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Switch id="webhook" />
+                                <Switch 
+                                    id="webhook"
+                                    checked={apiSettings.webhookEnabled}
+                                    onCheckedChange={(checked) => setApiSettings(prev => ({ ...prev, webhookEnabled: checked }))}
+                                />
                                 <Label htmlFor="webhook">
                                     Enable webhook notifications
                                 </Label>
                             </div>
                             <div className="space-y-2">
                                 <Label>Webhook URL</Label>
-                                <Input 
-                                    placeholder="Enter your webhook URL"
-                                    disabled
-                                />
+                                <div className="flex gap-2">
+                                    <Input 
+                                        placeholder="Enter your webhook URL"
+                                        value={apiSettings.webhookUrl}
+                                        onChange={(e) => setApiSettings(prev => ({ ...prev, webhookUrl: e.target.value }))}
+                                        disabled={!apiSettings.webhookEnabled}
+                                    />
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={testWebhook}
+                                        disabled={!apiSettings.webhookEnabled || testingWebhook}
+                                    >
+                                        {testingWebhook ? "Testing..." : "Test"}
+                                    </Button>
+                                </div>
                                 <p className="text-sm text-gray-500">
                                     Configure your webhook URL to receive real-time updates
                                 </p>
@@ -140,8 +261,11 @@ const ApiSettingsPage = () => {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                    <Button onClick={handleSave}>
-                        Save Changes
+                    <Button 
+                        onClick={handleSave}
+                        disabled={loading}
+                    >
+                        {loading ? "Saving..." : "Save Changes"}
                     </Button>
                 </div>
             </div>

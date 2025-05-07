@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NDRDetails {
     awb: string;
@@ -62,18 +63,119 @@ interface NDRDetails {
     }[];
 }
 
-const SellerNDRDetailsPage = () => {
-
+const NDRDetailsPage = () => {
     const { id } = useParams();
-    
-    const [selectedAction, setSelectedAction] = useState<string>("reschedule");
-    const [comments, setComments] = useState<string>("");
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const { token } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [ndrDetails, setNdrDetails] = useState<NDRDetails | null>(null);
+
+    useEffect(() => {
+        const fetchNDRDetails = async () => {
+            if (!id) return;
+            
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v2/seller/ndr/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch NDR details');
+                }
+
+                const data = await response.json();
+                
+                // Transform API response to match our interface
+                setNdrDetails({
+                    awb: data.data.awb,
+                    orderNo: data.data.order_id,
+                    orderDate: data.data.order_date,
+                    courier: data.data.courier_name,
+                    customer: data.data.customer_name,
+                    attempts: data.data.attempts,
+                    lastAttemptDate: data.data.attempt_history[0]?.date || '-',
+                    status: data.data.status,
+                    reason: data.data.ndr_reason,
+                    action: data.data.recommended_action,
+                    currentLocation: {
+                        lat: data.data.current_location?.lat || 0,
+                        lng: data.data.current_location?.lng || 0
+                    },
+                    deliveryAttempts: data.data.attempt_history.map((attempt: any) => ({
+                        date: attempt.date,
+                        time: attempt.time,
+                        status: attempt.status,
+                        reason: attempt.reason,
+                        comments: attempt.agent_remarks || ''
+                    })),
+                    customerDetails: {
+                        name: data.data.delivery_address.fullName,
+                        address1: data.data.delivery_address.addressLine1,
+                        address2: data.data.delivery_address.addressLine2 || '',
+                        city: data.data.delivery_address.city,
+                        state: data.data.delivery_address.state,
+                        pincode: data.data.delivery_address.pincode,
+                        country: 'India',
+                        phone: data.data.delivery_address.contactNumber,
+                        email: data.data.delivery_address.email || ''
+                    },
+                    products: data.data.products || []
+                });
+            } catch (err) {
+                console.error('Error fetching NDR details:', err);
+                setError(err instanceof Error ? err.message : 'Failed to fetch NDR details');
+                toast.error('Failed to fetch NDR details');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchNDRDetails();
+    }, [id, token]);
 
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
-        toast.success("The text has been copied to your clipboard.");
+        toast.success('Copied to clipboard');
     };
+
+    if (loading) {
+        return (
+            <div className="container mx-auto py-4 w-full">
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !ndrDetails) {
+        return (
+            <div className="container mx-auto py-4 w-full">
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                        <h3 className="text-lg font-medium text-gray-900">Error loading NDR details</h3>
+                        <p className="mt-1 text-sm text-gray-500">{error || 'NDR details not found'}</p>
+                        <Button 
+                            variant="outline" 
+                            className="mt-4"
+                            onClick={() => window.location.reload()}
+                        >
+                            Try Again
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const [selectedAction, setSelectedAction] = useState<string>("reschedule");
+    const [comments, setComments] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const handleSubmitAction = async () => {
         try {
@@ -88,66 +190,6 @@ const SellerNDRDetailsPage = () => {
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const ndrDetails: NDRDetails = {
-        awb: id || "123456789",
-        orderNo: "ORD987654321",
-        orderDate: "2024-03-15",
-        courier: "Blue Dart",
-        customer: "John Doe",
-        attempts: 2,
-        lastAttemptDate: "2024-03-18",
-        status: "Action Required",
-        reason: "Customer not available",
-        action: "Call customer",
-        currentLocation: {
-            lat: 19.0760,
-            lng: 72.8777
-        },
-        deliveryAttempts: [
-            {
-                date: "18 MAR",
-                time: "02:30 PM",
-                status: "Failed",
-                reason: "Customer not available",
-                comments: "No response at the door. Left a calling card."
-            },
-            {
-                date: "17 MAR",
-                time: "11:45 AM",
-                status: "Failed",
-                reason: "Address incomplete",
-                comments: "Unable to locate the exact address. Called customer but no response."
-            }
-        ],
-        customerDetails: {
-            name: "John Doe",
-            address1: "123 Main Street",
-            address2: "Apartment 4B",
-            city: "PUNE",
-            state: "MAHARASHTRA",
-            pincode: "412105",
-            country: "India",
-            phone: "9348543598",
-            email: "john.doe@example.com"
-        },
-        products: [
-            {
-                name: "Premium Laptop",
-                sku: "LAP001",
-                quantity: 1,
-                price: 50.00,
-                image: "/product-image.jpg"
-            },
-            {
-                name: "Wireless Mouse",
-                sku: "MOU001",
-                quantity: 1,
-                price: 1799.00,
-                image: "/mouse-image.jpg"
-            }
-        ]
     };
 
     return (
@@ -574,4 +616,4 @@ const SellerNDRDetailsPage = () => {
     );
 };
 
-export default SellerNDRDetailsPage; 
+export default NDRDetailsPage; 
