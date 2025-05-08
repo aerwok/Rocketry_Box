@@ -7,6 +7,7 @@ import { AdminService } from './admin.service';
 import { UploadService } from './upload.service';
 import { NotificationService } from './notification.service';
 import { WebSocketService } from './websocket.service';
+import { PoliciesService } from "./policies.service";
 
 /**
  * Service factory that decides whether to use real API services or mock responses
@@ -266,6 +267,8 @@ export class ServiceFactory {
       throw new Error('Real API not implemented yet');
     }
   };
+
+  static policies = new PoliciesService();
 }
 
 export const serviceFactory = ServiceFactory.getInstance(); 

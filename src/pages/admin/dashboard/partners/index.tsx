@@ -2,13 +2,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ArrowUpDown, Search, Tag, Trash, Edit, Download, Settings, RefreshCw, Plus } from "lucide-react";
+import { ArrowUpDown, Search, Tag, Trash, Edit, RefreshCw, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ServiceFactory } from "@/services/service-factory";
-import { Partner, ApiStatus } from "@/services/partners.service";
+import { Partner, ApiStatus, ServiceType } from "@/services/partners.service";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type SortField = "name" | "apiStatus" | "performanceScore" | "lastUpdated" | "shipmentCount";
 type SortOrder = "asc" | "desc";
@@ -42,6 +44,35 @@ const AdminPartnersPage = () => {
     const [partners, setPartners] = useState<Partner[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [apiKeyRevealed, setApiKeyRevealed] = useState(false);
+    const [apiKey, setApiKey] = useState<string | null>(null);
+    const [newPartner, setNewPartner] = useState<Partial<Partner>>({
+        name: "",
+        supportEmail: "",
+        supportContact: "",
+        apiEndpoint: "",
+        trackingUrl: "",
+        serviceTypes: [],
+        serviceAreas: [],
+        weightLimits: { min: 0, max: 0 },
+        dimensionLimits: {
+            maxLength: 0,
+            maxWidth: 0,
+            maxHeight: 0,
+            maxSum: 0
+        },
+        rates: {
+            baseRate: 0,
+            weightRate: 0,
+            dimensionalFactor: 0
+        },
+        apiStatus: "inactive" as ApiStatus
+    });
 
     // Fetch partners on component mount and when filter changes
     useEffect(() => {
@@ -96,6 +127,7 @@ const AdminPartnersPage = () => {
             return;
         }
 
+        setIsDeleting(true);
         try {
             await ServiceFactory.partners.deleteManyPartners(selectedPartners);
             toast.success(`${selectedPartners.length} partners deleted successfully`);
@@ -109,6 +141,8 @@ const AdminPartnersPage = () => {
         } catch (error) {
             console.error("Error deleting partners:", error);
             toast.error("Failed to delete partners");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -127,6 +161,7 @@ const AdminPartnersPage = () => {
             return;
         }
 
+        setIsRefreshing(true);
         try {
             const response = await ServiceFactory.partners.refreshPartnerAPIs(selectedPartners);
             const { successful, failed } = response.data;
@@ -148,47 +183,107 @@ const AdminPartnersPage = () => {
         } catch (error) {
             console.error("Error refreshing partner APIs:", error);
             toast.error("Failed to refresh partner APIs");
-        }
-    };
-    
-    const handleViewPartner = async (partner: Partner) => {
-        try {
-            // Get fresh data for the partner
-            const response = await ServiceFactory.partners.getPartnerById(partner.id);
-            setCurrentPartner(response.data);
-            setIsEditing(false);
-            setShowPartnerDetailsModal(true);
-        } catch (error) {
-            console.error(`Error fetching partner details for ${partner.id}:`, error);
-            toast.error("Failed to load partner details");
+        } finally {
+            setIsRefreshing(false);
         }
     };
     
     const handleEditPartner = async (partner: Partner) => {
+        setIsActionLoading(true);
         try {
-            // Get fresh data for the partner
             const response = await ServiceFactory.partners.getPartnerById(partner.id);
             setCurrentPartner(response.data);
             setIsEditing(true);
             setShowPartnerDetailsModal(true);
+            setApiKeyRevealed(false);
+            setApiKey(response.data.apiKey || null);
         } catch (error) {
             console.error(`Error fetching partner details for ${partner.id}:`, error);
             toast.error("Failed to load partner details");
+        } finally {
+            setIsActionLoading(false);
         }
     };
     
+    const handleRevealApiKey = () => setApiKeyRevealed((prev) => !prev);
+    
     const handleAddPartner = () => {
-        setCurrentPartner(null);
+        setNewPartner({
+            name: "",
+            supportEmail: "",
+            supportContact: "",
+            apiEndpoint: "",
+            trackingUrl: "",
+            serviceTypes: [],
+            serviceAreas: [],
+            weightLimits: { min: 0, max: 0 },
+            dimensionLimits: {
+                maxLength: 0,
+                maxWidth: 0,
+                maxHeight: 0,
+                maxSum: 0
+            },
+            rates: {
+                baseRate: 0,
+                weightRate: 0,
+                dimensionalFactor: 0
+            },
+            apiStatus: "inactive" as ApiStatus
+        });
         setShowAddPartnerModal(true);
     };
     
+    const validateForm = () => {
+        const errors: Record<string, string> = {};
+        
+        if (!newPartner.name?.trim()) {
+            errors.name = "Partner name is required";
+        }
+        
+        if (!newPartner.supportEmail?.trim()) {
+            errors.supportEmail = "Support email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newPartner.supportEmail)) {
+            errors.supportEmail = "Invalid email format";
+        }
+        
+        if (newPartner.apiEndpoint && !newPartner.apiEndpoint.startsWith('http')) {
+            errors.apiEndpoint = "API endpoint must start with http:// or https://";
+        }
+        
+        if (newPartner.trackingUrl && !newPartner.trackingUrl.startsWith('http')) {
+            errors.trackingUrl = "Tracking URL must start with http:// or https://";
+        }
+        
+        if (newPartner.weightLimits?.min && newPartner.weightLimits?.max && 
+            newPartner.weightLimits.min >= newPartner.weightLimits.max) {
+            errors.weightLimits = "Minimum weight must be less than maximum weight";
+        }
+        
+        if (newPartner.rates?.baseRate && newPartner.rates.baseRate < 0) {
+            errors.baseRate = "Base rate cannot be negative";
+        }
+        
+        if (newPartner.rates?.weightRate && newPartner.rates.weightRate < 0) {
+            errors.weightRate = "Weight rate cannot be negative";
+        }
+        
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+    
     const handleSavePartner = async () => {
+        if (!validateForm()) {
+            toast.error("Please fix the form errors before saving");
+            return;
+        }
+
+        setIsSaving(true);
         try {
             if (isEditing && currentPartner) {
                 await ServiceFactory.partners.updatePartner(currentPartner.id, currentPartner);
                 toast.success(`Partner ${currentPartner.name} updated successfully`);
-            } else if (currentPartner) {
-                await ServiceFactory.partners.createPartner(currentPartner);
+            } else {
+                await ServiceFactory.partners.createPartner(newPartner as Partner);
                 toast.success("New partner added successfully");
             }
             
@@ -199,9 +294,12 @@ const AdminPartnersPage = () => {
             
             setShowPartnerDetailsModal(false);
             setShowAddPartnerModal(false);
+            setFormErrors({});
         } catch (error) {
             console.error("Error saving partner:", error);
             toast.error("Failed to save partner");
+        } finally {
+            setIsSaving(false);
         }
     };
     
@@ -300,10 +398,6 @@ const AdminPartnersPage = () => {
                             Maintenance
                         </Button>
                     </div>
-                    <Button variant="outline" className="whitespace-nowrap">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
-                    </Button>
                 </div>
                 {/* Action Buttons Section */}
                 {selectedPartners.length > 0 && (
@@ -315,9 +409,19 @@ const AdminPartnersPage = () => {
                             variant="outline"
                             className="gap-2 bg-red-500 hover:bg-red-600 text-white hover:text-white"
                             onClick={handleDelete}
+                            disabled={isDeleting}
                         >
+                            {isDeleting ? (
+                                <>
+                                    <RefreshCw className="size-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
                             <Trash className="size-4" />
                             Delete
+                                </>
+                            )}
                         </Button>
                         <Button
                             variant="outline"
@@ -331,9 +435,19 @@ const AdminPartnersPage = () => {
                             variant="primary"
                             className="gap-2"
                             onClick={handleRefreshAPI}
+                            disabled={isRefreshing}
                         >
+                            {isRefreshing ? (
+                                <>
+                                    <RefreshCw className="size-4 animate-spin" />
+                                    Refreshing...
+                                </>
+                            ) : (
+                                <>
                             <RefreshCw className="size-4" />
                             Refresh API
+                                </>
+                            )}
                         </Button>
                     </div>
                 )}
@@ -492,26 +606,14 @@ const AdminPartnersPage = () => {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => handleViewPartner(partner)}
-                                            >
-                                                View
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
                                                 onClick={() => handleEditPartner(partner)}
+                                                disabled={isActionLoading}
                                             >
+                                                {isActionLoading ? (
+                                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                                ) : (
                                                 <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setCurrentPartner(partner);
-                                                    toast.info("API settings modal would open here");
-                                                }}
-                                            >
-                                                <Settings className="h-4 w-4" />
+                                                )}
                                             </Button>
                                         </div>
                                     </TableCell>
@@ -577,12 +679,14 @@ const AdminPartnersPage = () => {
                                             <div>
                                                 <span className="text-sm font-medium">API Key:</span>
                                                 <span className="ml-2">
-                                                    {currentPartner.apiKey ? "••••••••••••" : "Not set"}
-                                                    <Button variant="outline" size="sm" className="ml-2">
-                                                        Reveal
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" className="ml-2">
-                                                        Regenerate
+                                                    {apiKeyRevealed ? apiKey : "••••••••••••"}
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        className="ml-2"
+                                                        onClick={handleRevealApiKey}
+                                                    >
+                                                        {apiKeyRevealed ? "Hide" : "Reveal"}
                                                     </Button>
                                                 </span>
                                             </div>
@@ -688,8 +792,15 @@ const AdminPartnersPage = () => {
                                     {isEditing ? "Cancel" : "Close"}
                                 </Button>
                                 {isEditing && (
-                                    <Button variant="primary" onClick={handleSavePartner}>
-                                        Save Changes
+                                    <Button variant="primary" onClick={handleSavePartner} disabled={isSaving}>
+                                        {isSaving ? (
+                                            <>
+                                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            "Save Changes"
+                                        )}
                                     </Button>
                                 )}
                             </DialogFooter>
@@ -700,29 +811,265 @@ const AdminPartnersPage = () => {
 
             {/* Add Partner Modal */}
             <Dialog open={showAddPartnerModal} onOpenChange={setShowAddPartnerModal}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add New Shipping Partner</DialogTitle>
                     </DialogHeader>
                     
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Basic Information */}
                     <div className="space-y-4">
-                        <p className="text-sm text-gray-500">
-                            This would typically include a form to add a new shipping partner. 
-                            For brevity, we've omitted the full form implementation.
-                        </p>
-                        
-                        <div className="bg-yellow-50 p-4 rounded-md">
-                            <p className="text-sm text-yellow-700">
-                                In a real implementation, this would include fields for:
-                            </p>
-                            <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside">
-                                <li>Partner name and contact information</li>
-                                <li>API integration details</li>
-                                <li>Service coverage and types</li>
-                                <li>Rate card configuration</li>
-                                <li>Weight and dimension limits</li>
-                                <li>Tracking URL format</li>
-                            </ul>
+                                <h3 className="text-sm font-medium text-gray-500">Basic Information</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="name">Partner Name *</Label>
+                                        <Input
+                                            id="name"
+                                            value={newPartner.name}
+                                            onChange={(e) => {
+                                                setNewPartner(prev => ({ ...prev, name: e.target.value }));
+                                                if (formErrors.name) {
+                                                    setFormErrors(prev => ({ ...prev, name: "" }));
+                                                }
+                                            }}
+                                            placeholder="Enter partner name"
+                                            className={formErrors.name ? "border-red-500" : ""}
+                                        />
+                                        {formErrors.name && (
+                                            <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="supportEmail">Support Email *</Label>
+                                        <Input
+                                            id="supportEmail"
+                                            type="email"
+                                            value={newPartner.supportEmail}
+                                            onChange={(e) => {
+                                                setNewPartner(prev => ({ ...prev, supportEmail: e.target.value }));
+                                                if (formErrors.supportEmail) {
+                                                    setFormErrors(prev => ({ ...prev, supportEmail: "" }));
+                                                }
+                                            }}
+                                            placeholder="Enter support email"
+                                            className={formErrors.supportEmail ? "border-red-500" : ""}
+                                        />
+                                        {formErrors.supportEmail && (
+                                            <p className="text-sm text-red-500 mt-1">{formErrors.supportEmail}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="supportContact">Support Contact</Label>
+                                        <Input
+                                            id="supportContact"
+                                            value={newPartner.supportContact}
+                                            onChange={(e) => setNewPartner(prev => ({ ...prev, supportContact: e.target.value }))}
+                                            placeholder="Enter support contact"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="apiStatus">API Status</Label>
+                                        <Select
+                                            value={newPartner.apiStatus}
+                                            onValueChange={(value: ApiStatus) => setNewPartner(prev => ({ ...prev, apiStatus: value }))}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="active">Active</SelectItem>
+                                                <SelectItem value="inactive">Inactive</SelectItem>
+                                                <SelectItem value="maintenance">Maintenance</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* API Configuration */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-medium text-gray-500">API Configuration</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="apiEndpoint">API Endpoint</Label>
+                                        <Input
+                                            id="apiEndpoint"
+                                            value={newPartner.apiEndpoint}
+                                            onChange={(e) => setNewPartner(prev => ({ ...prev, apiEndpoint: e.target.value }))}
+                                            placeholder="Enter API endpoint"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="trackingUrl">Tracking URL</Label>
+                                        <Input
+                                            id="trackingUrl"
+                                            value={newPartner.trackingUrl}
+                                            onChange={(e) => setNewPartner(prev => ({ ...prev, trackingUrl: e.target.value }))}
+                                            placeholder="Enter tracking URL"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Service Configuration */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-medium text-gray-500">Service Configuration</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="serviceTypes">Service Types</Label>
+                                        <Input
+                                            id="serviceTypes"
+                                            value={newPartner.serviceTypes?.join(", ")}
+                                            onChange={(e) => setNewPartner(prev => ({ 
+                                                ...prev, 
+                                                serviceTypes: e.target.value.split(",").map(type => type.trim() as ServiceType)
+                                            }))}
+                                            placeholder="Enter service types (comma-separated)"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="serviceAreas">Service Areas</Label>
+                                        <Input
+                                            id="serviceAreas"
+                                            value={newPartner.serviceAreas?.join(", ")}
+                                            onChange={(e) => setNewPartner(prev => ({ 
+                                                ...prev, 
+                                                serviceAreas: e.target.value.split(",").map(area => area.trim())
+                                            }))}
+                                            placeholder="Enter service areas (comma-separated)"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Weight & Dimensions */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-medium text-gray-500">Weight & Dimensions</h3>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="minWeight">Min Weight (kg)</Label>
+                                            <Input
+                                                id="minWeight"
+                                                type="number"
+                                                value={newPartner.weightLimits?.min}
+                                                onChange={(e) => setNewPartner(prev => ({ 
+                                                    ...prev, 
+                                                    weightLimits: { ...prev.weightLimits!, min: Number(e.target.value) }
+                                                }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="maxWeight">Max Weight (kg)</Label>
+                                            <Input
+                                                id="maxWeight"
+                                                type="number"
+                                                value={newPartner.weightLimits?.max}
+                                                onChange={(e) => setNewPartner(prev => ({ 
+                                                    ...prev, 
+                                                    weightLimits: { ...prev.weightLimits!, max: Number(e.target.value) }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="maxLength">Max Length (cm)</Label>
+                                            <Input
+                                                id="maxLength"
+                                                type="number"
+                                                value={newPartner.dimensionLimits?.maxLength}
+                                                onChange={(e) => setNewPartner(prev => ({ 
+                                                    ...prev, 
+                                                    dimensionLimits: { ...prev.dimensionLimits!, maxLength: Number(e.target.value) }
+                                                }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="maxWidth">Max Width (cm)</Label>
+                                            <Input
+                                                id="maxWidth"
+                                                type="number"
+                                                value={newPartner.dimensionLimits?.maxWidth}
+                                                onChange={(e) => setNewPartner(prev => ({ 
+                                                    ...prev, 
+                                                    dimensionLimits: { ...prev.dimensionLimits!, maxWidth: Number(e.target.value) }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="maxHeight">Max Height (cm)</Label>
+                                            <Input
+                                                id="maxHeight"
+                                                type="number"
+                                                value={newPartner.dimensionLimits?.maxHeight}
+                                                onChange={(e) => setNewPartner(prev => ({ 
+                                                    ...prev, 
+                                                    dimensionLimits: { ...prev.dimensionLimits!, maxHeight: Number(e.target.value) }
+                                                }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="maxSum">Max Sum (L+W+H)</Label>
+                                            <Input
+                                                id="maxSum"
+                                                type="number"
+                                                value={newPartner.dimensionLimits?.maxSum}
+                                                onChange={(e) => setNewPartner(prev => ({ 
+                                                    ...prev, 
+                                                    dimensionLimits: { ...prev.dimensionLimits!, maxSum: Number(e.target.value) }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Rate Configuration */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-medium text-gray-500">Rate Configuration</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="baseRate">Base Rate (₹)</Label>
+                                        <Input
+                                            id="baseRate"
+                                            type="number"
+                                            value={newPartner.rates?.baseRate}
+                                            onChange={(e) => setNewPartner(prev => ({ 
+                                                ...prev, 
+                                                rates: { ...prev.rates!, baseRate: Number(e.target.value) }
+                                            }))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="weightRate">Weight Rate (₹/kg)</Label>
+                                        <Input
+                                            id="weightRate"
+                                            type="number"
+                                            value={newPartner.rates?.weightRate}
+                                            onChange={(e) => setNewPartner(prev => ({ 
+                                                ...prev, 
+                                                rates: { ...prev.rates!, weightRate: Number(e.target.value) }
+                                            }))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="dimensionalFactor">Dimensional Factor</Label>
+                                        <Input
+                                            id="dimensionalFactor"
+                                            type="number"
+                                            value={newPartner.rates?.dimensionalFactor}
+                                            onChange={(e) => setNewPartner(prev => ({ 
+                                                ...prev, 
+                                                rates: { ...prev.rates!, dimensionalFactor: Number(e.target.value) }
+                                            }))}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -730,8 +1077,15 @@ const AdminPartnersPage = () => {
                         <Button variant="outline" onClick={() => setShowAddPartnerModal(false)}>
                             Cancel
                         </Button>
-                        <Button variant="primary" onClick={handleSavePartner}>
-                            Add Partner
+                        <Button variant="primary" onClick={handleSavePartner} disabled={isSaving}>
+                            {isSaving ? (
+                                <>
+                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Add Partner"
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

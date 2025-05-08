@@ -27,7 +27,7 @@ import {
     RefreshCw
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -304,6 +304,14 @@ const AdminTeamProfilePage = () => {
     // Simulate a current logged-in admin (for demo purposes)
     const currentAdmin = ADMIN_USERS[0]; // Assume first admin (super admin) is logged in
     
+    // Document upload state
+    const [documents, setDocuments] = useState({
+        idProof: null as null | { name: string; url: string },
+        employmentContract: null as null | { name: string; url: string },
+    });
+    const idProofInputRef = useRef<HTMLInputElement>(null);
+    const employmentContractInputRef = useRef<HTMLInputElement>(null);
+
     // Fetch user data
     useEffect(() => {
         const fetchData = async () => {
@@ -451,7 +459,31 @@ const AdminTeamProfilePage = () => {
     };
 
     // Determine if current user can manage permissions
-    const canManagePermissions = currentAdmin.isSuperAdmin && (userData && currentAdmin.id !== userData.id);
+    const canManagePermissions = currentAdmin.isSuperAdmin;
+
+    const handleUploadClick = (docType: 'idProof' | 'employmentContract') => {
+        if (docType === "idProof") idProofInputRef.current?.click();
+        if (docType === "employmentContract") employmentContractInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, docType: 'idProof' | 'employmentContract') => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setDocuments((prev) => ({
+                ...prev,
+                [docType]: { name: file.name, url },
+            }));
+            // TODO: Upload to backend here if needed
+        }
+    };
+
+    const handleViewDocument = (docType: 'idProof' | 'employmentContract') => {
+        const doc = documents[docType];
+        if (doc && doc.url) {
+            window.open(doc.url, "_blank");
+        }
+    };
 
     if (loading) {
         return (
@@ -810,15 +842,29 @@ const AdminTeamProfilePage = () => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" className="text-xs h-8">
+                                        <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleViewDocument('idProof')} disabled={!documents.idProof}>
                                             <Download className="h-3 w-3 mr-1" />
                                             View
                                         </Button>
                                         {canEdit && isEditing && (
-                                            <Button variant="outline" size="sm" className="text-xs h-8 text-purple-600 border-purple-200 hover:bg-purple-50">
-                                                <UploadCloud className="h-3 w-3 mr-1" />
-                                                Upload
-                                            </Button>
+                                            <>
+                                                <input
+                                                    type="file"
+                                                    ref={idProofInputRef}
+                                                    style={{ display: "none" }}
+                                                    onChange={(e) => handleFileChange(e, "idProof")}
+                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                />
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-xs h-8 text-purple-600 border-purple-200 hover:bg-purple-50"
+                                                    onClick={() => handleUploadClick("idProof")}
+                                                >
+                                                    <UploadCloud className="h-3 w-3 mr-1" />
+                                                    Upload
+                                                </Button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -834,15 +880,29 @@ const AdminTeamProfilePage = () => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" className="text-xs h-8">
+                                        <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleViewDocument('employmentContract')} disabled={!documents.employmentContract}>
                                             <Download className="h-3 w-3 mr-1" />
                                             View
                                         </Button>
                                         {canEdit && isEditing && (
-                                            <Button variant="outline" size="sm" className="text-xs h-8 text-purple-600 border-purple-200 hover:bg-purple-50">
-                                                <UploadCloud className="h-3 w-3 mr-1" />
-                                                Upload
-                                            </Button>
+                                            <>
+                                                <input
+                                                    type="file"
+                                                    ref={employmentContractInputRef}
+                                                    style={{ display: "none" }}
+                                                    onChange={(e) => handleFileChange(e, "employmentContract")}
+                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                />
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-xs h-8 text-purple-600 border-purple-200 hover:bg-purple-50"
+                                                    onClick={() => handleUploadClick("employmentContract")}
+                                                >
+                                                    <UploadCloud className="h-3 w-3 mr-1" />
+                                                    Upload
+                                                </Button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -1076,7 +1136,7 @@ const AdminTeamProfilePage = () => {
                                                 className="data-[state=checked]:bg-purple-600"
                                             />
                                         ) : (
-                                            <Badge className={permissions.dashboardAccess ? "bg-green-600" : "bg-gray-400"}>
+                                            <Badge variant={permissions.dashboardAccess ? "secondary" : "outline"}>
                                                 {permissions.dashboardAccess ? "Granted" : "Restricted"}
                                             </Badge>
                                         )}
@@ -1096,7 +1156,7 @@ const AdminTeamProfilePage = () => {
                                                 className="data-[state=checked]:bg-purple-600"
                                             />
                                         ) : (
-                                            <Badge className={permissions.userManagement ? "bg-green-600" : "bg-gray-400"}>
+                                            <Badge variant={permissions.userManagement ? "secondary" : "outline"}>
                                                 {permissions.userManagement ? "Granted" : "Restricted"}
                                             </Badge>
                                         )}

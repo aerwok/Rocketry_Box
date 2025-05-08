@@ -6,16 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { PolicyValues, policySchema } from "@/lib/validations/policy";
-import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ServiceFactory } from "@/services/service-factory";
 
-const PolicyEditPage = () => {
+const PolicyCreatePage = () => {
     const navigate = useNavigate();
-    const { slug } = useParams();
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
     const form = useForm<PolicyValues>({
         resolver: zodResolver(policySchema),
         defaultValues: {
@@ -28,91 +23,34 @@ const PolicyEditPage = () => {
             isPublished: true,
             requiredForSignup: false,
             template: "default",
-            version: "",
-            lastUpdated: "",
+            version: "1.0",
+            lastUpdated: new Date().toISOString().slice(0, 10),
         },
     });
 
-    useEffect(() => {
-        const fetchPolicy = async () => {
-            if (!slug) return;
-            
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                const response = await ServiceFactory.policies.getPolicyBySlug(slug);
-                const policy = response.data as PolicyValues;
-                
-                form.reset({
-                    title: policy.title,
-                    slug: policy.slug,
-                    content: policy.content,
-                    seoTitle: policy.seoTitle || "",
-                    seoDescription: policy.seoDescription || "",
-                    seoKeywords: policy.seoKeywords || "",
-                    isPublished: policy.isPublished,
-                    requiredForSignup: policy.requiredForSignup,
-                    template: policy.template,
-                    version: policy.version || "",
-                    lastUpdated: policy.lastUpdated || "",
-                });
-            } catch (err) {
-                console.error("Error fetching policy:", err);
-                setError("Failed to load policy. Please try again.");
-                toast.error("Failed to load policy");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchPolicy();
-    }, [slug, form]);
-
     const onSubmit = async (data: PolicyValues) => {
         try {
-            await ServiceFactory.policies.updatePolicy(slug!, data);
-            toast.success("Policy updated successfully");
+            // In development, just show a toast and navigate back
+            if (import.meta.env.MODE === "development") {
+                toast.success("Policy created (mock)");
+                navigate("/admin/dashboard/settings/policy");
+                return;
+            }
+            // TODO: Implement real API call when backend is available
+            await ServiceFactory.policies.createPolicy(data);
+            toast.success("Policy created successfully");
             navigate("/admin/dashboard/settings/policy");
         } catch (error) {
-            console.error("Error updating policy:", error);
-            toast.error("Failed to update policy");
+            console.error("Error creating policy:", error);
+            toast.error("Failed to create policy");
         }
     };
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                    <p className="mt-2 text-gray-600">Loading policy...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center">
-                    <p className="text-red-500">{error}</p>
-                    <Button
-                        variant="outline"
-                        onClick={() => navigate("/admin/dashboard/settings/policy")}
-                        className="mt-4"
-                    >
-                        Go Back
-                    </Button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6" data-color-mode="light">
             <div className="flex items-center justify-between">
                 <h1 className="text-xl lg:text-2xl font-semibold">
-                    Edit Policy
+                    Create Policy
                 </h1>
             </div>
 
@@ -233,7 +171,7 @@ const PolicyEditPage = () => {
                             Cancel
                         </Button>
                         <Button type="submit">
-                            Save Changes
+                            Create Policy
                         </Button>
                     </div>
                 </form>
@@ -242,4 +180,4 @@ const PolicyEditPage = () => {
     );
 };
 
-export default PolicyEditPage; 
+export default PolicyCreatePage; 

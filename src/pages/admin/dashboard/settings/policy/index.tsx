@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Edit, Search, Settings, Trash2, Plus, FileText, Clock } from "lucide-react";
+import { Edit, Search, Trash2, Plus, FileText, Clock } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -175,15 +175,6 @@ const PolicySettings = () => {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="bg-[#6366F1] hover:bg-[#5659D9] text-white gap-2"
-                                            onClick={() => handleEdit(policy)}
-                                        >
-                                            <Settings className="size-4" />
-                                            SEO Setting
-                                        </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"

@@ -107,6 +107,7 @@ import LabelSettingsPage from "./pages/seller/dashboard/settings/labels";
 import ManageUsersPage from "./pages/seller/dashboard/settings/users";
 import WhatsAppSettingsPage from "./pages/seller/dashboard/settings/whatsapp";
 import ApiSettingsPage from "./pages/seller/dashboard/settings/api";
+import PolicyCreatePage from "./pages/admin/dashboard/settings/policy/create";
 
 const App = () => {
   return (
@@ -236,6 +237,7 @@ const App = () => {
             <Route path="settings/notification" element={<NotificationSettings />} />
             <Route path="settings/policy" element={<PolicySettings />} />
             <Route path="settings/policy/:slug/edit" element={<PolicyEditPage />} />
+            <Route path="settings/policy/create" element={<PolicyCreatePage />} />
             <Route path="settings/maintenance" element={<MaintenanceSettings />} />
           </Route>
         </Route>

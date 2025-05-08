@@ -2,14 +2,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/com
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/store/use-sidebar-store";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, UsersIcon, HeartHandshakeIcon, PackageIcon, ClipboardListIcon, SettingsIcon, AlertTriangleIcon, TruckIcon, Store, User, MessageSquare, AlertCircle, WalletIcon } from "lucide-react";
+import { LayoutDashboard, UsersIcon, HeartHandshakeIcon, PackageIcon, ClipboardListIcon, SettingsIcon, AlertTriangleIcon, TruckIcon, MessageSquare, AlertCircle, WalletIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useState } from "react";
 import Icons from "../shared/icons";
 
-
 const SIDEBAR_LINKS = [
+    {
+        icon: LayoutDashboard,
+        to: "/admin/dashboard",
+        label: "Dashboard",
+    },
     {
         icon: UsersIcon,
         to: "/admin/dashboard/users",
@@ -67,32 +69,9 @@ const SIDEBAR_LINKS = [
     },
 ];
 
-const DASHBOARD_LINKS = [
-    {
-        icon: Store,
-        to: "/admin/dashboard",
-        label: "Seller Dashboard",
-    },
-    {
-        icon: User,
-        to: "/admin/dashboard/customer",
-        label: "Customer Dashboard",
-    }
-];
-
 const AdminDashboardSidebar = () => {
-
     const { pathname } = useLocation();
-
     const isExpanded = useSidebarStore((state) => state.isExpanded);
-
-    const [openAccordion, setOpenAccordion] = useState<string | undefined>(
-        pathname.includes("/admin/dashboard") && !pathname.includes("/admin/dashboard/") ? "dashboard" : undefined
-    );
-
-    const isDashboardActive = pathname === "/admin/dashboard" || pathname === "/admin/dashboard/customer";
-    const isSellerDashboardActive = pathname === "/admin/dashboard";
-    const isCustomerDashboardActive = pathname === "/admin/dashboard/customer";
 
     return (
         <aside className={cn(
@@ -105,93 +84,7 @@ const AdminDashboardSidebar = () => {
                 isExpanded && "min-w-[256px]"
             )}>
                 <TooltipProvider delayDuration={0}>
-                    {/* Dashboard Accordion */}
-                    {!isExpanded ? (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Link
-                                    to="/admin/dashboard"
-                                    className={cn(
-                                        "group relative flex items-center justify-center size-10 rounded-lg hover:bg-main/10 mx-auto",
-                                        isDashboardActive && "bg-main/10"
-                                    )}
-                                >
-                                    <LayoutDashboard className={cn(
-                                        "h-5 w-5 text-muted-foreground group-hover:text-main",
-                                        isDashboardActive && "text-main"
-                                    )} />
-                                    <span className="sr-only">Dashboard</span>
-                                </Link>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                                Dashboard
-                            </TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        <div className="w-full">
-                            <Accordion
-                                type="single"
-                                collapsible
-                                value={openAccordion}
-                                onValueChange={setOpenAccordion}
-                                className="w-full"
-                            >
-                                <AccordionItem value="dashboard" className="border-none">
-                                    <AccordionTrigger
-                                        className={cn(
-                                            "group relative flex items-center justify-start px-3 h-10 w-full rounded-lg hover:bg-main/10 no-underline",
-                                            isDashboardActive && "bg-main/10"
-                                        )}
-                                    >
-                                        <LayoutDashboard className={cn(
-                                            "h-5 w-5 text-muted-foreground group-hover:text-main",
-                                            isDashboardActive && "text-main"
-                                        )} />
-                                        <span className={cn(
-                                            "ml-3 text-sm text-muted-foreground group-hover:text-main",
-                                            isDashboardActive && "text-main"
-                                        )}>
-                                            Dashboard
-                                        </span>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="pt-1 pb-0">
-                                        <div className="flex flex-col space-y-1 pl-8">
-                                            {DASHBOARD_LINKS.map((link) => {
-                                                const Icon = link.icon;
-                                                const isActive =
-                                                    (link.to === "/admin/dashboard" && isSellerDashboardActive) ||
-                                                    (link.to === "/admin/dashboard/customer" && isCustomerDashboardActive);
-
-                                                return (
-                                                    <Link
-                                                        key={link.label}
-                                                        to={link.to}
-                                                        className={cn(
-                                                            "group relative flex items-center px-3 h-10 w-full rounded-lg hover:bg-main/10",
-                                                            isActive && "bg-main/10"
-                                                        )}
-                                                    >
-                                                        <Icon className={cn(
-                                                            "h-4 w-4 text-muted-foreground group-hover:text-main",
-                                                            isActive && "text-main"
-                                                        )} />
-                                                        <span className={cn(
-                                                            "ml-3 text-sm text-muted-foreground group-hover:text-main",
-                                                            isActive && "text-main"
-                                                        )}>
-                                                            {link.label}
-                                                        </span>
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
-                        </div>
-                    )}
-
-                    {/* Other Sidebar Links */}
+                    {/* Sidebar Links */}
                     {SIDEBAR_LINKS.map((link) => {
                         const Icon = link.icon;
                         const isActive = pathname === link.to;
