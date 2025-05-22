@@ -14,12 +14,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRightIcon } from "lucide-react";
 import { primaryAddressSchema } from "@/lib/validations/primary-address";
 import { PrimaryAddressInput } from "@/lib/validations/primary-address";
+import { ServiceFactory } from "@/services/service-factory";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 interface PrimaryAddressProps {
     onSave: () => void;
 }
 
 const PrimaryAddress = ({ onSave }: PrimaryAddressProps) => {
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<PrimaryAddressInput>({
         resolver: zodResolver(primaryAddressSchema),
@@ -36,9 +40,63 @@ const PrimaryAddress = ({ onSave }: PrimaryAddressProps) => {
         },
     });
 
-    const onSubmit = (data: PrimaryAddressInput) => {
-        console.log(data);
-        onSave();
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await ServiceFactory.seller.profile.get();
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to fetch profile');
+                }
+
+                const profile = response.data;
+                if (profile.address) {
+                    form.reset({
+                        contactPersonName: profile.name || "",
+                        contactPersonEmail: profile.email || "",
+                        contactNumber: profile.phone || "",
+                        addressLine1: profile.address.street || "",
+                        addressLine2: profile.address.landmark || "",
+                        city: profile.address.city || "",
+                        state: profile.address.state || "",
+                        pincode: profile.address.postalCode || "",
+                        isBillingAndPickup: false
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                toast.error('Failed to fetch profile data');
+            }
+        };
+
+        fetchProfile();
+    }, [form]);
+
+    const onSubmit = async (data: PrimaryAddressInput) => {
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.profile.update({
+                address: {
+                    street: data.addressLine1,
+                    landmark: data.addressLine2,
+                    city: data.city,
+                    state: data.state,
+                    postalCode: data.pincode,
+                    country: "India"
+                }
+            });
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to update primary address');
+            }
+
+            toast.success('Primary address updated successfully');
+            onSave();
+        } catch (error) {
+            console.error('Error updating primary address:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to update primary address');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -230,9 +288,9 @@ const PrimaryAddress = ({ onSave }: PrimaryAddressProps) => {
                     </div>
 
                     <div className="flex justify-end">
-                        <Button type="submit" variant="purple">
-                            Save & Next
-                            <ArrowRightIcon className="size-4 ml-1" />
+                        <Button type="submit" variant="purple" disabled={isLoading}>
+                            {isLoading ? 'Saving...' : 'Save & Next'}
+                            {!isLoading && <ArrowRightIcon className="size-4 ml-1" />}
                         </Button>
                     </div>
                 </form>

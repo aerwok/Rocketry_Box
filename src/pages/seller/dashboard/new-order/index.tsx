@@ -32,6 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShippingOptionsModal } from "@/components/seller/shipping-options-modal";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { ServiceFactory } from "@/services/service-factory";
 
 const SellerNewOrderPage = () => {
     const navigate = useNavigate();
@@ -136,13 +137,21 @@ const SellerNewOrderPage = () => {
                 return;
             }
 
-            console.log("Form submitted successfully:", data);
-            
-            setTimeout(() => {
-                const dummyOrderId = `ORD-${Date.now().toString().slice(-6)}`;
-                setOrderId(dummyOrderId);
-                toast.success(`Order saved successfully with ID: ${dummyOrderId}`);
-            }, 1000);
+            const response = await ServiceFactory.shipping.calculateRates({
+                pickupPincode: data.pincode,
+                deliveryPincode: data.pincode,
+                paymentType: data.paymentType,
+                purchaseAmount: data.items.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0),
+                weight: data.weight || 0
+            });
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to create order');
+            }
+
+            const orderId = response.data.orderId;
+            setOrderId(orderId);
+            toast.success(`Order saved successfully with ID: ${orderId}`);
         } catch (error) {
             console.error("Error submitting form:", error);
             toast.error("Failed to save order");
@@ -185,6 +194,18 @@ const SellerNewOrderPage = () => {
             const result = await form.trigger(['pincode', 'city', 'state']);
 
             if (result) {
+                const response = await ServiceFactory.shipping.calculateRates({
+                    pickupPincode: pincode,
+                    deliveryPincode: pincode,
+                    paymentType: form.getValues('paymentType'),
+                    purchaseAmount: itemPrice,
+                    weight: itemWeight
+                });
+
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to calculate rates');
+                }
+
                 setShippingModalOpen(true);
             } else {
                 const errors = form.formState.errors;
@@ -250,10 +271,13 @@ const SellerNewOrderPage = () => {
         }
 
         try {
+            const formData = form.getValues();
+            const response = await ServiceFactory.shipping.bookShipment(formData.orderNumber);
 
-            // Make API call to create shipment
-            // const response = await createShipment(shipmentData);
-            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to create shipment');
+            }
+
             toast.success(`Order shipped with ${selectedShipping.courier}`);
             navigate('/seller/dashboard/orders');
         } catch (error) {
@@ -269,27 +293,23 @@ const SellerNewOrderPage = () => {
         }
 
         try {
-            // In a real application, this would be an API call to generate and download the invoice
-            // For now, we'll simulate the download with a timeout
-            toast.info("Generating invoice...");
+            const response = await ServiceFactory.shipping.printInvoice(orderId);
             
-            // Simulate API call delay
-            setTimeout(() => {
-                // Create a dummy PDF blob (in a real app, this would come from the server)
-                const dummyPdfBlob = new Blob(["This is a dummy invoice PDF"], { type: "application/pdf" });
-                const url = URL.createObjectURL(dummyPdfBlob);
-                
-                // Create a temporary link and trigger download
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `invoice-${orderId}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                
-                toast.success("Invoice downloaded successfully");
-            }, 1500);
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to generate invoice');
+            }
+
+            const blob = response.data;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `invoice-${orderId}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast.success("Invoice downloaded successfully");
         } catch (error) {
             console.error("Error downloading invoice:", error);
             toast.error("Failed to download invoice");
@@ -303,27 +323,23 @@ const SellerNewOrderPage = () => {
         }
 
         try {
-            // In a real application, this would be an API call to generate and download the shipping label
-            // For now, we'll simulate the download with a timeout
-            toast.info("Generating shipping label...");
+            const response = await ServiceFactory.shipping.printLabel(orderId);
             
-            // Simulate API call delay
-            setTimeout(() => {
-                // Create a dummy PDF blob (in a real app, this would come from the server)
-                const dummyPdfBlob = new Blob(["This is a dummy shipping label PDF"], { type: "application/pdf" });
-                const url = URL.createObjectURL(dummyPdfBlob);
-                
-                // Create a temporary link and trigger download
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `shipping-label-${orderId}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                
-                toast.success("Shipping label downloaded successfully");
-            }, 1500);
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to generate shipping label');
+            }
+
+            const blob = response.data;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `shipping-label-${orderId}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast.success("Shipping label downloaded successfully");
         } catch (error) {
             console.error("Error downloading shipping label:", error);
             toast.error("Failed to download shipping label");

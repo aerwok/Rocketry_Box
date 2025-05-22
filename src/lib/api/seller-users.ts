@@ -4,6 +4,11 @@
  */
 
 import { toast } from "sonner";
+import { ApiService } from '@/services/api.service';
+import { ApiResponse } from '@/types/api';
+import { User, UserFilters } from '@/types/user';
+
+const apiService = new ApiService();
 
 // Types
 export interface SellerTeamMember {
@@ -202,4 +207,53 @@ export const resetTeamMemberPassword = async (id: string): Promise<void> => {
     toast.error("Failed to reset password. Please try again.");
     throw error;
   }
+};
+
+export const sellerUsersApi = {
+    async getUsers(filters?: UserFilters): Promise<ApiResponse<User[]>> {
+        try {
+            const response = await apiService.get<User[]>('/seller/users', {
+                params: filters
+            });
+            return response;
+        } catch (error) {
+            throw new Error('Failed to fetch users');
+        }
+    },
+
+    async getUserById(id: string): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.get<User>(`/seller/users/${id}`);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to fetch user');
+        }
+    },
+
+    async createUser(userData: Partial<User>): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.post<User>('/seller/users', userData);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to create user');
+        }
+    },
+
+    async updateUser(id: string, userData: Partial<User>): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.put<User>(`/seller/users/${id}`, userData);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to update user');
+        }
+    },
+
+    async deleteUser(id: string): Promise<ApiResponse<void>> {
+        try {
+            const response = await apiService.delete(`/seller/users/${id}`);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to delete user');
+        }
+    }
 }; 

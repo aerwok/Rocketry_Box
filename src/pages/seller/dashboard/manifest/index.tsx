@@ -2,58 +2,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowUpDown, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ServiceFactory } from "@/services/service-factory";
+import { toast } from "sonner";
 
-const manifestData = [
-    {
-        manifestId: "MF123456",
-        date: "2024-03-15",
-        courier: "Blue Dart",
-        orders: "5",
-        pickupStatus: "Pending",
-        warehouse: "Mumbai Central",
-        status: "Processing"
-    },
-    {
-        manifestId: "MF123457",
-        date: "2024-03-15",
-        courier: "DTDC",
-        orders: "3",
-        pickupStatus: "Completed",
-        warehouse: "Delhi Hub",
-        status: "Completed"
-    },
-    {
-        manifestId: "MF123458",
-        date: "2024-03-14",
-        courier: "Delhivery",
-        orders: "7",
-        pickupStatus: "In Progress",
-        warehouse: "Bangalore Main",
-        status: "Processing"
-    },
-    {
-        manifestId: "MF123459",
-        date: "2024-03-14",
-        courier: "Blue Dart",
-        orders: "4",
-        pickupStatus: "Scheduled",
-        warehouse: "Chennai Central",
-        status: "Scheduled"
-    },
-    {
-        manifestId: "MF123460",
-        date: "2024-03-13",
-        courier: "DTDC",
-        orders: "6",
-        pickupStatus: "Completed",
-        warehouse: "Pune Hub",
-        status: "Completed"
-    }
-];
+interface ManifestData {
+    manifestId: string;
+    date: string;
+    courier: string;
+    orders: string;
+    pickupStatus: string;
+    warehouse: string;
+    status: string;
+}
 
 type SortConfig = {
-    key: keyof typeof manifestData[0] | null;
+    key: keyof ManifestData | null;
     direction: 'asc' | 'desc' | null;
 };
 
@@ -85,14 +49,13 @@ const getPickupStatusStyle = (status: string) => {
     }
 };
 
-const ManifestTable = ({ data }: { data: typeof manifestData }) => {
-
+const ManifestTable = ({ data, loading }: { data: ManifestData[], loading: boolean }) => {
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         key: null,
         direction: null,
     });
 
-    const handleSort = (key: keyof typeof manifestData[0]) => {
+    const handleSort = (key: keyof ManifestData) => {
         let direction: 'asc' | 'desc' | null = 'asc';
 
         if (sortConfig.key === key) {
@@ -120,7 +83,7 @@ const ManifestTable = ({ data }: { data: typeof manifestData }) => {
         });
     };
 
-    const getSortIcon = (key: keyof typeof manifestData[0]) => {
+    const getSortIcon = (key: keyof ManifestData) => {
         if (sortConfig.key !== key) {
             return <ArrowUpDown className="size-3" />;
         }
@@ -128,6 +91,37 @@ const ManifestTable = ({ data }: { data: typeof manifestData }) => {
     };
 
     const sortedData = getSortedData();
+
+    if (loading) {
+        return (
+            <div className="rounded-md border">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-[#F4F2FF] hover:bg-[#F4F2FF]">
+                            <TableHead className="min-w-[120px] whitespace-nowrap text-black">MANIFEST ID</TableHead>
+                            <TableHead className="min-w-[100px] whitespace-nowrap text-black">DATE</TableHead>
+                            <TableHead className="min-w-[120px] whitespace-nowrap text-black">COURIER</TableHead>
+                            <TableHead className="min-w-[100px] whitespace-nowrap text-black">ORDERS</TableHead>
+                            <TableHead className="min-w-[140px] whitespace-nowrap text-black">PICKUP STATUS</TableHead>
+                            <TableHead className="min-w-[140px] whitespace-nowrap text-black">WAREHOUSE</TableHead>
+                            <TableHead className="min-w-[100px] whitespace-nowrap text-black">STATUS</TableHead>
+                            <TableHead className="min-w-[50px] whitespace-nowrap text-black text-center">#</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell colSpan={8} className="text-center py-10">
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                                    <p className="text-gray-500">Loading manifests...</p>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
+        );
+    }
 
     return (
         <div className="rounded-md border">
@@ -256,38 +250,51 @@ const ManifestTable = ({ data }: { data: typeof manifestData }) => {
 };
 
 const SellerManifestPage = () => {
+    const [manifests, setManifests] = useState<ManifestData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
 
-    const [searchQuery, setSearchQuery] = useState<string>("");
+    const fetchManifests = async () => {
+        try {
+            setLoading(true);
+            const response = await ServiceFactory.seller.manifest.getManifests();
+            setManifests(response.data);
+        } catch (error) {
+            toast.error('Failed to fetch manifests');
+            console.error('Error fetching manifests:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchManifests();
+    }, []);
+
+    const filteredManifests = manifests.filter(manifest =>
+        manifest.manifestId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        manifest.courier.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        manifest.warehouse.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
-        <div className="space-y-8">
-            <h1 className="text-xl lg:text-2xl font-semibold">
-                Manifest
-            </h1>
-
-            <div className="overflow-hidden">
-                <div className="space-y-8">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pt-px">
-                        <div className="flex items-center gap-2 w-full">
-                            <div className="relative flex-1 px-px">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                                <Input
-                                    placeholder="Search by Manifest ID, Courier..."
-                                    className="pl-9 w-full bg-[#F8F7FF]"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                        </div>
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Manifest</h1>
+                <div className="flex gap-4">
+                    <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search manifests..."
+                            className="pl-8"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
-
-                    <div className="w-[calc(100vw-4rem)] lg:w-full -mr-4 lg:mr-0">
-                        <div className="w-full overflow-x-auto">
-                            <ManifestTable data={manifestData} />
-                        </div>
-                    </div>
+                    <Button>Create Manifest</Button>
                 </div>
             </div>
+            <ManifestTable data={filteredManifests} loading={loading} />
         </div>
     );
 };

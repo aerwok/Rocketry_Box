@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowUpDown, Search, MoreHorizontal, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowUpDown, Search, MoreHorizontal, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface Ticket {
     id: string;
@@ -24,8 +25,6 @@ type SortConfig = {
     direction: "asc" | "desc" | null;
 };
 
-const TICKETS_DATA: Ticket[] = [];
-
 const getStatusStyle = (status: Ticket["status"]) => {
     return {
         "New": "bg-blue-50 text-blue-700",
@@ -34,15 +33,14 @@ const getStatusStyle = (status: Ticket["status"]) => {
     }[status];
 };
 
-const TicketsTable = ({ data }: { data: Ticket[] }) => {
+const TicketsTable = ({ searchQuery }: { searchQuery: string }) => {
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         key: "createdAt",
         direction: "desc"
     });
 
-    const [tickets, setTickets] = useState<Ticket[]>(data);
-    const [filteredTickets, setFilteredTickets] = useState<Ticket[]>(data);
-    const [searchQuery] = useState("");
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
@@ -56,22 +54,13 @@ const TicketsTable = ({ data }: { data: Ticket[] }) => {
         const fetchTickets = async () => {
             setLoading(true);
             try {
-                // Replace with actual API endpoint
-                // const response = await fetch(`/api/tickets?page=${page}&pageSize=${pageSize}`);
-                // if (!response.ok) throw new Error('Failed to fetch tickets');
-                // const data = await response.json();
-                // setTickets(data.tickets);
-                // setTotalItems(data.totalCount);
-                
-                // Simulating API response while backend is not ready
-                setTimeout(() => {
-                    setTickets(TICKETS_DATA);
-                    setTotalItems(TICKETS_DATA.length);
-                    setLoading(false);
-                }, 800);
+                const response = await ServiceFactory.tickets.getTickets(page, pageSize);
+                setTickets(response.data.tickets);
+                setTotalItems(response.data.totalCount);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Unknown error occurred');
                 toast.error("Failed to load ticket data");
+            } finally {
                 setLoading(false);
             }
         };
@@ -141,15 +130,7 @@ const TicketsTable = ({ data }: { data: Ticket[] }) => {
                 )
             );
             
-            // Replace with actual API call
-            // const response = await fetch(`/api/tickets/${ticketId}/status`, {
-            //   method: 'PATCH',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify({ status: newStatus })
-            // });
-            
-            // if (!response.ok) throw new Error('Failed to update ticket status');
-            
+            await ServiceFactory.tickets.updateTicketStatus(ticketId, newStatus);
             toast.success(`Ticket status updated to ${newStatus}`);
         } catch (err) {
             // Revert on error
@@ -174,7 +155,7 @@ const TicketsTable = ({ data }: { data: Ticket[] }) => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
             </div>
         );
     }
@@ -395,7 +376,7 @@ const AdminTicketsPage = () => {
                 </div>
             </div>
 
-            <TicketsTable data={TICKETS_DATA} />
+            <TicketsTable searchQuery={searchQuery} />
         </div>
     );
 };

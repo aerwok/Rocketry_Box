@@ -4,6 +4,11 @@
  */
 
 import { toast } from "sonner";
+import { ApiService } from '@/services/api.service';
+import { ApiResponse } from '@/types/api';
+import { User, UserFilters } from '@/types/user';
+
+const apiService = new ApiService();
 
 // Types
 export interface SellerUser {
@@ -320,4 +325,71 @@ export const updateDocumentStatus = async (
     toast.error("Failed to update document status");
     throw error;
   }
+};
+
+export const adminSellerApi = {
+    async getSellers(filters?: UserFilters): Promise<ApiResponse<User[]>> {
+        try {
+            const response = await apiService.get<User[]>('/admin/sellers', {
+                params: filters
+            });
+            return response;
+        } catch (error) {
+            throw new Error('Failed to fetch sellers');
+        }
+    },
+
+    async getSellerById(id: string): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.get<User>(`/admin/sellers/${id}`);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to fetch seller');
+        }
+    },
+
+    async createSeller(sellerData: Partial<User>): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.post<User>('/admin/sellers', sellerData);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to create seller');
+        }
+    },
+
+    async updateSeller(id: string, sellerData: Partial<User>): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.put<User>(`/admin/sellers/${id}`, sellerData);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to update seller');
+        }
+    },
+
+    async deleteSeller(id: string): Promise<ApiResponse<void>> {
+        try {
+            const response = await apiService.delete<void>(`/admin/sellers/${id}`);
+            return response;
+        } catch (error) {
+            throw new Error('Failed to delete seller');
+        }
+    },
+
+    async verifySellerDocuments(id: string, documentType: string, status: 'verified' | 'rejected'): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.put<User>(`/admin/sellers/${id}/documents/${documentType}`, { status });
+            return response;
+        } catch (error) {
+            throw new Error('Failed to verify seller documents');
+        }
+    },
+
+    async verifySellerBankDetails(id: string, bankId: string, status: 'verified' | 'rejected'): Promise<ApiResponse<User>> {
+        try {
+            const response = await apiService.put<User>(`/admin/sellers/${id}/bank-details/${bankId}`, { status });
+            return response;
+        } catch (error) {
+            throw new Error('Failed to verify seller bank details');
+        }
+    }
 }; 

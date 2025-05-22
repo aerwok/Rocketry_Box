@@ -22,11 +22,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface BulkDisputeUploadModalProps {
-    open: boolean;
-    onClose: () => void;
+    open?: boolean;
+    onClose?: () => void;
+    onUpload: (file: File) => Promise<void>;
 }
 
-const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) => {
+const BulkDisputeUploadModal = ({ open = false, onClose = () => {}, onUpload }: BulkDisputeUploadModalProps) => {
     
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -45,23 +46,7 @@ const BulkDisputeUploadModal = ({ open, onClose }: BulkDisputeUploadModalProps) 
 
         try {
             setIsUploading(true);
-            const formData = new FormData();
-            formData.append("file", selectedFile);
-
-            // TODO: Replace with actual API endpoint
-            // const response = await fetch("/api/disputes/bulk-upload", {
-            //     method: "POST",
-            //     body: formData,
-            // });
-
-            // if (response.ok) {
-            //     onClose();
-            // }
-
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // For now, just close the modal
+            await onUpload(selectedFile);
             toast.success("Dispute report uploaded successfully!");
             onClose();
         } catch (error) {

@@ -10,8 +10,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { useOrderData } from "@/hooks/useOrderData";
 import { Plus, Minus } from "lucide-react";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface OrderItem {
     sku: string;
@@ -19,6 +19,35 @@ interface OrderItem {
     quantity: number;
     weight: number;
     price: number;
+}
+
+interface OrderData {
+    orderId: string;
+    chanel: string;
+    payment: string;
+    customer: string;
+    contact: string;
+    email?: string;
+    address?: {
+        line1: string;
+        line2?: string;
+        landmark?: string;
+        city: string;
+        state: string;
+    };
+    pincode: string;
+    items: OrderItem[];
+    weight: string;
+    amount: string;
+    shippingCharge?: number;
+    codCharge?: number;
+    taxAmount?: number;
+    discount?: number;
+    dimensions?: {
+        length: number;
+        width: number;
+        height: number;
+    };
 }
 
 interface OrderFormData {
@@ -58,8 +87,6 @@ const EditOrderPage = () => {
     const [items, setItems] = useState<OrderItem[]>([
         { sku: "", name: "", quantity: 1, weight: 0, price: 0 }
     ]);
-
-    const { orders } = useOrderData();
 
     const formSchema = z.object({
         orderId: z.string().min(1, "Order ID is required"),
@@ -132,65 +159,68 @@ const EditOrderPage = () => {
 
     // Fetch and populate order data
     useEffect(() => {
-        if (id && orders) {
-            const orderToEdit = orders.find(order => order.orderId === id);
-            if (orderToEdit) {
-                const orderItems: OrderItem[] = orderToEdit.items.map(item => ({
+        const fetchOrderDetails = async () => {
+            if (!id) return;
+            
+            try {
+                setIsLoading(true);
+                const response = await ServiceFactory.seller.order.getDetails(id);
+                
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to fetch order details');
+                }
+
+                const orderData = response.data as OrderData;
+                const orderItems: OrderItem[] = orderData.items.map((item: OrderItem) => ({
                     sku: item.sku,
                     name: item.name,
                     quantity: item.quantity,
-                    weight: parseFloat(orderToEdit.weight),
+                    weight: parseFloat(orderData.weight),
                     price: item.price
                 }));
 
-                // Determine if this is a manual order or bulk order
-                const isManualOrder = orderToEdit.chanel === "MANUAL";
-                
-                // For manual orders, ensure only one item is shown
-                if (isManualOrder && orderItems.length > 1) {
-                    // Keep only the first item for manual orders
-                    orderItems.splice(1);
-                }
-
                 setItems(orderItems);
 
-                // Set form values
                 form.reset({
-                    orderId: orderToEdit.orderId,
-                    orderCreationType: isManualOrder ? "Single" : "Multiple",
+                    orderId: orderData.orderId,
+                    orderCreationType: orderData.chanel === "MANUAL" ? "Single" : "Multiple",
                     shipmentType: "Forward",
-                    paymentType: orderToEdit.payment === "COD" ? "COD" : "PAID",
+                    paymentType: orderData.payment === "COD" ? "COD" : "PAID",
                     shippingDetails: {
-                        fullName: orderToEdit.customer,
-                        contactNumber: orderToEdit.contact,
-                        emailAddress: `${orderToEdit.customer.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
-                        addressLine1: "123 Main Street",
-                        addressLine2: "Apartment 4B",
-                        landmark: "Near City Park",
-                        pincode: orderToEdit.pincode || "",
-                        city: "Mumbai",
-                        state: "Maharashtra"
+                        fullName: orderData.customer,
+                        contactNumber: orderData.contact,
+                        emailAddress: orderData.email || "",
+                        addressLine1: orderData.address?.line1 || "",
+                        addressLine2: orderData.address?.line2 || "",
+                        landmark: orderData.address?.landmark || "",
+                        pincode: orderData.pincode || "",
+                        city: orderData.address?.city || "",
+                        state: orderData.address?.state || ""
                     },
                     items: orderItems,
-                    shippingCharge: 0,
-                    codCharge: orderToEdit.payment === "COD" ? 50 : 0,
-                    taxAmount: 0,
-                    discount: 0,
+                    shippingCharge: orderData.shippingCharge || 0,
+                    codCharge: orderData.payment === "COD" ? (orderData.codCharge || 50) : 0,
+                    taxAmount: orderData.taxAmount || 0,
+                    discount: orderData.discount || 0,
                     dimensions: {
-                        length: 30,
-                        width: 20,
-                        height: 10,
-                        weight: parseFloat(orderToEdit.weight)
+                        length: orderData.dimensions?.length || 0,
+                        width: orderData.dimensions?.width || 0,
+                        height: orderData.dimensions?.height || 0,
+                        weight: parseFloat(orderData.weight) || 0
                     },
-                    totalAmount: parseFloat(orderToEdit.amount)
+                    totalAmount: parseFloat(orderData.amount) || 0
                 });
-            } else {
-                toast.error("Order not found");
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                toast.error('Failed to fetch order details');
                 navigate("/seller/dashboard/orders");
+            } finally {
+                setIsLoading(false);
             }
-        }
-        setIsLoading(false);
-    }, [id, orders, form, navigate]);
+        };
+
+        fetchOrderDetails();
+    }, [id, form, navigate]);
 
     const addItem = () => {
         const newItems = [...items, { sku: "", name: "", quantity: 1, weight: 0, price: 0 }];
@@ -204,14 +234,22 @@ const EditOrderPage = () => {
         form.setValue('items', newItems);
     };
 
-    const onSubmit = async (data: OrderFormData) => {
+    const onSubmit = async () => {
         try {
-            // TODO: Implement order update logic with your API
-            console.log("Updating order:", data);
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.updateStatus(id!, "processing");
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to update order');
+            }
+
             toast.success("Order updated successfully");
             navigate("/seller/dashboard/orders");
         } catch (error) {
+            console.error('Error updating order:', error);
             toast.error("Failed to update order");
+        } finally {
+            setIsLoading(false);
         }
     };
 

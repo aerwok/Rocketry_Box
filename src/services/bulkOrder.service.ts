@@ -60,6 +60,22 @@ export interface BulkOrderStatus {
     updatedAt: string;
 }
 
+export interface ReceivedOrder {
+    awb: string;
+    receivedAt: string;
+    receivedBy: string;
+    status: string;
+    notes: string;
+    items: {
+        name: string;
+        sku: string;
+        quantity: number;
+        price: number;
+        condition: string;
+        notes: string;
+    }[];
+}
+
 class BulkOrderService extends ApiService {
     private static instance: BulkOrderService;
     private readonly MAX_RETRIES = 3;
@@ -220,6 +236,40 @@ class BulkOrderService extends ApiService {
                         ...csrfHeader
                     }
                 }).then(response => response.json())
+            );
+        });
+    }
+
+    async getReceivedOrders(): Promise<ApiResponse<ReceivedOrder[]>> {
+        return this.retryWithBackoff(async () => {
+            const [authHeader, csrfHeader] = await Promise.all([
+                BulkOrderService.getAuthHeader(),
+                BulkOrderService.getCsrfHeader()
+            ]);
+            return BulkOrderService.handleRequest<ReceivedOrder[]>(
+                fetch('/api/seller/received-orders', {
+                    headers: {
+                        ...authHeader,
+                        ...csrfHeader
+                    }
+                }).then(response => response.json())
+            );
+        });
+    }
+
+    async downloadSampleTemplate(): Promise<ApiResponse<Blob>> {
+        return this.retryWithBackoff(async () => {
+            const [authHeader, csrfHeader] = await Promise.all([
+                BulkOrderService.getAuthHeader(),
+                BulkOrderService.getCsrfHeader()
+            ]);
+            return BulkOrderService.handleRequest<Blob>(
+                fetch('/api/seller/received-orders/template', {
+                    headers: {
+                        ...authHeader,
+                        ...csrfHeader
+                    }
+                }).then(response => response.blob())
             );
         });
     }

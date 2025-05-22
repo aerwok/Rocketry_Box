@@ -21,16 +21,6 @@ interface StatusButton {
     status: string;
 }
 
-// Default status buttons with static counts for development/fallback
-const defaultStatusButtons: StatusButton[] = [
-    { id: 6, label: "Manifested", count: 67, color: "bg-blue-500", status: "Booked" },
-    { id: 5, label: "Picked Up", count: 34, color: "bg-[#1AA1B7]", status: "Processing" },
-    { id: 4, label: "In Transit", count: 89, color: "bg-yellow-500", status: "In Transit" },
-    { id: 2, label: "Out for Delivery", count: 43, color: "bg-green-400", status: "Out for Delivery" },
-    { id: 1, label: "Delivered", count: 156, color: "bg-emerald-700", status: "Delivered" },
-    { id: 3, label: "Returned", count: 12, color: "bg-neutral-500", status: "Returned" },
-];
-
 // Function to fetch status counts from API
 async function fetchStatusCounts(): Promise<Record<string, number>> {
     try {
@@ -41,15 +31,14 @@ async function fetchStatusCounts(): Promise<Record<string, number>> {
         return data.counts;
     } catch (error) {
         console.error('Error fetching status counts:', error);
-        // Return empty counts as fallback
-        return {};
+        throw error;
     }
 }
 
 const CustomerHomePage = () => {
     const navigate = useNavigate();
     const [currentImage, setCurrentImage] = useState(0);
-    const [statusButtons, setStatusButtons] = useState<StatusButton[]>(defaultStatusButtons);
+    const [statusButtons, setStatusButtons] = useState<StatusButton[]>([]);
     const [loadingCounts, setLoadingCounts] = useState(false);
 
     useEffect(() => {
@@ -63,55 +52,25 @@ const CustomerHomePage = () => {
     // Fetch real-time status counts on component mount
     useEffect(() => {
         const getStatusCounts = async () => {
-            if (process.env.NODE_ENV === 'production') {
-                try {
-                    setLoadingCounts(true);
-                    const counts = await fetchStatusCounts();
-                    
-                    if (Object.keys(counts).length > 0) {
-                        // Update status buttons with real counts
-                        setStatusButtons(prevButtons => 
-                            prevButtons.map(button => ({
-                                ...button,
-                                count: counts[button.status] || 0
-                            }))
-                        );
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch status counts:", error);
-                } finally {
-                    setLoadingCounts(false);
-                }
-            } else {
-                // When in development, simulate API call
+            try {
                 setLoadingCounts(true);
+                const counts = await fetchStatusCounts();
                 
-                // Mock data calculation for development - simulate counts from orders array
-                await new Promise(resolve => setTimeout(resolve, 800));
-
-                // Get orders from another file or use defaults
-                try {
-                    // This is just for simulation - in development we use mock data
-                    const mockCounts: Record<string, number> = {
-                        "Booked": 4,
-                        "Processing": 2,
-                        "In Transit": 3,
-                        "Out for Delivery": 1,
-                        "Delivered": 5,
-                        "Returned": 2
-                    };
-                    
-                    setStatusButtons(prevButtons => 
-                        prevButtons.map(button => ({
-                            ...button,
-                            count: mockCounts[button.status] || button.count
-                        }))
-                    );
-                } catch (error) {
-                    console.error("Error simulating counts:", error);
-                } finally {
-                    setLoadingCounts(false);
-                }
+                // Update status buttons with real counts
+                setStatusButtons([
+                    { id: 6, label: "Manifested", count: counts["Booked"] || 0, color: "bg-blue-500", status: "Booked" },
+                    { id: 5, label: "Picked Up", count: counts["Processing"] || 0, color: "bg-[#1AA1B7]", status: "Processing" },
+                    { id: 4, label: "In Transit", count: counts["In Transit"] || 0, color: "bg-yellow-500", status: "In Transit" },
+                    { id: 2, label: "Out for Delivery", count: counts["Out for Delivery"] || 0, color: "bg-green-400", status: "Out for Delivery" },
+                    { id: 1, label: "Delivered", count: counts["Delivered"] || 0, color: "bg-emerald-700", status: "Delivered" },
+                    { id: 3, label: "Returned", count: counts["Returned"] || 0, color: "bg-neutral-500", status: "Returned" }
+                ]);
+            } catch (error) {
+                console.error("Failed to fetch status counts:", error);
+                // Set empty status buttons on error
+                setStatusButtons([]);
+            } finally {
+                setLoadingCounts(false);
             }
         };
         

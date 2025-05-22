@@ -13,8 +13,7 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
-import axios from 'axios';
-import { API_CONFIG } from '@/config/api.config';
+import { ServiceFactory } from "@/services/service-factory";
 
 interface Product {
     id: string;
@@ -26,60 +25,6 @@ interface Product {
     status: "Active" | "Inactive";
     lastUpdated: string;
 }
-
-// Fallback data if API fails or is unavailable
-const mockProducts: Product[] = [
-    {
-        id: "1",
-        name: "Premium Laptop",
-        sku: "LAP001",
-        category: "Electronics",
-        price: 49999,
-        stock: 50,
-        status: "Active",
-        lastUpdated: "2024-03-25"
-    },
-    {
-        id: "2",
-        name: "Wireless Mouse",
-        sku: "MOU001",
-        category: "Accessories",
-        price: 1799,
-        stock: 100,
-        status: "Active",
-        lastUpdated: "2024-03-25"
-    },
-    {
-        id: "3",
-        name: "Mechanical Keyboard",
-        sku: "KEY001",
-        category: "Accessories",
-        price: 4999,
-        stock: 30,
-        status: "Inactive",
-        lastUpdated: "2024-03-24"
-    },
-    {
-        id: "4",
-        name: "4K Monitor",
-        sku: "MON001",
-        category: "Electronics",
-        price: 29999,
-        stock: 20,
-        status: "Active",
-        lastUpdated: "2024-03-23"
-    },
-    {
-        id: "5",
-        name: "USB-C Hub",
-        sku: "HUB001",
-        category: "Accessories",
-        price: 2499,
-        stock: 75,
-        status: "Active",
-        lastUpdated: "2024-03-22"
-    }
-];
 
 const SellerProductsPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
@@ -100,26 +45,16 @@ const SellerProductsPage = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`${API_CONFIG.baseURL}/seller/products`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Add authentication headers if needed
-                }
-            });
+            const response = await ServiceFactory.seller.product.getProducts();
             
-            if (response.data?.success) {
-                setProducts(response.data.data);
-            } else {
-                throw new Error(response.data?.message || 'Failed to fetch products');
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to fetch products');
             }
+
+            setProducts(response.data);
         } catch (err) {
             console.error('Error fetching products:', err);
             setError('Failed to load products. Please try again later.');
-            // Fallback to mock data in development
-            if (process.env.NODE_ENV === 'development') {
-                setProducts(mockProducts);
-                toast.error('Using mock data - API connection failed');
-            }
         } finally {
             setIsLoading(false);
         }
@@ -153,23 +88,16 @@ const SellerProductsPage = () => {
         if (productToDelete) {
             try {
                 setIsLoading(true);
-                // Make API call to delete product
-                const response = await axios.delete(`${API_CONFIG.baseURL}/seller/products/${productToDelete.id}`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // Add authentication headers if needed
-                    }
-                });
+                const response = await ServiceFactory.seller.product.delete(productToDelete.id);
                 
-                if (response.data?.success) {
-                    // Update local state by removing the deleted product
-                    setProducts(prevProducts => 
-                        prevProducts.filter(p => p.id !== productToDelete.id)
-                    );
-                    toast.success(`Product "${productToDelete.name}" deleted successfully.`);
-                } else {
-                    throw new Error(response.data?.message || 'Failed to delete product');
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to delete product');
                 }
+
+                setProducts(prevProducts => 
+                    prevProducts.filter(p => p.id !== productToDelete.id)
+                );
+                toast.success(`Product "${productToDelete.name}" deleted successfully.`);
             } catch (err) {
                 console.error('Error deleting product:', err);
                 toast.error('Failed to delete product. Please try again.');
@@ -197,35 +125,25 @@ const SellerProductsPage = () => {
 
         try {
             setIsLoading(true);
-            // Make API call to upload Excel file
-            const response = await axios.post(`${API_CONFIG.baseURL}/seller/products/import`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    // Add authentication headers if needed
-                }
-            });
+            const response = await ServiceFactory.seller.product.import(formData);
             
-            if (response.data?.success) {
-                toast.success('Products imported successfully');
-                // Refresh product list
-                fetchProducts();
-                // Close upload dialog
-                setOpen(false);
-            } else {
-                throw new Error(response.data?.message || 'Failed to import products');
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to import products');
             }
+
+            toast.success('Products imported successfully');
+            fetchProducts();
+            setOpen(false);
         } catch (err) {
             console.error('Error uploading products:', err);
             toast.error('Failed to import products. Please check your file format and try again.');
         } finally {
             setIsLoading(false);
-            // Reset file input
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
     const handleSampleFile = () => {
-        // Create a workbook with sample headers
         const workbook = XLSX.utils.book_new();
         const headers = [
             "Product Name", 
@@ -237,7 +155,6 @@ const SellerProductsPage = () => {
             "Last Updated"
         ];
         
-        // Create empty rows for sample data
         const sampleData = [
             headers,
             ["Premium Laptop", "LAP001", "Electronics", "49999", "50", "Active", "2024-03-25"],
@@ -246,8 +163,6 @@ const SellerProductsPage = () => {
         
         const worksheet = XLSX.utils.aoa_to_sheet(sampleData);
         XLSX.utils.book_append_sheet(workbook, worksheet, "Sample Products");
-        
-        // Generate and download the Excel file
         XLSX.writeFile(workbook, "sample_products_sheet.xlsx");
         
         toast.success("Sample file downloaded successfully!");

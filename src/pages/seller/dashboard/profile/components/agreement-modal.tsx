@@ -16,6 +16,20 @@ interface AgreementVersion {
     publishedOn: string;
     ipAddress: string;
     status: "Accepted" | "Pending" | "Rejected";
+    content?: {
+        serviceProvider: {
+            name: string;
+            address: string;
+            email: string;
+        };
+        merchant: {
+            name: string;
+            address: string;
+            email: string;
+        };
+        merchantBusiness: string;
+        serviceProviderBusiness: string[];
+    };
 }
 
 interface AgreementModalProps {
@@ -70,9 +84,9 @@ const AgreementModal = ({ isOpen, onClose, agreement, onAccept, onReject }: Agre
 
                 <div className="space-y-6 py-4">
                     <p className="text-sm">
-                        This Merchant Agreement (the "Agreement") is made on February 22 2025, 5:26:32 pm
+                        This Merchant Agreement (the "Agreement") is made on {new Date(agreement.publishedOn).toLocaleString()}
                         <br />
-                        and effective from February 22 2025, 5:26:32 pm
+                        and effective from {new Date(agreement.publishedOn).toLocaleString()}
                     </p>
 
                     <div className="space-y-4">
@@ -81,13 +95,11 @@ const AgreementModal = ({ isOpen, onClose, agreement, onAccept, onReject }: Agre
                         </h3>
 
                         <p className="text-sm">
-                            Zipypost Tech Pvt Ltd, a company incorporated under the Companies Act,2013,
+                            {agreement.content?.serviceProvider.name}, a company incorporated under the Companies Act,2013,
                             <br />
-                            and having its registered Office at F-12/4, DLF-1, Golf Course Road,
+                            and having its registered Office at {agreement.content?.serviceProvider.address},
                             <br />
-                            New Fluid Gym, Gurgaon, Haryana, 122022,
-                            <br />
-                            duly represented by its Authorized Signatory having official E-Mail admin@zipypost.com
+                            duly represented by its Authorized Signatory having official E-Mail {agreement.content?.serviceProvider.email}
                             <br />
                             (hereinafter referred to as "Service Provider" which expression shall, unless it be repugnant to the subject or context thereof,
                             <br />
@@ -99,11 +111,11 @@ const AgreementModal = ({ isOpen, onClose, agreement, onAccept, onReject }: Agre
                         </h3>
 
                         <p className="text-sm">
-                            DWIVEDI COURIER, a Private Limited Company
+                            {agreement.content?.merchant.name}, a Private Limited Company
                             <br />
-                            and having its registered office at Seller tst tezt Noida UTTAR PRADESH - 201307,
+                            and having its registered office at {agreement.content?.merchant.address},
                             <br />
-                            duly represented by its Authorized Signatory having official E Mail seller mail
+                            duly represented by its Authorized Signatory having official E Mail {agreement.content?.merchant.email}
                             <br />
                             (hereinafter referred to as "Merchant" which expression shall, unless it be repugnant to the subject or context thereof,
                             <br />
@@ -120,15 +132,19 @@ const AgreementModal = ({ isOpen, onClose, agreement, onAccept, onReject }: Agre
 
                         <ul className="list-disc pl-6 space-y-2 text-sm">
                             <li>
-                                The Merchant is involved in the others business, among other things.
+                                The Merchant is involved in the {agreement.content?.merchantBusiness} business, among other things.
                             </li>
 
                             <li>
                                 The Service Provider is involved in the following verticals of logistics:
                                 <br />
-                                warehousing and fulfillment, e-commerce SaaS, logistics aggregation,
-                                <br />
-                                courier-related services, and other verticals.
+                                {agreement.content?.serviceProviderBusiness.map((business, index) => (
+                                    <span key={index}>
+                                        {business}
+                                        {index < (agreement.content?.serviceProviderBusiness.length || 0) - 1 ? ', ' : ''}
+                                        {index === (agreement.content?.serviceProviderBusiness.length || 0) - 2 ? ' and ' : ''}
+                                    </span>
+                                ))}
                             </li>
                         </ul>
                     </div>

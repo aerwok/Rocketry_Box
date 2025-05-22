@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface TeamMember {
     userId: string;
@@ -27,141 +28,6 @@ type SortConfig = {
     key: keyof TeamMember | null;
     direction: "asc" | "desc" | null;
 };
-
-// Dummy data for development - will be replaced with API data in production
-const TEAM_DATA: TeamMember[] = [
-    {
-        userId: "ADMIN001",
-        name: "John Doe",
-        email: "john.doe@rocketrybox.com",
-        role: "Admin",
-        registrationDate: "02/15/2023",
-        status: "Active",
-        phone: "+91 9876543210",
-        remarks: "Super admin with all privileges"
-    },
-    {
-        userId: "ADMIN002",
-        name: "Jane Smith",
-        email: "jane.smith@rocketrybox.com",
-        role: "Manager",
-        registrationDate: "03/22/2023",
-        status: "Active",
-        phone: "+91 9876543211",
-        remarks: "Finance department manager"
-    },
-    {
-        userId: "ADMIN003",
-        name: "Robert Johnson",
-        email: "robert.j@rocketrybox.com",
-        role: "Support",
-        registrationDate: "04/10/2023",
-        status: "Inactive",
-        phone: "+91 9876543212",
-        remarks: "Customer support specialist"
-    },
-    {
-        userId: "ADMIN004",
-        name: "Emily Davis",
-        email: "emily.d@rocketrybox.com",
-        role: "Agent",
-        registrationDate: "05/05/2023",
-        status: "On Leave",
-        phone: "+91 9876543213",
-        remarks: "Sales representative"
-    },
-    {
-        userId: "ADMIN005",
-        name: "Michael Wilson",
-        email: "michael.w@rocketrybox.com",
-        role: "Admin",
-        registrationDate: "06/18/2023",
-        status: "Active",
-        phone: "+91 9876543214",
-        remarks: "IT department admin"
-    },
-    {
-        userId: "ADMIN006",
-        name: "Sarah Thompson",
-        email: "sarah.t@rocketrybox.com",
-        role: "Manager",
-        registrationDate: "07/30/2023",
-        status: "Active",
-        phone: "+91 9876543215",
-        remarks: "Marketing team lead"
-    },
-    {
-        userId: "ADMIN007",
-        name: "David Brown",
-        email: "david.b@rocketrybox.com",
-        role: "Support",
-        registrationDate: "08/12/2023",
-        status: "Active",
-        phone: "+91 9876543216",
-        remarks: "Technical support specialist"
-    },
-    {
-        userId: "ADMIN008",
-        name: "Jessica Anderson",
-        email: "jessica.a@rocketrybox.com",
-        role: "Agent",
-        registrationDate: "09/25/2023",
-        status: "Active",
-        phone: "+91 9876543217",
-        remarks: "Customer acquisition agent"
-    },
-    {
-        userId: "ADMIN009",
-        name: "Thomas Miller",
-        email: "thomas.m@rocketrybox.com",
-        role: "Admin",
-        registrationDate: "10/08/2023",
-        status: "Inactive",
-        phone: "+91 9876543218",
-        remarks: "Logistics department admin"
-    },
-    {
-        userId: "ADMIN010",
-        name: "Sophia Garcia",
-        email: "sophia.g@rocketrybox.com",
-        role: "Manager",
-        registrationDate: "11/15/2023",
-        status: "Active",
-        phone: "+91 9876543219",
-        remarks: "Human resources manager"
-    }
-];
-
-// API functions for future implementation
-// --------------------------------------
-// async function fetchTeamMembers(): Promise<TeamMember[]> {
-//   try {
-//     const response = await fetch('/api/admin/team');
-//     if (!response.ok) throw new Error('Failed to fetch team members');
-//     
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error('Error fetching team members:', error);
-//     throw error;
-//   }
-// }
-//
-// async function updateTeamMemberStatus(userId: string, status: TeamMember["status"]): Promise<void> {
-//   try {
-//     const response = await fetch(`/api/admin/team/${userId}/status`, {
-//       method: 'PATCH',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ status })
-//     });
-//     
-//     if (!response.ok) throw new Error('Failed to update team member status');
-//   } catch (error) {
-//     console.error('Error updating team member status:', error);
-//     throw error;
-//   }
-// }
-// --------------------------------------
 
 const getStatusStyle = (status: TeamMember["status"]) => {
     return {
@@ -413,14 +279,8 @@ const AdminTeamsPage = () => {
                 setLoading(true);
                 setError(null);
                 
-                // When API is ready, this would be:
-                // const data = await fetchTeamMembers();
-                
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 800));
-                
-                // Use dummy data for development
-                setTeamMembers(TEAM_DATA);
+                const response = await ServiceFactory.admin.getTeamMembers();
+                setTeamMembers(response.data);
             } catch (err) {
                 console.error("Error fetching team members:", err);
                 setError("Failed to load team members. Please try again.");
@@ -436,10 +296,7 @@ const AdminTeamsPage = () => {
         try {
             setStatusUpdateLoading(true);
             
-            // When API is ready, this would be:
-            // await updateTeamMemberStatus(userId, newStatus);
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await ServiceFactory.admin.updateTeamMemberStatus(userId, newStatus);
             
             // Update local state
             setTeamMembers(prevMembers => 

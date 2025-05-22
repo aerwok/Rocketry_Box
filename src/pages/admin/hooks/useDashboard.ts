@@ -55,7 +55,7 @@ export const useDashboard = () => {
                 });
 
             // Fetch orders
-            dashboardService.getRecentOrders(filters)
+            dashboardService.getRecentOrders()
                 .then(orders => {
                     setState(prev => ({
                         ...prev,

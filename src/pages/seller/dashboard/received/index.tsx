@@ -1,65 +1,155 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, FileSpreadsheet, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import * as XLSX from 'xlsx';
+import { bulkOrderService } from "@/services/bulkOrder.service";
 
 interface UploadedFile {
     name: string;
     size: number;
     status: 'uploading' | 'success' | 'error';
     progress: number;
+    error?: string;
 }
 
-// Sample AWB data for the Excel file
-const sampleAwbData = [
-    { awb: "8044601751" },
-    { awb: "8044601752" },
-    { awb: "8044601621" },
-    { awb: "8044601643" },
-    { awb: "8044601654" },
-    { awb: "8044601676" },
-    { awb: "8044601680" },
-    { awb: "8044603631" },
-];
+interface ReceivedOrder {
+    awb: string;
+    receivedAt: string;
+    receivedBy: string;
+    status: string;
+    notes: string;
+    items: {
+        name: string;
+        sku: string;
+        quantity: number;
+        price: number;
+        condition: string;
+        notes: string;
+    }[];
+}
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
 
 const SellerReceivedPage = () => {
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
     const [dragActive, setDragActive] = useState(false);
+    const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        fetchReceivedOrders();
+    }, []);
+
+    const fetchReceivedOrders = async () => {
+        try {
+            setIsLoading(true);
+            const response = await bulkOrderService.getReceivedOrders();
+            if (response.success) {
+                setReceivedOrders(response.data);
+            } else {
+                toast.error(response.message || 'Failed to fetch received orders');
+            }
+        } catch (error) {
+            console.error('Error fetching received orders:', error);
+            toast.error('Failed to fetch received orders');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const validateFile = (file: File): string | null => {
+        if (file.size > MAX_FILE_SIZE) {
+            return `File size exceeds 5MB limit`;
+        }
+        if (!['.xls', '.xlsx', '.csv'].some(ext => file.name.toLowerCase().endsWith(ext))) {
+            return `Invalid file format. Only .xls, .xlsx, and .csv files are allowed`;
+        }
+        return null;
+    };
 
     const handleFileSelect = async (files: FileList | null) => {
         if (!files) return;
 
-        const newFiles: UploadedFile[] = Array.from(files).map(file => ({
-            name: file.name,
-            size: file.size,
-            status: 'uploading',
-            progress: 0
-        }));
+        const newFiles: UploadedFile[] = [];
+        const validFiles: File[] = [];
 
-        setUploadedFiles(prev => [...prev, ...newFiles]);
-
-        // Simulate file upload progress
-        for (let i = 0; i < newFiles.length; i++) {
-            const fileIndex = uploadedFiles.length + i;
-            for (let progress = 0; progress <= 100; progress += 10) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-                setUploadedFiles(prev => {
-                    const updated = [...prev];
-                    updated[fileIndex] = {
-                        ...updated[fileIndex],
-                        progress,
-                        status: progress === 100 ? 'success' : 'uploading'
-                    };
-                    return updated;
+        // Validate files first
+        for (const file of Array.from(files)) {
+            const error = validateFile(file);
+            if (error) {
+                newFiles.push({
+                    name: file.name,
+                    size: file.size,
+                    status: 'error',
+                    progress: 0,
+                    error
+                });
+            } else {
+                validFiles.push(file);
+                newFiles.push({
+                    name: file.name,
+                    size: file.size,
+                    status: 'uploading',
+                    progress: 0
                 });
             }
         }
 
-        toast.success("Files uploaded successfully!");
+        setUploadedFiles(prev => [...prev, ...newFiles]);
+
+        // Upload valid files
+        for (let i = 0; i < validFiles.length; i++) {
+            const file = validFiles[i];
+            const fileIndex = uploadedFiles.length + i;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await bulkOrderService.uploadBulkOrder(file, (progress: number) => {
+                    setUploadedFiles(prev => {
+                        const updated = [...prev];
+                        updated[fileIndex] = {
+                            ...updated[fileIndex],
+                            progress,
+                            status: progress === 100 ? 'success' : 'uploading'
+                        };
+                        return updated;
+                    });
+                });
+
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to upload file');
+                }
+
+                setUploadedFiles(prev => {
+                    const updated = [...prev];
+                    updated[fileIndex] = {
+                        ...updated[fileIndex],
+                        status: 'success',
+                        progress: 100
+                    };
+                    return updated;
+                });
+
+                toast.success(`File ${file.name} uploaded successfully!`);
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                setUploadedFiles(prev => {
+                    const updated = [...prev];
+                    updated[fileIndex] = {
+                        ...updated[fileIndex],
+                        status: 'error',
+                        error: error instanceof Error ? error.message : 'Failed to upload file'
+                    };
+                    return updated;
+                });
+                toast.error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        }
     };
 
     const handleDrag = (e: React.DragEvent) => {
@@ -79,21 +169,24 @@ const SellerReceivedPage = () => {
         handleFileSelect(e.dataTransfer.files);
     };
 
-    const handleDownloadSample = () => {
+    const handleDownloadSample = async () => {
         try {
-            // Create a new workbook
-            const workbook = XLSX.utils.book_new();
-            
-            // Convert the sample data to worksheet
-            const worksheet = XLSX.utils.json_to_sheet(sampleAwbData);
-            
-            // Add the worksheet to the workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet, "AWB Numbers");
-            
-            // Generate Excel file and trigger download
-            XLSX.writeFile(workbook, "sample_awb_list.xlsx");
-            
-            toast.success("Sample file downloaded successfully!");
+            const response = await bulkOrderService.downloadSampleTemplate();
+            if (response.success) {
+                // Create a blob from the response data
+                const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'received_orders_template.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                toast.success("Sample file downloaded successfully!");
+            } else {
+                throw new Error(response.message || 'Failed to download sample file');
+            }
         } catch (error) {
             console.error("Error downloading sample file:", error);
             toast.error("Failed to download sample file");
@@ -108,7 +201,7 @@ const SellerReceivedPage = () => {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-xl lg:text-2xl font-semibold">
-                    Received
+                    Received Orders
                 </h1>
                 <Button
                     variant="outline"
@@ -116,7 +209,7 @@ const SellerReceivedPage = () => {
                     onClick={handleDownloadSample}
                 >
                     <Download className="h-4 w-4" />
-                    Download Sample Excel
+                    Download Sample Template
                 </Button>
             </div>
 
@@ -188,6 +281,9 @@ const SellerReceivedPage = () => {
                                             }`}>
                                                 {file.status.charAt(0).toUpperCase() + file.status.slice(1)}
                                             </span>
+                                            {file.error && (
+                                                <p className="text-xs text-red-500 mt-1">{file.error}</p>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <Progress value={file.progress} className="w-[100px]" />
@@ -229,6 +325,55 @@ const SellerReceivedPage = () => {
                             </li>
                         </ul>
                     </div>
+
+                    {isLoading ? (
+                        <div className="text-center py-4">
+                            <p>Loading received orders...</p>
+                        </div>
+                    ) : receivedOrders.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>AWB</TableHead>
+                                    <TableHead>Received At</TableHead>
+                                    <TableHead>Received By</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Items</TableHead>
+                                    <TableHead>Notes</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {receivedOrders.map((order) => (
+                                    <TableRow key={order.awb}>
+                                        <TableCell>{order.awb}</TableCell>
+                                        <TableCell>{new Date(order.receivedAt).toLocaleString()}</TableCell>
+                                        <TableCell>{order.receivedBy}</TableCell>
+                                        <TableCell>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                order.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                                                order.status === 'Processing' ? 'bg-blue-100 text-blue-800' :
+                                                'bg-yellow-100 text-yellow-800'
+                                            }`}>
+                                                {order.status}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            {order.items.map((item, index) => (
+                                                <div key={index} className="text-sm">
+                                                    {item.name} ({item.quantity}) - {item.condition}
+                                                </div>
+                                            ))}
+                                        </TableCell>
+                                        <TableCell>{order.notes}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="text-center py-4">
+                            <p>No received orders found</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

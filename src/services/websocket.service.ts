@@ -1,8 +1,9 @@
 import { toast } from 'sonner';
 import { WebSocketMessage, WebSocketEvent } from '@/types/api';
+import { io, Socket } from 'socket.io-client';
 
 export class WebSocketService {
-  private socket: WebSocket | null = null;
+  private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectTimeout = 1000;
@@ -10,38 +11,43 @@ export class WebSocketService {
   private eventHandlers: Map<WebSocketEvent, ((data: any) => void)[]> = new Map();
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+    this.baseURL = import.meta.env.VITE_WS_URL || 'http://localhost:8000';
     this.connect();
   }
 
   connect() {
     try {
-      this.socket = new WebSocket(this.baseURL);
+      this.socket = io(this.baseURL, {
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        reconnectionDelay: this.reconnectTimeout,
+      });
 
-      this.socket.onopen = () => {
-        console.log('WebSocket connected');
+      this.socket.on('connect', () => {
+        console.log('Socket.IO connected');
         this.reconnectAttempts = 0;
-      };
+      });
 
-      this.socket.onclose = () => {
-        console.log('WebSocket disconnected');
+      this.socket.on('disconnect', () => {
+        console.log('Socket.IO disconnected');
         this.handleReconnect();
-      };
+      });
 
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+      this.socket.on('error', (error: Error) => {
+        console.error('Socket.IO error:', error);
+      });
 
-      this.socket.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage<any> = JSON.parse(event.data);
-          this.handleMessage(message);
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
-        }
-      };
+      // Handle all events
+      this.socket.onAny((event: string, data: unknown) => {
+        this.handleMessage({ 
+          event: event as WebSocketEvent, 
+          data, 
+          timestamp: new Date().toISOString() 
+        });
+      });
     } catch (error) {
-      console.error('Failed to connect to WebSocket:', error);
+      console.error('Failed to connect to Socket.IO:', error);
     }
   }
 
@@ -82,21 +88,16 @@ export class WebSocketService {
   }
 
   send(event: WebSocketEvent, data: any) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      const message: WebSocketMessage<any> = {
-        event,
-        data,
-        timestamp: new Date().toISOString(),
-      };
-      this.socket.send(JSON.stringify(message));
+    if (this.socket?.connected) {
+      this.socket.emit(event, data);
     } else {
-      console.warn('WebSocket is not connected');
+      console.warn('Socket.IO is not connected');
     }
   }
 
   disconnect() {
     if (this.socket) {
-      this.socket.close();
+      this.socket.disconnect();
       this.socket = null;
     }
   }

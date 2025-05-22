@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchSellers, updateSellerStatus, SellerUser } from "@/lib/api/admin-seller";
+import { ServiceFactory } from "@/services/service-factory";
 
 type UserStatus = "Active" | "Inactive" | "Pending" | "Suspended";
 type TabType = "seller" | "customers";
@@ -25,64 +26,28 @@ interface User {
     totalTransactions: number;
 }
 
-// Dummy data for customer users - Will be replaced with API data in production
-const BULK_CUSTOMER_DATA: User[] = [
-    {
-        id: "101",
-        userId: "CUSTOMER101",
-        name: "Emma Thompson",
-        email: "emma.t@example.com",
-        status: "Active",
-        registrationDate: "2023-03-18",
-        lastActive: "2023-10-25",
-        rechargeType: "Monthly",
-        totalTransactions: 42
-    },
-    {
-        id: "102",
-        userId: "CUSTOMER102",
-        name: "James Wilson",
-        email: "james.w@example.com",
-        status: "Active",
-        registrationDate: "2023-05-02",
-        lastActive: "2023-10-23",
-        rechargeType: "Regular",
-        totalTransactions: 27
-    },
-    {
-        id: "103",
-        userId: "CUSTOMER103",
-        name: "Olivia Martinez",
-        email: "olivia.m@example.com",
-        status: "Inactive",
-        registrationDate: "2023-02-11",
-        lastActive: "2023-06-15",
-        rechargeType: "Regular",
-        totalTransactions: 8
-    },
-    {
-        id: "104",
-        userId: "CUSTOMER104",
-        name: "William Garcia",
-        email: "william.g@example.com",
-        status: "Active",
-        registrationDate: "2023-07-29",
-        lastActive: "2023-10-26",
-        rechargeType: "Monthly",
-        totalTransactions: 31
-    },
-    {
-        id: "105",
-        userId: "CUSTOMER105",
-        name: "Sophia Rodriguez",
-        email: "sophia.r@example.com",
-        status: "Active",
-        registrationDate: "2023-09-08",
-        lastActive: "2023-10-24",
-        rechargeType: "Regular",
-        totalTransactions: 14
-    }
-];
+interface TeamMember {
+    id: string;
+    userId: string;
+    name: string;
+    email: string;
+    status: string;
+    createdAt: string;
+    lastActive: string;
+    paymentType: string;
+    totalTransactions: number;
+}
+
+interface TeamMembersResponse {
+    success: boolean;
+    message?: string;
+    data: {
+        users: TeamMember[];
+        pagination: {
+            totalResults: number;
+        };
+    };
+}
 
 const getStatusStyle = (status: UserStatus) => {
     return {
@@ -92,28 +57,6 @@ const getStatusStyle = (status: UserStatus) => {
         Suspended: "bg-red-50 text-red-700"
     }[status];
 };
-
-// API function for customers - for future implementation
-// async function fetchCustomers(page: number, pageSize: number, searchQuery: string, sortField: string, sortOrder: string): Promise<{users: User[], totalCount: number}> {
-//   try {
-//     const queryParams = new URLSearchParams({
-//       page: page.toString(),
-//       pageSize: pageSize.toString(),
-//       query: searchQuery,
-//       sortField,
-//       sortOrder
-//     });
-//     
-//     const response = await fetch(`/api/admin/customers?${queryParams}`);
-//     if (!response.ok) throw new Error('Failed to fetch customers');
-//     
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error('Error fetching customers:', error);
-//     throw error;
-//   }
-// }
 
 const AdminUsersPage = () => {
     const [activeTab, setActiveTab] = useState<TabType>("seller");
@@ -150,30 +93,32 @@ const AdminUsersPage = () => {
                     setSellers(data.sellers);
                     setTotalSellers(data.totalCount);
                 } else {
-                    // For customers, still use mock data for now
-                    // Simulate API call delay
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Fetch customers using the real API
+                    const response = await ServiceFactory.admin.getTeamMembers({
+                        page: currentPage,
+                        limit: pageSize,
+                        search: searchQuery,
+                        sortField,
+                        sortOrder,
+                        type: 'customer'
+                    }) as TeamMembersResponse;
                     
-                    // Filter by search query if provided
-                    const filteredData = searchQuery 
-                        ? BULK_CUSTOMER_DATA.filter(user => 
-                            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            user.userId.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
-                        : BULK_CUSTOMER_DATA;
-                    
-                    // Sort data
-                    const sortedData = [...filteredData].sort((a, b) => {
-                        const aValue = String(a[sortField] ?? "");
-                        const bValue = String(b[sortField] ?? "");
-                        return sortOrder === "asc"
-                            ? aValue.localeCompare(bValue)
-                            : bValue.localeCompare(aValue);
-                    });
-                    
-                    setCustomers(sortedData);
-                    setTotalCustomers(sortedData.length);
+                    if (response.success) {
+                        setCustomers(response.data.users.map((user: TeamMember) => ({
+                            id: user.id,
+                            userId: user.userId,
+                            name: user.name,
+                            email: user.email,
+                            status: user.status as UserStatus,
+                            registrationDate: user.createdAt,
+                            lastActive: user.lastActive,
+                            rechargeType: user.paymentType === 'monthly' ? 'Monthly' : 'Regular',
+                            totalTransactions: user.totalTransactions || 0
+                        })));
+                        setTotalCustomers(response.data.pagination.totalResults);
+                    } else {
+                        throw new Error(response.message || 'Failed to fetch customers');
+                    }
                 }
             } catch (err) {
                 setError("Failed to load users. Please try again.");
@@ -226,12 +171,28 @@ const AdminUsersPage = () => {
                 setSellers(data.sellers);
                 setTotalSellers(data.totalCount);
             } else {
-                // For customers, still use mock update for now
-                setCustomers(prevUsers => 
-                    prevUsers.map(user => 
-                        user.userId === userId ? { ...user, status: newStatus } : user
-                    )
-                );
+                // Update customer status using the real API
+                const response = await ServiceFactory.admin.updateTeamMember(userId, { status: newStatus });
+                
+                if (response.success) {
+                    // Refresh the customer list
+                    const refreshResponse = await ServiceFactory.admin.getTeamMembers() as TeamMembersResponse;
+                    
+                    if (refreshResponse.success) {
+                        setCustomers(refreshResponse.data.users.map((user: TeamMember) => ({
+                            id: user.id,
+                            userId: user.userId,
+                            name: user.name,
+                            email: user.email,
+                            status: user.status as UserStatus,
+                            registrationDate: user.createdAt,
+                            lastActive: user.lastActive,
+                            rechargeType: user.paymentType === 'monthly' ? 'Monthly' : 'Regular',
+                            totalTransactions: user.totalTransactions || 0
+                        })));
+                        setTotalCustomers(refreshResponse.data.pagination.totalResults);
+                    }
+                }
                 
                 toast.success(`User status updated to ${newStatus}`);
             }

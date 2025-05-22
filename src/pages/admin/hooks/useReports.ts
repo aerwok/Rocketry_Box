@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { 
-  reportsService, 
-  ReportStats, 
-  ReportChartData,
-  DeliveryPartnerShare,
-  ReportFilters
-} from "../services/reports.service";
+import { reportsService } from "../services/reports.service";
+import { ReportChartData, ReportFilters, ReportStats, DeliveryPartnerShare } from "../../../types/reports";
 
 interface ReportsState {
   loading: boolean;
@@ -52,65 +47,50 @@ export const useReports = () => {
     }));
 
     try {
-      // Fetch stats
-      reportsService.getReportStats()
-        .then(stats => {
-          setState(prev => ({
-            ...prev,
-            statsLoading: false,
-            stats
-          }));
-        })
-        .catch(error => {
-          setState(prev => ({
-            ...prev,
-            statsLoading: false,
-            error: error instanceof Error ? error.message : "Failed to fetch stats"
-          }));
-          toast.error("Failed to fetch report statistics");
-        });
-
       // Fetch revenue data
       reportsService.getRevenueData(filters)
-        .then(revenueData => {
+        .then(response => {
           setState(prev => ({
             ...prev,
             revenueLoading: false,
-            revenueData
+            revenueData: response.data
           }));
         })
-        .catch(error => {
+        .catch((error: Error) => {
           setState(prev => ({
             ...prev,
             revenueLoading: false,
-            error: error instanceof Error ? error.message : "Failed to fetch revenue data"
+            error: error.message || "Failed to fetch revenue data"
           }));
           toast.error("Failed to fetch revenue data");
         });
 
-      // Fetch delivery partner shares
-      reportsService.getDeliveryPartnerShares()
-        .then(deliveryPartners => {
+      // Fetch shipment data
+      reportsService.getShipmentData(filters)
+        .then(response => {
           setState(prev => ({
             ...prev,
             partnersLoading: false,
-            deliveryPartners,
-            filters
+            deliveryPartners: response.data.map(item => ({
+              name: item.time,
+              value: item.revenue,
+              fill: "#4FBAF0" // Default color for all items
+            }))
           }));
         })
-        .catch(error => {
+        .catch((error: Error) => {
           setState(prev => ({
             ...prev,
             partnersLoading: false,
-            error: error instanceof Error ? error.message : "Failed to fetch delivery partner data"
+            error: error.message || "Failed to fetch shipment data"
           }));
-          toast.error("Failed to fetch delivery partner data");
+          toast.error("Failed to fetch shipment data");
         });
 
       // Set overall loading to false when all data is loaded
       const checkAllLoaded = setInterval(() => {
         setState(prev => {
-          if (!prev.statsLoading && !prev.revenueLoading && !prev.partnersLoading) {
+          if (!prev.revenueLoading && !prev.partnersLoading) {
             clearInterval(checkAllLoaded);
             return { ...prev, loading: false };
           }
@@ -122,7 +102,6 @@ export const useReports = () => {
       setState(prev => ({
         ...prev,
         loading: false,
-        statsLoading: false,
         revenueLoading: false,
         partnersLoading: false,
         error: error instanceof Error ? error.message : "An error occurred"
@@ -142,7 +121,7 @@ export const useReports = () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
       
-      const blob = await reportsService.downloadReport(format);
+      const blob = await reportsService.downloadReport(state.filters, format);
       
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -159,7 +138,7 @@ export const useReports = () => {
       setState(prev => ({ ...prev, loading: false }));
       toast.error("Failed to download report");
     }
-  }, []);
+  }, [state.filters]);
 
   useEffect(() => {
     fetchReportsData(state.filters);

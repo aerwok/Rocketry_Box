@@ -7,22 +7,24 @@ import {
 } from "@/components/ui/dialog";
 import { XIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface BulkNDRUploadModalProps {
     open: boolean;
     onClose: () => void;
+    onUpload: (file: File) => Promise<void>;
 }
 
-const BulkNDRUploadModal = ({ open, onClose }: BulkNDRUploadModalProps) => {
-
+const BulkNDRUploadModal = ({ open, onClose, onUpload }: BulkNDRUploadModalProps) => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && file.size <= 10 * 1024 * 1024) { // 10MB limit
             setSelectedFile(file);
         } else {
-            alert("File size should be less than 10MB");
+            toast.error("File size should be less than 10MB");
         }
     };
 
@@ -30,23 +32,15 @@ const BulkNDRUploadModal = ({ open, onClose }: BulkNDRUploadModalProps) => {
         if (!selectedFile) return;
 
         try {
-            const formData = new FormData();
-            formData.append("file", selectedFile);
-
-            // TODO: Replace with actual API endpoint
-            // const response = await fetch("/api/ndr/bulk-upload", {
-            //     method: "POST",
-            //     body: formData,
-            // });
-
-            // if (response.ok) {
-            //     onClose();
-            // }
-
-            // For now, just close the modal
+            setIsUploading(true);
+            await onUpload(selectedFile);
+            toast.success("NDR data uploaded successfully");
             onClose();
         } catch (error) {
             console.error("Error uploading file:", error);
+            toast.error("Failed to upload NDR data");
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -109,8 +103,9 @@ const BulkNDRUploadModal = ({ open, onClose }: BulkNDRUploadModalProps) => {
                         <Button
                             variant="purple"
                             onClick={handleSave}
+                            disabled={!selectedFile || isUploading}
                         >
-                            Save
+                            {isUploading ? "Uploading..." : "Save"}
                         </Button>
                     </div>
                 </div>

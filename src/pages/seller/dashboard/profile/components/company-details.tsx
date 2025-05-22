@@ -19,12 +19,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { ServiceFactory } from "@/services/service-factory";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 interface CompanyDetailsProps {
     onSave: () => void;
 }
 
 const CompanyDetails = ({ onSave }: CompanyDetailsProps) => {
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<CompanyDetailsInput>({
         resolver: zodResolver(companyDetailsSchema),
@@ -43,9 +47,65 @@ const CompanyDetails = ({ onSave }: CompanyDetailsProps) => {
         },
     });
 
-    const onSubmit = (data: CompanyDetailsInput) => {
-        console.log(data);
-        onSave();
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await ServiceFactory.seller.profile.get();
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to fetch profile');
+                }
+
+                const profile = response.data;
+                form.reset({
+                    companyName: profile.companyName || "",
+                    sellerName: profile.name || "",
+                    email: profile.email || "",
+                    contactNumber: profile.phone || "",
+                    brandName: profile.brandName || "",
+                    website: profile.website || "",
+                    supportContact: profile.supportContact || "",
+                    supportEmail: profile.supportEmail || "",
+                    operationsEmail: profile.operationsEmail || "",
+                    financeEmail: profile.financeEmail || "",
+                    rechargeType: "wallet"
+                });
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                toast.error('Failed to fetch profile data');
+            }
+        };
+
+        fetchProfile();
+    }, [form]);
+
+    const onSubmit = async (data: CompanyDetailsInput) => {
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.profile.update({
+                companyName: data.companyName,
+                name: data.sellerName,
+                email: data.email,
+                phone: data.contactNumber,
+                brandName: data.brandName,
+                website: data.website,
+                supportContact: data.supportContact,
+                supportEmail: data.supportEmail,
+                operationsEmail: data.operationsEmail,
+                financeEmail: data.financeEmail
+            });
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to update company details');
+            }
+
+            toast.success('Company details updated successfully');
+            onSave();
+        } catch (error) {
+            console.error('Error updating company details:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to update company details');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -286,9 +346,9 @@ const CompanyDetails = ({ onSave }: CompanyDetailsProps) => {
                     </div>
 
                     <div className="flex justify-end">
-                        <Button type="submit" variant="purple">
-                            Save & Next
-                            <ArrowRightIcon className="size-4 ml-1" />
+                        <Button type="submit" variant="purple" disabled={isLoading}>
+                            {isLoading ? 'Saving...' : 'Save & Next'}
+                            {!isLoading && <ArrowRightIcon className="size-4 ml-1" />}
                         </Button>
                     </div>
                 </form>

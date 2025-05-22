@@ -1,10 +1,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link2Icon, User, Mail, Phone, Building2, CreditCard, FileText, MapPin, ScrollText } from "lucide-react";
-import { useState } from "react";
-import { useProfile } from "@/hooks/useProfile";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Agreement from "./components/agreement";
+import { ServiceFactory } from "@/services/service-factory";
+import { Seller } from "@/types/api";
 
 const STORE_LINKS = [
     { icon: "/icons/web.svg", label: "Website", placeholder: "Enter website URL" },
@@ -15,15 +16,46 @@ const STORE_LINKS = [
 
 const SellerProfilePage = () => {
     const [activeTab, setActiveTab] = useState("company-details");
-    const { profile, isLoading, error } = useProfile();
+    const [profile, setProfile] = useState<Seller | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+                const response = await ServiceFactory.seller.profile.get();
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to fetch profile');
+                }
+                setProfile(response.data as Seller);
+            } catch (err) {
+                console.error('Error fetching profile:', err);
+                setError(err instanceof Error ? err.message : 'Failed to fetch profile');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, []);
 
     const handleTabChange = (value: string) => {
         setActiveTab(value);
     };
 
-    const handleEditRequest = () => {
-        toast.info("Your edit request has been sent to the admin for approval");
-        // TODO: Implement edit request API call
+    const handleEditRequest = async () => {
+        try {
+            const response = await ServiceFactory.seller.profile.update({ editRequested: true });
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to send edit request');
+            }
+            toast.info("Your edit request has been sent to the admin for approval");
+        } catch (err) {
+            console.error('Error sending edit request:', err);
+            toast.error('Failed to send edit request. Please try again.');
+        }
     };
 
     if (isLoading) {

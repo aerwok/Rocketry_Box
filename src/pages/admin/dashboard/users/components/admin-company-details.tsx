@@ -19,6 +19,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useParams } from "react-router-dom";
+import { ServiceFactory } from "@/services/service-factory";
+import { useEffect } from "react";
 
 interface AdminCompanyDetailsProps {
     onSave: (message?: string) => void;
@@ -27,23 +29,41 @@ interface AdminCompanyDetailsProps {
 const AdminCompanyDetails = ({ onSave }: AdminCompanyDetailsProps) => {
     const { id } = useParams();
     
-    // Prefill with dummy data based on user type
-    const isSeller = id?.includes("SELLER");
-    
     const form = useForm<CompanyDetailsInput>({
         resolver: zodResolver(companyDetailsSchema),
         defaultValues: {
-            companyCategory: isSeller ? "private-limited" : "proprietorship",
-            companyName: isSeller ? "Smith Enterprises Ltd." : "Thompson Retail Inc.",
-            sellerName: isSeller ? "John Smith" : "Emma Thompson",
-            email: isSeller ? "john.smith@example.com" : "emma.t@example.com",
-            contactNumber: "+1 (555) 123-4567"
+            companyCategory: "",
+            companyName: "",
+            sellerName: "",
+            email: "",
+            contactNumber: ""
         },
     });
 
-    const onSubmit = (data: CompanyDetailsInput) => {
-        console.log(data);
-        onSave("Company details saved successfully");
+    useEffect(() => {
+        const fetchCompanyDetails = async () => {
+            if (!id) return;
+            try {
+                const response = await ServiceFactory.admin.getTeamMember(id);
+                const companyDetails = response.data.companyDetails;
+                if (companyDetails) {
+                    form.reset(companyDetails);
+                }
+            } catch (error) {
+                console.error('Failed to fetch company details:', error);
+            }
+        };
+        fetchCompanyDetails();
+    }, [id, form]);
+
+    const onSubmit = async (data: CompanyDetailsInput) => {
+        if (!id) return;
+        try {
+            await ServiceFactory.admin.updateTeamMember(id, { companyDetails: data });
+            onSave("Company details saved successfully");
+        } catch (error) {
+            console.error('Failed to save company details:', error);
+        }
     };
 
     return (

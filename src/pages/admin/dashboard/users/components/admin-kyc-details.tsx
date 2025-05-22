@@ -14,7 +14,8 @@ import { CheckIcon, FileIcon, Upload, XIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ServiceFactory } from "@/services/service-factory";
 
 // Define schema for KYC details
 const kycDetailsSchema = z.object({
@@ -42,22 +43,8 @@ const AdminKycDetails = ({ onSave }: AdminKycDetailsProps) => {
     // Track the current KYC status
     const [currentStatus, setCurrentStatus] = useState<"pending" | "approved" | "rejected">("pending");
     
-    // Simulate existing documents (in a real app, these would be loaded from an API)
-    const [panDocument] = useState({
-        name: "pan_card.jpg",
-        url: "https://example.com/documents/pan_card.jpg"
-    });
-    
-    const [aadharDocuments] = useState([
-        {
-            name: "aadhar_front.jpg",
-            url: "https://example.com/documents/aadhar_front.jpg"
-        },
-        {
-            name: "aadhar_back.jpg",
-            url: "https://example.com/documents/aadhar_back.jpg"
-        }
-    ]);
+    const [panDocument, setPanDocument] = useState<{ name: string; url: string } | null>(null);
+    const [aadharDocuments, setAadharDocuments] = useState<Array<{ name: string; url: string }>>([]);
     
     const form = useForm<KycDetailsInput>({
         resolver: zodResolver(kycDetailsSchema),
@@ -69,31 +56,45 @@ const AdminKycDetails = ({ onSave }: AdminKycDetailsProps) => {
         },
     });
 
-    const onSubmit = (data: KycDetailsInput, status: "approved" | "rejected") => {
-        // Set the status before saving
-        const updatedData = {
-            ...data,
-            kycStatus: status
+    useEffect(() => {
+        const fetchKycDetails = async () => {
+            if (!id) return;
+            try {
+                const response = await ServiceFactory.admin.getTeamMember(id);
+                const kycDetails = response.data.kycDetails;
+                if (kycDetails) {
+                    form.reset(kycDetails);
+                    setCurrentStatus(kycDetails.kycStatus);
+                    setPanDocument(kycDetails.panDocument);
+                    setAadharDocuments(kycDetails.aadharDocuments);
+                }
+            } catch (error) {
+                console.error('Failed to fetch KYC details:', error);
+            }
         };
-        
-        // Update the visible status
-        setCurrentStatus(status);
-        
-        console.log("Submitting with status:", status);
-        console.log(updatedData);
-        
-        // Call onSave with the appropriate status message
-        if (status === "approved") {
-            onSave("KYC documents approved successfully");
-        } else {
-            onSave("KYC documents rejected");
+        fetchKycDetails();
+    }, [id, form]);
+
+    const onSubmit = async (data: KycDetailsInput) => {
+        if (!id) return;
+        try {
+            await ServiceFactory.admin.updateTeamMember(id, { 
+                kycDetails: {
+                    ...data,
+                    panDocument,
+                    aadharDocuments
+                }
+            });
+            onSave("KYC details saved successfully");
+        } catch (error) {
+            console.error('Failed to save KYC details:', error);
         }
     };
 
     return (
         <div className="w-full">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => onSubmit(data, "approved"))} className="space-y-6">
+                <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
                             control={form.control}
@@ -200,7 +201,7 @@ const AdminKycDetails = ({ onSave }: AdminKycDetailsProps) => {
                                                 <div className="flex items-center gap-2 flex-1">
                                                     <FileIcon className="h-8 w-8 text-blue-500" />
                                                     <div>
-                                                        <p className="text-sm font-medium">{panDocument.name}</p>
+                                                        <p className="text-sm font-medium">{panDocument?.name}</p>
                                                         <p className="text-xs text-gray-500">Click to view</p>
                                                     </div>
                                                 </div>
@@ -361,7 +362,7 @@ const AdminKycDetails = ({ onSave }: AdminKycDetailsProps) => {
                             variant="destructive" 
                             onClick={() => {
                                 const data = form.getValues();
-                                onSubmit(data, "rejected");
+                                onSubmit(data);
                             }}
                         >
                             <XIcon className="size-4 mr-2" />
@@ -373,7 +374,7 @@ const AdminKycDetails = ({ onSave }: AdminKycDetailsProps) => {
                             className="bg-green-600 hover:bg-green-700 text-white"
                             onClick={() => {
                                 const data = form.getValues();
-                                onSubmit(data, "approved");
+                                onSubmit(data);
                             }}
                         >
                             <CheckIcon className="size-4 mr-2" />

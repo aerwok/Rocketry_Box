@@ -19,12 +19,16 @@ import {
 } from "@/components/ui/select";
 import { ArrowRightIcon } from "lucide-react";
 import { BankDetailsInput, bankDetailsSchema } from "@/lib/validations/bank-details";
+import { ServiceFactory } from "@/services/service-factory";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface BankDetailsProps {
     onSave: () => void;
 }
 
 const BankDetails = ({ onSave }: BankDetailsProps) => {
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<BankDetailsInput>({
         resolver: zodResolver(bankDetailsSchema),
@@ -38,9 +42,36 @@ const BankDetails = ({ onSave }: BankDetailsProps) => {
         },
     });
 
-    const onSubmit = (data: BankDetailsInput) => {
-        console.log(data);
-        onSave();
+    const onSubmit = async (data: BankDetailsInput) => {
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.profile.update({
+                bankDetails: [{
+                    bankName: data.bankName,
+                    accountName: data.accountName,
+                    accountNumber: data.accountNumber,
+                    branch: data.branchName,
+                    accountType: data.accountType,
+                    ifscCode: data.ifscCode,
+                    cancelledCheque: data.cancelledChequeImage?.[0] ? {
+                        status: 'pending',
+                        url: URL.createObjectURL(data.cancelledChequeImage[0])
+                    } : undefined
+                }]
+            });
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to update bank details');
+            }
+
+            toast.success('Bank details updated successfully');
+            onSave();
+        } catch (error) {
+            console.error('Error updating bank details:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to update bank details');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -197,9 +228,9 @@ const BankDetails = ({ onSave }: BankDetailsProps) => {
                     </div>
 
                     <div className="flex justify-end">
-                        <Button type="submit" variant="purple">
-                            Save & Next
-                            <ArrowRightIcon className="size-4 ml-1" />
+                        <Button type="submit" variant="purple" disabled={isLoading}>
+                            {isLoading ? 'Saving...' : 'Save & Next'}
+                            {!isLoading && <ArrowRightIcon className="size-4 ml-1" />}
                         </Button>
                     </div>
                 </form>

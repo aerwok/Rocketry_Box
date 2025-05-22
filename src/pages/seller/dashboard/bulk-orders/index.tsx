@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { UploadIcon } from "lucide-react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBulkOrder } from '@/hooks/useBulkOrder';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import { ServiceFactory } from '@/services/service-factory';
 
 const gridData = [
     // Grid 1
@@ -67,6 +68,8 @@ const gridData = [
 
 const BulkOrdersPage = () => {
     const [file, setFile] = useState<File | null>(null);
+    const [uploadHistory, setUploadHistory] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const { 
         isUploading, 
         isDownloading, 
@@ -75,13 +78,67 @@ const BulkOrdersPage = () => {
         downloadTemplate 
     } = useBulkOrder();
 
-    const uploadHistory = [
-        { id: 1, uploadDate: '15-12-2024 19:33:07', originalFile: 'orders_samples.xlsx', successCount: 1, errorCount: 1, blankCount: 0, totalCount: 2, errorFile: 'Download', showHide: 'Hide' },
-        { id: 2, uploadDate: '19-10-2024 13:49:34', originalFile: '1729325539510_BULK.xlsx', successCount: 478, errorCount: 0, blankCount: 0, totalCount: 478, errorFile: '-', showHide: 'Hide' },
-        { id: 3, uploadDate: '19-10-2024 13:42:19', originalFile: 'orders_samples.xlsx', successCount: 1, errorCount: 478, blankCount: 0, totalCount: 479, errorFile: 'Download', showHide: 'Hide' },
-        { id: 4, uploadDate: '19-10-2024 13:40:57', originalFile: 'orders_samples.xlsx', successCount: 0, errorCount: 479, blankCount: 0, totalCount: 479, errorFile: 'Download', showHide: 'Hide' },
-        { id: 5, uploadDate: '19-10-2024 13:39:55', originalFile: 'orders_samples.xlsx', successCount: 1, errorCount: 478, blankCount: 0, totalCount: 479, errorFile: 'Download', showHide: 'Hide' }
-    ];
+    // Fetch upload history
+    const fetchUploadHistory = async () => {
+        setIsLoading(true);
+        try {
+            const response = await ServiceFactory.seller.bulkOrders.getUploadHistory();
+            if (response.success) {
+                setUploadHistory(response.data);
+            } else {
+                toast.error(response.message || 'Failed to fetch upload history');
+            }
+        } catch (error) {
+            console.error('Error fetching upload history:', error);
+            toast.error('Failed to fetch upload history');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Download error file
+    const handleDownloadErrorFile = async (uploadId: number) => {
+        try {
+            const response = await ServiceFactory.seller.bulkOrders.downloadErrorFile(uploadId);
+            if (response.success) {
+                // Handle file download
+                const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `error_file_${uploadId}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                toast.error(response.message || 'Failed to download error file');
+            }
+        } catch (error) {
+            console.error('Error downloading error file:', error);
+            toast.error('Failed to download error file');
+        }
+    };
+
+    // Toggle show/hide details
+    const handleToggleDetails = async (uploadId: number) => {
+        try {
+            const response = await ServiceFactory.seller.bulkOrders.toggleUploadDetails(uploadId);
+            if (response.success) {
+                // Refresh the upload history to get updated show/hide state
+                fetchUploadHistory();
+            } else {
+                toast.error(response.message || 'Failed to toggle details');
+            }
+        } catch (error) {
+            console.error('Error toggling details:', error);
+            toast.error('Failed to toggle details');
+        }
+    };
+
+    useEffect(() => {
+        fetchUploadHistory();
+    }, []);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
@@ -160,6 +217,8 @@ const BulkOrdersPage = () => {
                 { name: 'Item Weight4', required: false, type: 'number' },
                 { name: 'Item Price4', required: false, type: 'number' }
             ]);
+            // Refresh upload history after successful upload
+            fetchUploadHistory();
         } catch (error) {
             console.error('Upload error:', error);
         }
@@ -221,78 +280,67 @@ const BulkOrdersPage = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="font-semibold">Upload Date</TableHead>
+                                    <TableHead className="font-semibold">Original File</TableHead>
+                                    <TableHead className="font-semibold">Success Count</TableHead>
+                                    <TableHead className="font-semibold">Error Count</TableHead>
+                                    <TableHead className="font-semibold">Blank Count</TableHead>
+                                    <TableHead className="font-semibold">Total Count</TableHead>
+                                    <TableHead className="font-semibold">Error File</TableHead>
                                     <TableHead className="font-semibold">
-                                        Upload Date
-                                    </TableHead>
-                                    <TableHead className="font-semibold">
-                                        Original File
-                                    </TableHead>
-                                    <TableHead className="font-semibold">
-                                        Success Count
-                                    </TableHead>
-                                    <TableHead className="font-semibold">
-                                        Error Count
-                                    </TableHead>
-                                    <TableHead className="font-semibold">
-                                        Blank Count
-                                    </TableHead>
-                                    <TableHead className="font-semibold">
-                                        Total Count
-                                    </TableHead>
-                                    <TableHead className="font-semibold">
-                                        Error File
-                                    </TableHead>
-                                    <TableHead className="font-semibold">
-                                        <Button variant="link" className="px-0">
+                                        <Button variant="link" className="px-0" onClick={fetchUploadHistory}>
                                             Show All
                                         </Button>
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {uploadHistory.map((upload) => (
-                                    <TableRow key={upload.id}>
-                                        <TableCell>
-                                            {upload.uploadDate}
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="text-center py-4">
+                                            Loading upload history...
                                         </TableCell>
-                                        <TableCell>
-                                            {upload.originalFile}
+                                    </TableRow>
+                                ) : uploadHistory.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="text-center py-4">
+                                            No upload history found
                                         </TableCell>
-                                        <TableCell>
-                                            {upload.successCount}
-                                        </TableCell>
-                                        <TableCell>
-                                            {upload.errorCount}
-                                        </TableCell>
-                                        <TableCell>
-                                            {upload.blankCount}
-                                        </TableCell>
-                                        <TableCell>
-                                            {upload.totalCount}
-                                        </TableCell>
-                                        <TableCell>
-                                            {upload.errorFile !== '-' ? (
+                                    </TableRow>
+                                ) : (
+                                    uploadHistory.map((upload) => (
+                                        <TableRow key={upload.id}>
+                                            <TableCell>{upload.uploadDate}</TableCell>
+                                            <TableCell>{upload.originalFile}</TableCell>
+                                            <TableCell>{upload.successCount}</TableCell>
+                                            <TableCell>{upload.errorCount}</TableCell>
+                                            <TableCell>{upload.blankCount}</TableCell>
+                                            <TableCell>{upload.totalCount}</TableCell>
+                                            <TableCell>
+                                                {upload.errorFile !== '-' ? (
+                                                    <Button
+                                                        variant="link"
+                                                        className="p-0 h-auto text-purple-700"
+                                                        onClick={() => handleDownloadErrorFile(upload.id)}
+                                                    >
+                                                        {upload.errorFile}
+                                                    </Button>
+                                                ) : (
+                                                    upload.errorFile
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
                                                 <Button
                                                     variant="link"
                                                     className="p-0 h-auto text-purple-700"
-                                                    onClick={downloadTemplate}
+                                                    onClick={() => handleToggleDetails(upload.id)}
                                                 >
-                                                    {upload.errorFile}
+                                                    {upload.showHide}
                                                 </Button>
-                                            ) : (
-                                                upload.errorFile
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                variant="link"
-                                                className="p-0 h-auto text-purple-700"
-                                            >
-                                                {upload.showHide}
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </div>

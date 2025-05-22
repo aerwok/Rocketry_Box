@@ -5,13 +5,32 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { adminLoginSchema, type AdminLoginInput } from "@/lib/validations/admin";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { ApiService } from "@/services/api.service";
+import { secureStorage } from "@/utils/secureStorage";
+
+interface LoginResponse {
+    token: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        department: string;
+        isSuperAdmin: boolean;
+        permissions: string[];
+    };
+}
 
 const AdminLoginPage = () => {
 
     const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const navigate = useNavigate();
+    const apiService = new ApiService();
 
     const form = useForm<AdminLoginInput>({
         resolver: zodResolver(adminLoginSchema),
@@ -22,9 +41,26 @@ const AdminLoginPage = () => {
         },
     });
 
-    const onSubmit = (data: AdminLoginInput) => {
-        console.log(data);
-        // Handle login logic here
+    const onSubmit = async (data: AdminLoginInput) => {
+        try {
+            setIsLoading(true);
+            const response = await apiService.post<LoginResponse>('/api/v2/admin/auth/login', {
+                email: data.email,
+                password: data.password,
+                rememberMe: data.rememberMe
+            });
+            
+            if (response.data.token) {
+                await secureStorage.setItem('auth_token', response.data.token);
+                toast.success('Login successful');
+                navigate('/admin/dashboard');
+            }
+        } catch (error) {
+            console.error('Login failed:', error);
+            toast.error('Login failed. Please check your credentials.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -148,8 +184,13 @@ const AdminLoginPage = () => {
                                     </Link>
                                 </div>
 
-                                <Button type="submit" variant="primary" className="w-full">
-                                    Log In
+                                <Button 
+                                    type="submit" 
+                                    variant="primary" 
+                                    className="w-full"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? 'Logging in...' : 'Log In'}
                                 </Button>
 
                                 <div className="text-center text-sm">

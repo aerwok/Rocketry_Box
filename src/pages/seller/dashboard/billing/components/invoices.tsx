@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import DateRangePicker from "@/components/admin/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { Loader2 } from "lucide-react";
-import axios from "axios";
+import { ServiceFactory } from "@/services/service-factory";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -42,53 +42,6 @@ interface InvoiceSummary {
     totalPaid: string;
     totalOutstanding: string;
 }
-
-// Fallback mock data in case API fails
-const mockInvoiceData: Invoice[] = [
-    {
-        id: "1",
-        invoiceNumber: "INV-2024-001",
-        period: "01 Mar 2024 - 15 Mar 2024",
-        shipments: 42,
-        amount: "₹5,000"
-    },
-    {
-        id: "2",
-        invoiceNumber: "INV-2024-002",
-        period: "16 Mar 2024 - 31 Mar 2024",
-        shipments: 38,
-        amount: "₹3,500"
-    },
-    {
-        id: "3",
-        invoiceNumber: "INV-2024-003",
-        period: "01 Apr 2024 - 15 Apr 2024",
-        shipments: 56,
-        amount: "₹7,500"
-    },
-    {
-        id: "4",
-        invoiceNumber: "INV-2024-004",
-        period: "16 Apr 2024 - 30 Apr 2024",
-        shipments: 31,
-        amount: "₹2,000"
-    },
-    {
-        id: "5",
-        invoiceNumber: "INV-2024-005",
-        period: "01 May 2024 - 15 May 2024",
-        shipments: 47,
-        amount: "₹4,500"
-    }
-];
-
-const mockSummary: InvoiceSummary = {
-    totalInvoices: 5,
-    pendingAmount: "₹8,000",
-    overdueAmount: "₹7,500",
-    totalPaid: "₹7,000",
-    totalOutstanding: "₹15,500"
-};
 
 const Invoices = () => {
     const [invoiceData, setInvoiceData] = useState<Invoice[]>([]);
@@ -121,35 +74,25 @@ const Invoices = () => {
             const fromDate = date?.from ? date.from.toISOString().split('T')[0] : '';
             const toDate = date?.to ? date.to.toISOString().split('T')[0] : '';
             
-            // Get invoices
-            const response = await axios.get('/api/seller/billing/invoices', {
-                params: { 
-                    from: fromDate,
-                    to: toDate
-                }
+            const response = await ServiceFactory.seller.billing.getInvoices({
+                from: fromDate,
+                to: toDate
             });
             
-            // Get summary data
-            const summaryResponse = await axios.get('/api/seller/billing/invoices/summary', {
-                params: { 
-                    from: fromDate,
-                    to: toDate
-                }
+            const summaryResponse = await ServiceFactory.seller.billing.getInvoiceSummary({
+                from: fromDate,
+                to: toDate
             });
             
-            if (response.data.success && summaryResponse.data.success) {
+            if (response.success && summaryResponse.success) {
                 setInvoiceData(response.data.invoices);
                 setSummary(summaryResponse.data.summary);
             } else {
-                throw new Error(response.data.message || 'Failed to fetch invoice data');
+                throw new Error(response.message || 'Failed to fetch invoice data');
             }
         } catch (err) {
             console.error('Error fetching invoice data:', err);
-            setError('Failed to load invoice data. Using mock data instead.');
-            
-            // Fallback to mock data if API fails
-            setInvoiceData(mockInvoiceData);
-            setSummary(mockSummary);
+            setError('Failed to load invoice data. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -195,52 +138,30 @@ const Invoices = () => {
         try {
             setLoading(true);
             
-            // Generate PDF invoice
-            generatePdfInvoice(invoice);
-            
-            // Create a toast notification for the user
-            const notifyDownloading = () => {
-                // You can replace this with a toast notification library if available
-                const notification = document.createElement('div');
-                notification.className = 'fixed bottom-4 right-4 bg-purple-600 text-white px-4 py-2 rounded-md shadow-md z-50';
-                notification.textContent = `Invoice ${invoice.invoiceNumber} downloaded. You can access the Excel shipment data from the PDF.`;
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 5000);
-            };
-            
-            notifyDownloading();
-            
-            // In the background, also prepare the shipment CSV for the user
-            setTimeout(() => {
-                try {
-                    // Generate shipment data locally without API call
-                    const mockShipments = generateMockShipments(invoice);
-                    const csvContent = generateCsvFromShipments(mockShipments, invoice);
-                    
-                    // Create and trigger download directly
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const response = await ServiceFactory.seller.billing.downloadInvoice(invoice.id);
+            if (response.success) {
+                // Generate PDF invoice
+                generatePdfInvoice(invoice);
+                
+                // Download shipment data
+                const shipmentResponse = await ServiceFactory.seller.billing.downloadShipments(invoice.id);
+                if (shipmentResponse.success) {
+                    const blob = new Blob([shipmentResponse.data], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
                     link.setAttribute('download', `invoice-${invoice.invoiceNumber}-shipments.csv`);
                     document.body.appendChild(link);
-                    
                     link.click();
                     link.remove();
-                    URL.revokeObjectURL(url); // Clean up
-                } catch (error) {
-                    console.error('Error generating shipment CSV:', error);
-                    // Silent failure for background task
+                    URL.revokeObjectURL(url);
                 }
-            }, 1500);
-            
-            // Try API call in background for shipment data
-            fetchShipmentsFromApi(invoice).catch(console.error);
-            
+            } else {
+                throw new Error(response.message || 'Failed to download invoice');
+            }
         } catch (err) {
-            console.error('Error generating invoice:', err);
-            // Show error notification to user
-            alert('Failed to generate invoice. Please try again.');
+            console.error('Error downloading invoice:', err);
+            alert('Failed to download invoice. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -465,197 +386,6 @@ const Invoices = () => {
             throw new Error('Failed to generate PDF invoice');
         }
     };
-    
-    // Separate function to fetch from API in background
-    const fetchShipmentsFromApi = async (invoice: Invoice) => {
-        try {
-            const response = await axios.get(`/api/seller/billing/invoices/${invoice.id}/shipments`, {
-                params: { format: 'csv' }
-            });
-            
-            if (response.data && response.data.success) {
-                console.log('Successfully fetched shipment data from API');
-                // Could store this data for future use or display a success message
-            }
-        } catch (error) {
-            console.error('API fetch failed in background:', error);
-            // We don't surface this error to the user since they already have their download
-        }
-    };
-
-    // Helper function to generate mock shipment data
-    const generateMockShipments = (invoice: Invoice) => {
-        // Extract date range from period
-        const periodParts = invoice.period.split(' - ');
-        const startDate = new Date(periodParts[0]);
-        const endDate = new Date(periodParts[1]);
-        
-        // Generate random shipments based on the shipment count
-        const shipments = [];
-        
-        // Courier names and pincode combinations for realistic data
-        const couriers = ['Delhivery', 'Ekart', 'DTDC', 'BlueDart', 'FedEx'];
-        const pincodes = [
-            { origin: '110001', destination: '400001', location: 'Delhi to Mumbai' },
-            { origin: '560001', destination: '700001', location: 'Bangalore to Kolkata' },
-            { origin: '600001', destination: '500001', location: 'Chennai to Hyderabad' },
-            { origin: '380001', destination: '226001', location: 'Ahmedabad to Lucknow' },
-            { origin: '411001', destination: '302001', location: 'Pune to Jaipur' }
-        ];
-        
-        // Generate invoice total amount as number for calculations
-        const totalAmountValue = parseFloat(invoice.amount.replace(/[₹,]/g, ''));
-        const avgShipmentValue = totalAmountValue / invoice.shipments;
-        
-        for (let i = 0; i < invoice.shipments; i++) {
-            // Random date within period
-            const shipmentDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
-            
-            // Select random courier and route
-            const courier = couriers[Math.floor(Math.random() * couriers.length)];
-            const route = pincodes[Math.floor(Math.random() * pincodes.length)];
-            
-            // Weight between 0.5 and 5 kg
-            const weight = (Math.random() * 4.5 + 0.5).toFixed(2);
-            
-            // Base charge variation around average shipment value
-            const variationFactor = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
-            const baseCharge = Math.round(avgShipmentValue * variationFactor * 0.7); // 70% of total is base charge
-            
-            // Additional charges
-            const additionalCharge = Math.round(baseCharge * 0.1);
-            const codCharge = Math.round(baseCharge * 0.02);
-            const gst = Math.round(baseCharge * 0.18);
-            const total = baseCharge + additionalCharge + codCharge + gst;
-            
-            // Product category
-            const categories = ['Electronics', 'Clothing', 'Home Goods', 'Books', 'Food Items'];
-            const category = categories[Math.floor(Math.random() * categories.length)];
-            
-            // Status based on date
-            const today = new Date();
-            let status = 'Delivered';
-            if (shipmentDate > new Date(today.setDate(today.getDate() - 3))) {
-                const statuses = ['In Transit', 'Out for Delivery', 'Delivered', 'Pending'];
-                status = statuses[Math.floor(Math.random() * statuses.length)];
-            }
-            
-            shipments.push({
-                id: `SHP${100000 + i}`,
-                date: shipmentDate.toISOString().split('T')[0],
-                trackingNumber: `${courier.substring(0,2).toUpperCase()}${200000 + i}`,
-                origin: route.origin,
-                originCity: route.location.split(' to ')[0],
-                destination: route.destination,
-                destinationCity: route.location.split(' to ')[1],
-                weight: weight,
-                category: category,
-                courier: courier,
-                status: status,
-                baseCharge: baseCharge,
-                additionalCharge: additionalCharge,
-                codCharge: codCharge,
-                gst: gst,
-                total: total
-            });
-        }
-        
-        return shipments;
-    };
-
-    // Helper function to generate CSV content from shipments
-    const generateCsvFromShipments = (shipments: any[], invoice: Invoice) => {
-        // CSV headers
-        const headers = [
-            'Shipment ID',
-            'Date',
-            'Tracking Number',
-            'Origin Pincode',
-            'Origin City',
-            'Destination Pincode',
-            'Destination City',
-            'Weight (kg)',
-            'Product Category',
-            'Courier',
-            'Status',
-            'Base Charge (₹)',
-            'Additional Charge (₹)',
-            'COD Charge (₹)',
-            'GST (₹)',
-            'Total (₹)'
-        ];
-        
-        // Convert shipments to CSV rows
-        const rows = shipments.map(shipment => [
-            shipment.id,
-            shipment.date,
-            shipment.trackingNumber,
-            shipment.origin,
-            shipment.originCity,
-            shipment.destination,
-            shipment.destinationCity,
-            shipment.weight,
-            shipment.category,
-            shipment.courier,
-            shipment.status,
-            shipment.baseCharge,
-            shipment.additionalCharge,
-            shipment.codCharge,
-            shipment.gst,
-            shipment.total
-        ]);
-        
-        // Calculate totals
-        const totalBaseCharge = shipments.reduce((sum, s) => sum + s.baseCharge, 0);
-        const totalAdditionalCharge = shipments.reduce((sum, s) => sum + s.additionalCharge, 0);
-        const totalCodCharge = shipments.reduce((sum, s) => sum + s.codCharge, 0);
-        const totalGst = shipments.reduce((sum, s) => sum + s.gst, 0);
-        const totalAmount = shipments.reduce((sum, s) => sum + s.total, 0);
-        
-        // Add summary rows at the end
-        const blankRow = Array(headers.length).fill('');
-        const summaryHeaderRow = ['Invoice Summary', invoice.invoiceNumber, invoice.period, '', '', '', '', '', '', '', '', '', '', '', '', ''];
-        const summaryDataRow = [
-            'Totals',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            `₹${totalBaseCharge.toLocaleString()}`,
-            `₹${totalAdditionalCharge.toLocaleString()}`,
-            `₹${totalCodCharge.toLocaleString()}`,
-            `₹${totalGst.toLocaleString()}`,
-            `₹${totalAmount.toLocaleString()}`
-        ];
-        
-        // Combine headers and rows
-        const csvRows = [
-            headers,
-            ...rows,
-            blankRow,
-            summaryHeaderRow,
-            summaryDataRow
-        ];
-        
-        // Convert to CSV string
-        const csvContent = csvRows.map(row => 
-            row.map(cell => {
-                // Properly handle cells with commas by quoting them
-                if (cell && cell.toString().includes(',')) {
-                    return `"${cell}"`;
-                }
-                return cell;
-            }).join(',')
-        ).join('\n');
-        
-        return csvContent;
-    };
 
     const handleRefresh = () => {
         fetchInvoiceData();
@@ -814,16 +544,6 @@ const Invoices = () => {
                                                 >
                                                     <Download className="h-4 w-4" />
                                                     PDF
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="hover:text-green-600 flex items-center gap-1"
-                                                    onClick={() => window.location.href = `/api/seller/billing/invoices/${invoice.id}/shipments?format=excel`}
-                                                    title="Download Excel Shipment Data"
-                                                >
-                                                    <FileText className="h-4 w-4" />
-                                                    XLS
                                                 </Button>
                                             </div>
                                         </TableCell>

@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { Link, useParams } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
+import { useState, useEffect } from "react";
 
 interface ShipmentDetails {
     orderNo: string;
@@ -62,130 +64,135 @@ interface ShipmentDetails {
 }
 
 const AdminShipmentDetailsPage = () => {
-
     const { id } = useParams();
+    const [shipmentDetails, setShipmentDetails] = useState<ShipmentDetails | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchShipmentDetails = async () => {
+            try {
+                setLoading(true);
+                const response = await ServiceFactory.shipping.getShipmentDetails(id!);
+                setShipmentDetails(response.data);
+            } catch (err) {
+                console.error("Error fetching shipment details:", err);
+                setError("Failed to load shipment details");
+                toast.error("Failed to load shipment details");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchShipmentDetails();
+        }
+    }, [id]);
 
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success("The text has been copied to your clipboard.");
     };
 
-    const handlePrintLabel = () => {
-        toast.success("Printing label...");
-        // Implementation would go here
+    const handlePrintLabel = async () => {
+        try {
+            const response = await ServiceFactory.shipping.printLabel(id!);
+            // Handle the PDF blob response
+            const url = window.URL.createObjectURL(response.data);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `shipping-label-${id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success("Label downloaded successfully");
+        } catch (err) {
+            console.error("Error printing label:", err);
+            toast.error("Failed to print label");
+        }
     };
 
-    const handlePrintInvoice = () => {
-        toast.success("Printing invoice...");
-        // Implementation would go here
+    const handlePrintInvoice = async () => {
+        try {
+            const response = await ServiceFactory.shipping.printInvoice(id!);
+            // Handle the PDF blob response
+            const url = window.URL.createObjectURL(response.data);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `invoice-${id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success("Invoice downloaded successfully");
+        } catch (err) {
+            console.error("Error printing invoice:", err);
+            toast.error("Failed to print invoice");
+        }
     };
 
-    const handleCancelOrder = () => {
-        toast.success("Order cancelled successfully");
-        // Implementation would go here
+    const handleCancelOrder = async () => {
+        try {
+            await ServiceFactory.shipping.cancelShipment(id!);
+            toast.success("Order cancelled successfully");
+            // Refresh shipment details
+            const response = await ServiceFactory.shipping.getShipmentDetails(id!);
+            setShipmentDetails(response.data);
+        } catch (err) {
+            console.error("Error cancelling order:", err);
+            toast.error("Failed to cancel order");
+        }
     };
 
-    const handleAddTag = () => {
-        toast.success("Tag added successfully");
-        // Implementation would go here
+    const handleAddTag = async () => {
+        try {
+            await ServiceFactory.shipping.addTag(id!);
+            toast.success("Tag added successfully");
+        } catch (err) {
+            console.error("Error adding tag:", err);
+            toast.error("Failed to add tag");
+        }
     };
 
-    const handleBookShipment = () => {
-        toast.success("Shipment booked successfully");
-        // Implementation would go here
+    const handleBookShipment = async () => {
+        try {
+            await ServiceFactory.shipping.bookShipment(id!);
+            toast.success("Shipment booked successfully");
+            // Refresh shipment details
+            const response = await ServiceFactory.shipping.getShipmentDetails(id!);
+            setShipmentDetails(response.data);
+        } catch (err) {
+            console.error("Error booking shipment:", err);
+            toast.error("Failed to book shipment");
+        }
     };
 
-    const shipmentDetails: ShipmentDetails = {
-        orderNo: id || "1740047589959",
-        orderPlaced: "20-02-2025",
-        paymentType: "COD",
-        status: "IN TRANSIT",
-        estimatedDelivery: "Tuesday, February 25",
-        currentLocation: {
-            lat: 19.0760,
-            lng: 72.8777
-        },
-        trackingEvents: [
-            {
-                date: "22 FEB",
-                time: "09:39 AM",
-                activity: "SHIPMENT OUTSCANNED TO NETWORK",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "21 FEB",
-                time: "02:00 AM",
-                activity: "COMM FLIGHT,VEH/TRAIN; DELAYED/CANCELLED",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "11:30 PM",
-                activity: "SHIPMENT RECEIVED AT FACILITY",
-                location: "MUMBAI HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "09:15 PM",
-                activity: "SHIPMENT PICKED UP",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "03:45 PM",
-                activity: "SHIPMENT CREATED",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            }
-        ],
-        weight: "324.00 Kg",
-        dimensions: {
-            length: 50,
-            width: 43,
-            height: 34
-        },
-        volumetricWeight: "0 Kg",
-        chargedWeight: "0 Kg",
-        customerDetails: {
-            name: "John Doe",
-            address1: "123 Main Street",
-            address2: "Apartment 4B",
-            city: "PUNE",
-            state: "MAHARASHTRA",
-            pincode: "412105",
-            country: "India",
-            phone: "9348543598"
-        },
-        warehouseDetails: {
-            name: "Main Warehouse",
-            address1: "456 Storage Lane",
-            city: "Noida",
-            state: "UTTAR PRADESH",
-            pincode: "201307",
-            country: "India",
-            phone: "9000000000"
-        },
-        products: [
-            {
-                name: "Premium Laptop",
-                sku: "LAP001",
-                quantity: 1,
-                price: 50.00,
-                image: "/product-image.jpg"
-            },
-            {
-                name: "Wireless Mouse",
-                sku: "MOU001",
-                quantity: 1,
-                price: 1799.00,
-                image: "/mouse-image.jpg"
-            }
-        ]
-    };
+    if (loading) {
+        return (
+            <div className="container mx-auto py-4 w-full flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading shipment details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !shipmentDetails) {
+        return (
+            <div className="container mx-auto py-4 w-full flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <p className="text-red-500">{error || "Shipment not found"}</p>
+                    <Link to="/admin/dashboard/shipments">
+                        <Button variant="outline" className="mt-4">
+                            Back to Shipments
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto py-4 w-full">

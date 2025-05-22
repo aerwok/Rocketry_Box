@@ -15,7 +15,6 @@ import {
     UserCog,
     Save,
     Pencil,
-    X,
     FileText,
     CreditCard,
     Building,
@@ -33,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye } from "lucide-react";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 // Define interface for orders
 interface Order {
@@ -65,206 +65,6 @@ interface AdminUser {
     recentOrders: Order[];
 }
 
-// Demo admin user data
-const ADMIN_USERS: AdminUser[] = [
-    {
-        id: "ADMIN001",
-        employeeId: "EMP-001",
-        fullName: "John Doe",
-        email: "john.doe@rocketrybox.com",
-        phone: "+91 9876543210",
-        address: "123 Main Street, Bangalore, Karnataka, India",
-        status: "Active",
-        joinDate: "February 15, 2023",
-        lastActive: "Today, 10:30 AM",
-        role: "Admin",
-        isSuperAdmin: true,
-        remarks: "Lead administrator responsible for platform oversight",
-        profileImage: "/images/avatars/john.jpg",
-        transactions: {
-            total: 157,
-            successful: 152,
-            failed: 5
-        },
-        recentOrders: [
-            { id: "ORD-9876", date: "June 12, 2023", status: "Completed", amount: "₹5,200" },
-            { id: "ORD-9754", date: "June 8, 2023", status: "Completed", amount: "₹3,600" },
-            { id: "ORD-9621", date: "May 29, 2023", status: "Cancelled", amount: "₹1,800" }
-        ]
-    },
-    {
-        id: "ADMIN002",
-        employeeId: "EMP-002",
-        fullName: "Jane Smith",
-        email: "jane.smith@rocketrybox.com",
-        phone: "+91 9876543211",
-        address: "456 Park Avenue, Mumbai, Maharashtra, India",
-        status: "Active",
-        joinDate: "March 22, 2023",
-        lastActive: "Yesterday, 4:15 PM",
-        role: "Manager",
-        isSuperAdmin: false,
-        remarks: "Manages all financial transactions and approvals",
-        transactions: {
-            total: 98,
-            successful: 95,
-            failed: 3
-        },
-        recentOrders: [
-            { id: "ORD-8765", date: "June 10, 2023", status: "Completed", amount: "₹7,800" },
-            { id: "ORD-8654", date: "June 5, 2023", status: "Processing", amount: "₹2,400" }
-        ]
-    },
-    {
-        id: "ADMIN003",
-        employeeId: "EMP-003",
-        fullName: "Robert Johnson",
-        email: "robert.j@rocketrybox.com",
-        phone: "+91 9876543212",
-        address: "789 Tech Park, Hyderabad, Telangana, India",
-        status: "Inactive",
-        joinDate: "April 10, 2023",
-        lastActive: "June 15, 2023, 2:30 PM",
-        role: "Support",
-        isSuperAdmin: false,
-        remarks: "Primary support agent for priority tickets",
-        transactions: {
-            total: 64,
-            successful: 58,
-            failed: 6
-        },
-        recentOrders: [
-            { id: "ORD-7543", date: "June 14, 2023", status: "Completed", amount: "₹3,200" },
-            { id: "ORD-7432", date: "June 1, 2023", status: "Cancelled", amount: "₹1,900" }
-        ]
-    },
-    {
-        id: "ADMIN004",
-        employeeId: "EMP-004",
-        fullName: "Emily Davis",
-        email: "emily.d@rocketrybox.com",
-        phone: "+91 9876543213",
-        address: "321 Business Hub, Delhi, India",
-        status: "On Leave",
-        joinDate: "May 5, 2023",
-        lastActive: "June 20, 2023, 9:45 AM",
-        role: "Agent",
-        isSuperAdmin: false,
-        remarks: "Handles merchant onboarding for north region",
-        transactions: {
-            total: 42,
-            successful: 39,
-            failed: 3
-        },
-        recentOrders: [
-            { id: "ORD-6543", date: "June 18, 2023", status: "Completed", amount: "₹4,100" }
-        ]
-    },
-    {
-        id: "ADMIN005",
-        employeeId: "EMP-005",
-        fullName: "Michael Wilson",
-        email: "michael.w@rocketrybox.com",
-        phone: "+91 9876543214",
-        address: "567 Tech Square, Pune, Maharashtra, India",
-        status: "Active",
-        joinDate: "June 18, 2023",
-        lastActive: "Today, 11:20 AM",
-        role: "Admin",
-        isSuperAdmin: false,
-        remarks: "Technical administrator for system maintenance",
-        transactions: {
-            total: 87,
-            successful: 83,
-            failed: 4
-        },
-        recentOrders: [
-            { id: "ORD-5432", date: "June 20, 2023", status: "Processing", amount: "₹6,300" },
-            { id: "ORD-5321", date: "June 17, 2023", status: "Completed", amount: "₹2,800" }
-        ]
-    }
-];
-
-// Function to get admin user data by ID
-const getAdminUserById = (id: string): AdminUser => {
-    const user = ADMIN_USERS.find(user => user.id.toLowerCase() === id.toLowerCase());
-    
-    if (user) {
-        return user;
-    }
-    
-    // Return default empty data if user not found
-    return {
-        id: id || "",
-        employeeId: "",
-        fullName: "User Not Found",
-        email: "",
-        phone: "",
-        address: "",
-        status: "Inactive",
-        joinDate: "",
-        lastActive: "",
-        role: "Admin",
-        isSuperAdmin: false,
-        remarks: "",
-        transactions: {
-            total: 0,
-            successful: 0,
-            failed: 0
-        },
-        recentOrders: []
-    };
-};
-
-// API functions for future implementation
-// --------------------------------------
-// async function fetchAdminUserById(id: string): Promise<AdminUser> {
-//   try {
-//     const response = await fetch(`/api/admin/team/${id}`);
-//     if (!response.ok) throw new Error('Failed to fetch admin data');
-//     
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error('Error fetching admin data:', error);
-//     throw error;
-//   }
-// }
-//
-// async function updateAdminUser(id: string, userData: Partial<AdminUser>): Promise<AdminUser> {
-//   try {
-//     const response = await fetch(`/api/admin/team/${id}`, {
-//       method: 'PATCH',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify(userData)
-//     });
-//     
-//     if (!response.ok) throw new Error('Failed to update admin data');
-//     
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error('Error updating admin data:', error);
-//     throw error;
-//   }
-// }
-//
-// async function updateAdminPermissions(id: string, permissions: Record<string, boolean>): Promise<void> {
-//   try {
-//     const response = await fetch(`/api/admin/team/${id}/permissions`, {
-//       method: 'PATCH',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify(permissions)
-//     });
-//     
-//     if (!response.ok) throw new Error('Failed to update admin permissions');
-//   } catch (error) {
-//     console.error('Error updating admin permissions:', error);
-//     throw error;
-//   }
-// }
-// --------------------------------------
-
 const AdminTeamProfilePage = () => {
     const { id } = useParams();
     const [userData, setUserData] = useState<AdminUser | null>(null);
@@ -287,7 +87,7 @@ const AdminTeamProfilePage = () => {
     
     // Permission state
     const [permissions, setPermissions] = useState({
-        dashboardAccess: true, // Everyone has this by default
+        dashboardAccess: true,
         userManagement: false,
         teamManagement: false,
         ordersShipping: false,
@@ -300,9 +100,6 @@ const AdminTeamProfilePage = () => {
     });
 
     const [permissionsChanged, setPermissionsChanged] = useState(false);
-    
-    // Simulate a current logged-in admin (for demo purposes)
-    const currentAdmin = ADMIN_USERS[0]; // Assume first admin (super admin) is logged in
     
     // Document upload state
     const [documents, setDocuments] = useState({
@@ -321,47 +118,36 @@ const AdminTeamProfilePage = () => {
                 setLoading(true);
                 setError(null);
                 
-                // For development we'll use the local data
-                // When API is ready, this would be:
-                // const data = await fetchAdminUserById(id);
+                const response = await ServiceFactory.admin.getTeamMember(id);
+                const data = response.data;
                 
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 800));
+                setUserData(data);
                 
-                const data = getAdminUserById(id);
+                // Initialize edit data
+                setEditData({
+                    fullName: data.fullName,
+                    employeeId: data.employeeId,
+                    email: data.email,
+                    phone: data.phone,
+                    address: data.address,
+                    role: data.role,
+                    status: data.status,
+                    remarks: data.remarks || ""
+                });
                 
-                // Check if user was found
-                if (data.fullName === "User Not Found") {
-                    setError("Admin user not found. Please check the ID and try again.");
-                } else {
-                    setUserData(data);
-                    
-                    // Initialize edit data
-                    setEditData({
-                        fullName: data.fullName,
-                        employeeId: data.employeeId,
-                        email: data.email,
-                        phone: data.phone,
-                        address: data.address,
-                        role: data.role,
-                        status: data.status,
-                        remarks: data.remarks || ""
-                    });
-                    
-                    // Initialize permissions
-                    setPermissions({
-                        dashboardAccess: true, // Everyone has this by default
-                        userManagement: data.isSuperAdmin,
-                        teamManagement: data.isSuperAdmin,
-                        ordersShipping: data.isSuperAdmin,
-                        financialOperations: data.isSuperAdmin,
-                        systemConfig: data.isSuperAdmin,
-                        sellerManagement: data.isSuperAdmin,
-                        supportTickets: data.isSuperAdmin,
-                        reportsAnalytics: data.isSuperAdmin,
-                        marketingPromotions: data.isSuperAdmin
-                    });
-                }
+                // Initialize permissions
+                setPermissions({
+                    dashboardAccess: true,
+                    userManagement: data.isSuperAdmin,
+                    teamManagement: data.isSuperAdmin,
+                    ordersShipping: data.isSuperAdmin,
+                    financialOperations: data.isSuperAdmin,
+                    systemConfig: data.isSuperAdmin,
+                    sellerManagement: data.isSuperAdmin,
+                    supportTickets: data.isSuperAdmin,
+                    reportsAnalytics: data.isSuperAdmin,
+                    marketingPromotions: data.isSuperAdmin
+                });
             } catch (err) {
                 console.error("Error fetching admin user:", err);
                 setError("Failed to load admin data. Please try again.");
@@ -372,9 +158,6 @@ const AdminTeamProfilePage = () => {
         
         fetchData();
     }, [id]);
-    
-    // Determine if current user can edit
-    const canEdit = currentAdmin.isSuperAdmin || (userData && currentAdmin.id === userData.id);
 
     const handleInputChange = (field: string, value: string) => {
         setEditData(prev => ({
@@ -387,37 +170,20 @@ const AdminTeamProfilePage = () => {
         try {
             setSaving(true);
             
-            // When API is ready, this would be:
-            // await updateAdminUser(id!, {
-            //     fullName: editData.fullName,
-            //     employeeId: editData.employeeId,
-            //     email: editData.email,
-            //     phone: editData.phone,
-            //     address: editData.address,
-            //     role: editData.role,
-            //     status: editData.status,
-            //     remarks: editData.remarks
-            // });
+            await ServiceFactory.admin.updateTeamMember(id!, {
+                fullName: editData.fullName,
+                employeeId: editData.employeeId,
+                email: editData.email,
+                phone: editData.phone,
+                address: editData.address,
+                role: editData.role,
+                status: editData.status,
+                remarks: editData.remarks
+            });
             
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Update local state
-            if (userData) {
-                const updatedUser = {
-                    ...userData,
-                    fullName: editData.fullName,
-                    employeeId: editData.employeeId,
-                    email: editData.email,
-                    phone: editData.phone, 
-                    address: editData.address,
-                    role: editData.role,
-                    status: editData.status,
-                    remarks: editData.remarks
-                };
-                
-                setUserData(updatedUser);
-            }
+            // Refresh user data
+            const response = await ServiceFactory.admin.getTeamMember(id!);
+            setUserData(response.data);
             
             toast.success("Profile updated successfully");
             setIsEditing(false);
@@ -442,11 +208,7 @@ const AdminTeamProfilePage = () => {
         try {
             setSaving(true);
             
-            // When API is ready, this would be:
-            // await updateAdminPermissions(id!, permissions);
-            
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await ServiceFactory.admin.updateTeamPermissions(id!, permissions);
             
             toast.success("Permissions updated successfully");
             setPermissionsChanged(false);
@@ -458,23 +220,31 @@ const AdminTeamProfilePage = () => {
         }
     };
 
-    // Determine if current user can manage permissions
-    const canManagePermissions = currentAdmin.isSuperAdmin;
-
     const handleUploadClick = (docType: 'idProof' | 'employmentContract') => {
         if (docType === "idProof") idProofInputRef.current?.click();
         if (docType === "employmentContract") employmentContractInputRef.current?.click();
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, docType: 'idProof' | 'employmentContract') => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: 'idProof' | 'employmentContract') => {
         const file = e.target.files?.[0];
         if (file) {
-            const url = URL.createObjectURL(file);
-            setDocuments((prev) => ({
-                ...prev,
-                [docType]: { name: file.name, url },
-            }));
-            // TODO: Upload to backend here if needed
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('type', docType);
+                
+                const response = await ServiceFactory.admin.uploadTeamDocument(id!, formData);
+                
+                setDocuments((prev) => ({
+                    ...prev,
+                    [docType]: { name: file.name, url: response.data.url },
+                }));
+                
+                toast.success("Document uploaded successfully");
+            } catch (err) {
+                console.error("Error uploading document:", err);
+                toast.error("Failed to upload document. Please try again.");
+            }
         }
     };
 
@@ -544,45 +314,25 @@ const AdminTeamProfilePage = () => {
                     >
                         Reset Password
                     </Button>
-                    {canEdit && (
-                        isEditing ? (
-                            <div className="flex gap-2">
-                                <Button 
-                                    variant="outline" 
-                                    onClick={() => setIsEditing(false)}
-                                    disabled={saving}
-                                >
-                                    <X className="w-4 h-4 mr-2" />
-                                    Cancel
-                                </Button>
-                                <Button 
-                                    variant="purple" 
-                                    onClick={handleSaveChanges}
-                                    disabled={saving}
-                                >
-                                    {saving ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="w-4 h-4 mr-2" />
-                                            Save Changes
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button 
-                                variant="purple" 
-                                onClick={() => setIsEditing(true)}
-                                disabled={saving}
-                            >
-                                <Pencil className="w-4 h-4 mr-2" />
-                                Edit Profile
-                            </Button>
-                        )
+                    {userData.isSuperAdmin && (
+                        <Button 
+                            variant="purple" 
+                            onClick={() => setIsEditing(true)}
+                            disabled={saving}
+                        >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit Profile
+                        </Button>
+                    )}
+                    {isEditing && (
+                        <Button 
+                            variant="purple" 
+                            onClick={handleSaveChanges}
+                            disabled={saving}
+                        >
+                            <Save className="w-4 h-4 mr-2" />
+                            Save Changes
+                        </Button>
                     )}
                 </div>
             </div>
@@ -822,7 +572,7 @@ const AdminTeamProfilePage = () => {
                                 <FileText className="w-5 h-5" />
                                 Documents
                             </CardTitle>
-                            {canEdit && isEditing && (
+                            {userData.isSuperAdmin && (
                                 <Button variant="outline" size="sm" className="text-xs h-8">
                                     <Plus className="h-3 w-3 mr-1" />
                                     Add Document
@@ -846,7 +596,7 @@ const AdminTeamProfilePage = () => {
                                             <Download className="h-3 w-3 mr-1" />
                                             View
                                         </Button>
-                                        {canEdit && isEditing && (
+                                        {userData.isSuperAdmin && (
                                             <>
                                                 <input
                                                     type="file"
@@ -884,7 +634,7 @@ const AdminTeamProfilePage = () => {
                                             <Download className="h-3 w-3 mr-1" />
                                             View
                                         </Button>
-                                        {canEdit && isEditing && (
+                                        {userData.isSuperAdmin && (
                                             <>
                                                 <input
                                                     type="file"
@@ -908,7 +658,7 @@ const AdminTeamProfilePage = () => {
                                 </div>
 
                                 {/* Upload prompt only shown when in edit mode */}
-                                {canEdit && isEditing && (
+                                {userData.isSuperAdmin && isEditing && (
                                     <div className="flex flex-col items-center justify-center p-6 border border-dashed rounded-md bg-gray-50">
                                         <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
                                         <h3 className="font-medium">Upload Additional Documents</h3>
@@ -967,7 +717,7 @@ const AdminTeamProfilePage = () => {
                                     </label>
                                     <div className="font-medium mt-1">
                                         <span>XXXX XXXX 5678</span>
-                                        {canEdit && (
+                                        {userData.isSuperAdmin && (
                                             <Button variant="ghost" size="sm" className="ml-2 h-6 text-xs text-muted-foreground">
                                                 <Eye className="h-3 w-3 mr-1" />
                                                 View
@@ -1117,7 +867,7 @@ const AdminTeamProfilePage = () => {
                                 <ShieldCheck className="w-5 h-5" />
                                 Access & Permissions
                             </CardTitle>
-                            {canManagePermissions && (
+                            {userData.isSuperAdmin && (
                                 <p className="text-sm text-muted-foreground">Toggle switches to update permissions</p>
                             )}
                         </CardHeader>
@@ -1129,7 +879,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">View analytics and performance reports</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.dashboardAccess}
                                                 onCheckedChange={(value) => handlePermissionChange('dashboardAccess', value)}
@@ -1149,7 +899,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">View and manage customer accounts</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.userManagement}
                                                 onCheckedChange={(value) => handlePermissionChange('userManagement', value)}
@@ -1169,7 +919,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Add, edit and remove team members</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.teamManagement}
                                                 onCheckedChange={(value) => handlePermissionChange('teamManagement', value)}
@@ -1189,7 +939,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Manage orders and shipping processes</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.ordersShipping}
                                                 onCheckedChange={(value) => handlePermissionChange('ordersShipping', value)}
@@ -1209,7 +959,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Process refunds, payments and transactions</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.financialOperations}
                                                 onCheckedChange={(value) => handlePermissionChange('financialOperations', value)}
@@ -1229,7 +979,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Modify system settings and configurations</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.systemConfig}
                                                 onCheckedChange={(value) => handlePermissionChange('systemConfig', value)}
@@ -1249,7 +999,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Onboard and manage seller profiles</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.sellerManagement}
                                                 onCheckedChange={(value) => handlePermissionChange('sellerManagement', value)}
@@ -1269,7 +1019,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Handle customer support requests</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.supportTickets}
                                                 onCheckedChange={(value) => handlePermissionChange('supportTickets', value)}
@@ -1289,7 +1039,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Generate and export detailed reports</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.reportsAnalytics}
                                                 onCheckedChange={(value) => handlePermissionChange('reportsAnalytics', value)}
@@ -1309,7 +1059,7 @@ const AdminTeamProfilePage = () => {
                                         <p className="text-sm text-muted-foreground">Manage campaigns and promotional offers</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {canManagePermissions ? (
+                                        {userData.isSuperAdmin ? (
                                             <Switch
                                                 checked={permissions.marketingPromotions}
                                                 onCheckedChange={(value) => handlePermissionChange('marketingPromotions', value)}
@@ -1323,7 +1073,7 @@ const AdminTeamProfilePage = () => {
                                     </div>
                                 </div>
                                 
-                                {canManagePermissions && permissionsChanged && (
+                                {userData.isSuperAdmin && permissionsChanged && (
                                     <div className="flex justify-end mt-6">
                                         <Button 
                                             variant="purple" 

@@ -4,6 +4,8 @@ import { Download, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DateRangePicker from "@/components/admin/date-range-picker";
 import { Link } from "react-router-dom";
+import { ServiceFactory } from "@/services/service-factory";
+import { toast } from "sonner";
 import {
     Table,
     TableBody,
@@ -38,118 +40,15 @@ interface Shipment {
     carrier: string;
     status: string;
     fulfilled: string;
-    // Courier Load properties
     orders?: number;
     capacityUsed?: string;
     availableCapacity?: string;
-    // Courier Status properties
     activeOrders?: number;
     delivered?: number;
     inTransit?: number;
     pending?: number;
-    // Transaction Amount for orders
     transactionAmount?: string;
 }
-
-// Mock data for testing
-const MOCK_DASHBOARD_CARDS: DashboardCard[] = [
-    {
-        title: "Total Shipments",
-        value: "156",
-        change: "+12% from last month"
-    },
-    {
-        title: "Revenue generated",
-        value: "$45,678",
-        change: "+8% from last month"
-    },
-    {
-        title: "Pending Orders",
-        value: "23",
-        change: "-5% from last month"
-    },
-    {
-        title: "Active users",
-        value: "1,234",
-        change: "+15% from last month"
-    },
-    {
-        title: "New users",
-        value: "89",
-        change: "+23% from last month"
-    }
-];
-
-const MOCK_SHIPMENTS: Shipment[] = [
-    {
-        orderId: "ORD001",
-        date: "2024-02-15",
-        seller: "Electronics Store",
-        product: "Smartphone X",
-        weight: "0.5 kg",
-        payment: "Prepaid",
-        customer: "John Doe",
-        carrier: "Express Delivery",
-        status: "In-transit",
-        fulfilled: "Yes",
-        orders: 45,
-        capacityUsed: "75%",
-        availableCapacity: "25%",
-        activeOrders: 12,
-        delivered: 28,
-        inTransit: 5,
-        pending: 0,
-        transactionAmount: "$1200"
-    },
-    {
-        orderId: "ORD002",
-        date: "2024-02-14",
-        seller: "Fashion Hub",
-        product: "Designer Watch",
-        weight: "0.2 kg",
-        payment: "COD",
-        customer: "Jane Smith",
-        carrier: "Quick Ship",
-        status: "Delivered",
-        fulfilled: "Yes",
-        orders: 32,
-        capacityUsed: "60%",
-        availableCapacity: "40%",
-        activeOrders: 8,
-        delivered: 20,
-        inTransit: 4,
-        pending: 0,
-        transactionAmount: "$350"
-    },
-    {
-        orderId: "ORD003",
-        date: "2024-02-13",
-        seller: "Home Goods",
-        product: "Coffee Maker",
-        weight: "2.5 kg",
-        payment: "Prepaid",
-        customer: "Mike Johnson",
-        carrier: "Heavy Haul",
-        status: "Pending Pickup",
-        fulfilled: "No",
-        orders: 18,
-        capacityUsed: "90%",
-        availableCapacity: "10%",
-        activeOrders: 5,
-        delivered: 10,
-        inTransit: 3,
-        pending: 0,
-        transactionAmount: "$80"
-    }
-];
-
-// Commented out for now; uncomment when real APIs are used
-// const API_ENDPOINTS = {
-//     DASHBOARD_STATS: '/api/admin/dashboard/stats',
-//     SHIPMENTS: '/api/admin/dashboard/shipments',
-//     COURIER_LOAD: '/api/admin/dashboard/courier-load',
-//     COURIER_STATUS: '/api/admin/dashboard/courier-status'
-// };
 
 const getStatusStyle = (status: string) => {
     const styles = {
@@ -234,48 +133,50 @@ const ShipmentsTable = ({ data, type = "shipment" }: { data: Shipment[], type?: 
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
-                        <TableHead className="min-w-[100px] whitespace-nowrap">
-                            <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('orderId')}>
-                                User ID
-                                {getSortIcon()}
-                            </div>
-                        </TableHead>
-                        <TableHead className="min-w-[150px] whitespace-nowrap">
-                            <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('seller')}>
-                                Name
-                                {getSortIcon()}
-                            </div>
-                        </TableHead>
-                        <TableHead className="min-w-[180px] whitespace-nowrap">
-                            <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('customer')}>
-                                Email
-                                {getSortIcon()}
-                            </div>
-                        </TableHead>
-                        <TableHead className="min-w-[150px] whitespace-nowrap">
-                            <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('seller')}>
-                                Sender's Name
-                                {getSortIcon()}
-                            </div>
-                        </TableHead>
-                        <TableHead className="min-w-[140px] whitespace-nowrap">
-                            <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('date')}>
-                                Registration Date
-                                {getSortIcon()}
-                            </div>
-                        </TableHead>
-                        <TableHead className="min-w-[140px] whitespace-nowrap">
-                            <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('transactionAmount')}>
-                                Transaction Amount
-                                {getSortIcon()}
-                            </div>
-                        </TableHead>
-                        <TableHead className="min-w-[100px] whitespace-nowrap">
-                            <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('status')}>
-                                Status
-                                {getSortIcon()}
-                            </div>
-                        </TableHead>
+                        <TableRow>
+                            <TableHead className="min-w-[100px] whitespace-nowrap">
+                                <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('orderId')}>
+                                    User ID
+                                    {getSortIcon()}
+                                </div>
+                            </TableHead>
+                            <TableHead className="min-w-[150px] whitespace-nowrap">
+                                <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('seller')}>
+                                    Name
+                                    {getSortIcon()}
+                                </div>
+                            </TableHead>
+                            <TableHead className="min-w-[180px] whitespace-nowrap">
+                                <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('customer')}>
+                                    Email
+                                    {getSortIcon()}
+                                </div>
+                            </TableHead>
+                            <TableHead className="min-w-[150px] whitespace-nowrap">
+                                <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('seller')}>
+                                    Sender's Name
+                                    {getSortIcon()}
+                                </div>
+                            </TableHead>
+                            <TableHead className="min-w-[140px] whitespace-nowrap">
+                                <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('date')}>
+                                    Registration Date
+                                    {getSortIcon()}
+                                </div>
+                            </TableHead>
+                            <TableHead className="min-w-[140px] whitespace-nowrap">
+                                <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('transactionAmount')}>
+                                    Transaction Amount
+                                    {getSortIcon()}
+                                </div>
+                            </TableHead>
+                            <TableHead className="min-w-[100px] whitespace-nowrap">
+                                <div className="flex items-center gap-1 cursor-pointer" onClick={() => handleSort('status')}>
+                                    Status
+                                    {getSortIcon()}
+                                </div>
+                            </TableHead>
+                        </TableRow>
                     </TableHeader>
                     <TableBody>
                         {sortedData.map((shipment, index) => (
@@ -614,47 +515,68 @@ function downloadCSV(filename: string, csv: string) {
 
 const AdminDashboardPage = () => {
     const [date, setDate] = useState<DateRange | undefined>({
-        from: new Date(2024, 1, 10), // Feb 10, 2024
-        to: new Date(2024, 1, 20),   // Feb 20, 2024
+        from: new Date(2024, 1, 10),
+        to: new Date(2024, 1, 20),
     });
-    const [dashboardCards, setDashboardCards] = useState<DashboardCard[]>(MOCK_DASHBOARD_CARDS);
-    const [shipments, setShipments] = useState<Shipment[]>(MOCK_SHIPMENTS);
+    const [dashboardCards, setDashboardCards] = useState<DashboardCard[]>([]);
+    const [shipments, setShipments] = useState<Shipment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Commented out API calls for testing with mock data only
-        // const fetchDashboardData = async () => {
-        //     try {
-        //         setLoading(true);
-        //         // Fetch dashboard stats
-        //         const statsResponse = await fetch(API_ENDPOINTS.DASHBOARD_STATS);
-        //         if (!statsResponse.ok) throw new Error('Failed to fetch dashboard stats');
-        //         const statsData = await statsResponse.json();
-        //         setDashboardCards(statsData);
-        //
-        //         // Fetch shipments data
-        //         const shipmentsResponse = await fetch(API_ENDPOINTS.SHIPMENTS);
-        //         if (!shipmentsResponse.ok) throw new Error('Failed to fetch shipments');
-        //         const shipmentsData = await shipmentsResponse.json();
-        //         setShipments(shipmentsData);
-        //
-        //         setError(null);
-        //     } catch (err) {
-        //         setError(err instanceof Error ? err.message : 'An error occurred');
-        //         // Fallback to mock data in case of error
-        //         setDashboardCards(MOCK_DASHBOARD_CARDS);
-        //         setShipments(MOCK_SHIPMENTS);
-        //     } finally {
-        //         setLoading(false);
-        //     }
-        // };
-        //
-        // fetchDashboardData();
-        setDashboardCards(MOCK_DASHBOARD_CARDS);
-        setShipments(MOCK_SHIPMENTS);
-        setLoading(false);
-        setError(null);
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                // Fetch dashboard stats
+                const statsResponse = await ServiceFactory.admin.getReportStats();
+                if (statsResponse.success) {
+                    const stats = statsResponse.data;
+                    setDashboardCards([
+                        {
+                            title: "Total Shipments",
+                            value: stats.shipments.total.toLocaleString(),
+                            change: `${stats.shipments.todayCount > 0 ? '+' : ''}${stats.shipments.todayCount} today`
+                        },
+                        {
+                            title: "Revenue generated",
+                            value: `₹${stats.revenue.total.toLocaleString()}`,
+                            change: `${stats.revenue.growth > 0 ? '+' : ''}${stats.revenue.growth}% growth`
+                        },
+                        {
+                            title: "Pending Orders",
+                            value: stats.orders.pending.toLocaleString(),
+                            change: `${stats.orders.todayCount} today`
+                        },
+                        {
+                            title: "Active users",
+                            value: stats.users.activeToday.toLocaleString(),
+                            change: `${stats.users.newToday} new today`
+                        }
+                    ]);
+                }
+
+                // Fetch shipments data
+                const shipmentsResponse = await ServiceFactory.admin.getShipments({
+                    from: date?.from?.toISOString(),
+                    to: date?.to?.toISOString()
+                });
+                if (shipmentsResponse.success) {
+                    setShipments(shipmentsResponse.data);
+                }
+
+                setError(null);
+            } catch (err) {
+                console.error("Error fetching dashboard data:", err);
+                setError("Failed to load dashboard data. Please try again.");
+                toast.error("Failed to load dashboard data");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
     }, [date]);
 
     // Filtered data for seller dashboard

@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ServiceFactory } from "@/services/service-factory";
+import { useState, useEffect } from "react";
 
 interface DisputeDetails {
     orderNo: string;
@@ -67,105 +69,56 @@ interface DisputeDetails {
 }
 
 const SellerDisputeDetailsPage = () => {
-
     const { id } = useParams();
+    const [disputeDetails, setDisputeDetails] = useState<DisputeDetails | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchDisputeDetails = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const response = await ServiceFactory.seller.disputes.getDisputeDetails(id || '');
+                if (response.success) {
+                    setDisputeDetails(response.data);
+                } else {
+                    throw new Error(response.message || 'Failed to fetch dispute details');
+                }
+            } catch (err) {
+                console.error('Error fetching dispute details:', err);
+                setError('Failed to load dispute details');
+                toast.error('Failed to fetch dispute details');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDisputeDetails();
+    }, [id]);
 
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success("The text has been copied to your clipboard.");
     };
 
-    const disputeDetails: DisputeDetails = {
-        orderNo: id || "1740047589959",
-        orderPlaced: "20-02-2025",
-        paymentType: "COD",
-        status: "IN TRANSIT",
-        estimatedDelivery: "Tuesday, February 25",
-        currentLocation: {
-            lat: 19.0760,
-            lng: 72.8777
-        },
-        trackingEvents: [
-            {
-                date: "22 FEB",
-                time: "09:39 AM",
-                activity: "SHIPMENT OUTSCANNED TO NETWORK",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "21 FEB",
-                time: "02:00 AM",
-                activity: "COMM FLIGHT,VEH/TRAIN; DELAYED/CANCELLED",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "11:30 PM",
-                activity: "SHIPMENT RECEIVED AT FACILITY",
-                location: "MUMBAI HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "09:15 PM",
-                activity: "SHIPMENT PICKED UP",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "03:45 PM",
-                activity: "SHIPMENT CREATED",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            }
-        ],
-        weight: "324.00 Kg",
-        dimensions: {
-            length: 50,
-            width: 43,
-            height: 34
-        },
-        volumetricWeight: "0 Kg",
-        chargedWeight: "0 Kg",
-        customerDetails: {
-            name: "John Doe",
-            address1: "123 Main Street",
-            address2: "Apartment 4B",
-            city: "PUNE",
-            state: "MAHARASHTRA",
-            pincode: "412105",
-            country: "India",
-            phone: "9348543598"
-        },
-        warehouseDetails: {
-            name: "Main Warehouse",
-            address1: "456 Storage Lane",
-            city: "Noida",
-            state: "UTTAR PRADESH",
-            pincode: "201307",
-            country: "India",
-            phone: "9000000000"
-        },
-        products: [
-            {
-                name: "Premium Laptop",
-                sku: "LAP001",
-                quantity: 1,
-                price: 50.00,
-                image: "/product-image.jpg"
-            },
-            {
-                name: "Wireless Mouse",
-                sku: "MOU001",
-                quantity: 1,
-                price: 1799.00,
-                image: "/mouse-image.jpg"
-            }
-        ]
-    };
+    if (loading) {
+        return (
+            <div className="text-center py-8">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p>Loading dispute details...</p>
+            </div>
+        );
+    }
+
+    if (error || !disputeDetails) {
+        return (
+            <div className="bg-red-50 border border-red-200 text-red-800 rounded p-4">
+                {error || 'Failed to load dispute details'}
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto py-4 w-full">
@@ -177,7 +130,7 @@ const SellerDisputeDetailsPage = () => {
             >
                 {/* Header with Back Button */}
                 <div className="flex items-center gap-4 mb-6">
-                    <Link to="/seller/dashboard/orders">
+                    <Link to="/seller/dashboard/disputes">
                         <Button variant="outline" size="icon">
                             <ArrowLeftIcon className="size-5" />
                         </Button>

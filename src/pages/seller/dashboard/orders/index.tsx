@@ -18,207 +18,12 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShippingOptionsModal } from "@/components/seller/shipping-options-modal";
-import { useOrderData } from "@/hooks/useOrderData";
 import { Skeleton } from "@/components/ui/skeleton";
 import DateRangePicker from "@/components/admin/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { OrderData } from "@/services/seller-order.service";
 import { utils as XLSXUtils, write as XLSXWrite } from 'xlsx';
-
-const allData: OrderData[] = [
-    {
-        orderId: "ORD-2025-001",
-        date: "2025-02-20",
-        customer: "Rahul Sharma",
-        contact: "9876543210",
-        items: [{ name: "Gaming Laptop", sku: "GL001", quantity: 1, price: 97497.00 }],
-        amount: "97497.00",
-        payment: "COD",
-        chanel: "MANUAL",
-        weight: "2.5",
-        tags: "Gaming",
-        action: "Ship",
-        whatsapp: "Message Delivered",
-        status: "not-booked",
-        awbNumber: undefined,
-        pincode: "400001"
-    },
-    {
-        orderId: "ORD-2025-002",
-        date: "2025-02-19",
-        customer: "Priya Patel",
-        contact: "9876543211",
-        items: [
-            { name: "Wireless Mouse", sku: "WM001", quantity: 1, price: 7999.00 },
-            { name: "Keyboard", sku: "KB001", quantity: 1, price: 8000.00 }
-        ],
-        amount: "15999.00",
-        payment: "Prepaid",
-        chanel: "EXCEL",
-        weight: "1.2",
-        tags: "Electronics",
-        action: "Processing",
-        whatsapp: "Message Read",
-        status: "processing",
-        awbNumber: "AWB123456",
-        pincode: "400002"
-    },
-    {
-        orderId: "ORD-2025-003",
-        date: "2025-02-19",
-        customer: "Amit Kumar",
-        contact: "9876543212",
-        items: [{ name: "Premium Headphones", sku: "PH001", quantity: 1, price: 49999.00 }],
-        amount: "49999.00",
-        payment: "COD",
-        chanel: "SHOPIFY",
-        weight: "3.5",
-        tags: "Premium",
-        action: "Pending",
-        whatsapp: "Order Confirm",
-        status: "booked",
-        awbNumber: "AWB123457",
-        pincode: "400003"
-    },
-    {
-        orderId: "ORD-2025-004",
-        date: "2025-02-18",
-        customer: "Neha Singh",
-        contact: "9876543213",
-        items: [
-            { name: "Phone Case", sku: "PC001", quantity: 2, price: 999.00 },
-            { name: "Screen Guard", sku: "SG001", quantity: 1, price: 11001.00 }
-        ],
-        amount: "12999.00",
-        payment: "Prepaid",
-        chanel: "WOOCOMMERCE",
-        weight: "1.8",
-        tags: "Accessories",
-        action: "Processing",
-        whatsapp: "Message Read",
-        status: "processing",
-        awbNumber: "AWB123458",
-        pincode: "400004"
-    },
-    {
-        orderId: "ORD-2025-005",
-        date: "2025-02-18",
-        customer: "Vikram Verma",
-        contact: "9876543214",
-        items: [{ name: "Bluetooth Speaker", sku: "BS001", quantity: 1, price: 7999.00 }],
-        amount: "7999.00",
-        payment: "COD",
-        chanel: "AMAZON",
-        weight: "0.8",
-        tags: "Electronics",
-        action: "Cancelled",
-        whatsapp: "Message Delivered",
-        status: "shipment-cancelled",
-        awbNumber: "AWB123459",
-        pincode: "400005"
-    },
-    {
-        orderId: "ORD-2025-006",
-        date: "2025-02-17",
-        customer: "Anjali Gupta",
-        contact: "9876543215",
-        items: [
-            { name: "Gaming Mouse", sku: "GM001", quantity: 1, price: 12499.00 },
-            { name: "Gaming Keyboard", sku: "GK001", quantity: 1, price: 12500.00 }
-        ],
-        amount: "24999.00",
-        payment: "Prepaid",
-        chanel: "FLIPKART",
-        weight: "1.5",
-        tags: "Gaming",
-        action: "Error",
-        whatsapp: "Message Read",
-        status: "error",
-        awbNumber: "AWB123460",
-        pincode: "400006"
-    },
-    {
-        orderId: "ORD-2025-007",
-        date: "2025-02-17",
-        customer: "Rajesh Kumar",
-        contact: "9876543216",
-        items: [{ name: "Premium Smartwatch", sku: "PS001", quantity: 1, price: 39999.00 }],
-        amount: "39999.00",
-        payment: "COD",
-        chanel: "OPENCART",
-        weight: "2.2",
-        tags: "Premium",
-        action: "In Transit",
-        whatsapp: "Order Confirm",
-        status: "not-booked",
-        awbNumber: undefined,
-        pincode: "400007"
-    },
-    {
-        orderId: "ORD-2025-008",
-        date: "2025-02-16",
-        customer: "Meera Shah",
-        contact: "9876543217",
-        items: [
-            { name: "Power Bank", sku: "PB001", quantity: 1, price: 3999.00 },
-            { name: "USB Cable", sku: "UC001", quantity: 1, price: 5000.00 }
-        ],
-        amount: "8999.00",
-        payment: "Prepaid",
-        chanel: "API",
-        weight: "1.0",
-        tags: "Accessories",
-        action: "Processing",
-        whatsapp: "Order Cancelled",
-        status: "processing",
-        awbNumber: "AWB123461",
-        pincode: "400008"
-    },
-    {
-        orderId: "ORD-2025-009",
-        date: "2025-02-16",
-        customer: "Arun Reddy",
-        contact: "9876543218",
-        items: [{ name: "Wireless Earbuds", sku: "WE001", quantity: 1, price: 15999.00 }],
-        amount: "15999.00",
-        payment: "COD",
-        chanel: "MANUAL",
-        weight: "1.3",
-        tags: "Electronics",
-        action: "Pending",
-        whatsapp: "Message Delivered",
-        status: "booked",
-        awbNumber: "AWB123462",
-        pincode: "400009"
-    },
-    {
-        orderId: "ORD-2025-010",
-        date: "2025-02-15",
-        customer: "Pooja Sharma",
-        contact: "9876543219",
-        items: [
-            { name: "Gaming Console", sku: "GC001", quantity: 1, price: 29999.00 },
-            { name: "Game Controller", sku: "GCT001", quantity: 2, price: 0.00 }
-        ],
-        amount: "29999.00",
-        payment: "Prepaid",
-        chanel: "EXCEL",
-        weight: "2.0",
-        tags: "Gaming",
-        action: "Cancelled",
-        whatsapp: "Message Read",
-        status: "cancelled",
-        awbNumber: "AWB123463",
-        pincode: "400010"
-    }
-];
-
-const notBookedData = allData.filter(item => item.status === "not-booked");
-const processingData = allData.filter(item => item.status === "processing");
-const bookedData = allData.filter(item => item.status === "booked");
-const cancelledData = allData.filter(item => item.status === "cancelled");
-const shipmentCancelledData = allData.filter(item => item.status === "shipment-cancelled");
-const errorData = allData.filter(item => item.status === "error");
+import { ServiceFactory } from "@/services/service-factory";
 
 const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: { 
     data: OrderData[], 
@@ -349,7 +154,7 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
         }
     };
 
-    const handleShipSelected = (data: {
+    const handleShipSelected = (shippingData: {
         courier: string;
         mode: string;
         charges: {
@@ -359,14 +164,13 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
             total: number;
         };
     }) => {
-        // Update shipping details for selected orders
-        const updatedOrders = allData.map((order: OrderData) => {
+        const updatedOrders = data.map((order: OrderData) => {
             if (selectedOrders.includes(order.orderId)) {
                 return {
                     ...order,
-                    courier: data.courier,
-                    shippingMode: data.mode,
-                    charges: data.charges
+                    courier: shippingData.courier,
+                    shippingMode: shippingData.mode,
+                    charges: shippingData.charges
                 };
             }
             return order;
@@ -1100,31 +904,85 @@ const OrdersTable = ({ data, onBulkStatusUpdate, dateRange }: {
 };
 
 const SellerOrdersPage = () => {
-    const {
-        loading,
-        error,
-        orders,
-        updateOrderStatus,
-        bulkUpdateOrderStatus,
-        refresh
-    } = useOrderData();
-
+    const activeTab = "not-booked";
+    const [orders, setOrders] = useState<OrderData[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const [error, setError] = useState<string | null>(null);
 
-    // Use mock data for testing
-    const getMockFilteredOrders = (status?: OrderData['status']) => {
-        if (!status) return allData;
-        return allData.filter(order => order.status === status);
+    useEffect(() => {
+        fetchOrders();
+    }, [activeTab, dateRange]);
+
+    const fetchOrders = async () => {
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.getOrders({
+                status: activeTab as OrderData['status'],
+                startDate: dateRange?.from?.toISOString(),
+                endDate: dateRange?.to?.toISOString()
+            });
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to fetch orders');
+            }
+
+            setOrders(response.data);
+        } catch (error) {
+            setError(error instanceof Error ? error.message : "An error occurred");
+            console.error('Error fetching orders:', error);
+            toast.error('Failed to fetch orders');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    if (loading && !orders) {
-    return (
+    const handleStatusUpdate = async (orderId: string, status: OrderData['status']) => {
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.updateStatus(orderId, status);
+            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to update order status');
+            }
+
+            toast.success('Order status updated successfully');
+            fetchOrders();
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            toast.error('Failed to update order status');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleBulkStatusUpdate = async (orderIds: string[], status: OrderData['status']) => {
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.bulkUpdateStatus(orderIds, status);
+            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to update orders status');
+            }
+
+            toast.success('Orders status updated successfully');
+            fetchOrders();
+        } catch (error) {
+            console.error('Error updating orders status:', error);
+            toast.error('Failed to update orders status');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (isLoading && !orders) {
+        return (
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <Skeleton className="h-10 w-[300px]" />
-                    </div>
-                <Skeleton className="h-[600px]" />
                 </div>
+                <Skeleton className="h-[600px]" />
+            </div>
         );
     }
 
@@ -1133,9 +991,9 @@ const SellerOrdersPage = () => {
             <div className="flex flex-col items-center justify-center min-h-[600px]">
                 <div className="text-red-500 text-xl mb-4">
                     {error}
-                        </div>
-                <Button onClick={refresh}>Retry</Button>
-                    </div>
+                </div>
+                <Button onClick={fetchOrders}>Retry</Button>
+            </div>
         );
     }
 
@@ -1147,80 +1005,80 @@ const SellerOrdersPage = () => {
                     date={dateRange}
                     setDate={setDateRange}
                 />
-                </div>
+            </div>
 
             <Tabs defaultValue="all" className="w-full">
                 <TabsList className="grid w-full grid-cols-7">
-                    <TabsTrigger value="all">All ({allData.length})</TabsTrigger>
-                    <TabsTrigger value="not-booked">Not Booked ({notBookedData.length})</TabsTrigger>
-                    <TabsTrigger value="processing">Processing ({processingData.length})</TabsTrigger>
-                    <TabsTrigger value="booked">Booked ({bookedData.length})</TabsTrigger>
-                    <TabsTrigger value="cancelled">Cancelled ({cancelledData.length})</TabsTrigger>
-                    <TabsTrigger value="shipment-cancelled">Shipment Cancelled ({shipmentCancelledData.length})</TabsTrigger>
-                    <TabsTrigger value="error">Error ({errorData.length})</TabsTrigger>
+                    <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
+                    <TabsTrigger value="not-booked">Not Booked ({orders.filter(o => o.status === "not-booked").length})</TabsTrigger>
+                    <TabsTrigger value="processing">Processing ({orders.filter(o => o.status === "processing").length})</TabsTrigger>
+                    <TabsTrigger value="booked">Booked ({orders.filter(o => o.status === "booked").length})</TabsTrigger>
+                    <TabsTrigger value="cancelled">Cancelled ({orders.filter(o => o.status === "cancelled").length})</TabsTrigger>
+                    <TabsTrigger value="shipment-cancelled">Shipment Cancelled ({orders.filter(o => o.status === "shipment-cancelled").length})</TabsTrigger>
+                    <TabsTrigger value="error">Error ({orders.filter(o => o.status === "error").length})</TabsTrigger>
                 </TabsList>
 
                 <div className="w-full overflow-x-auto">
                     <div className="min-w-full">
                         <TabsContent value="all" className="mt-2">
                             <OrdersTable 
-                                data={allData} 
-                                onStatusUpdate={updateOrderStatus}
-                                onBulkStatusUpdate={bulkUpdateOrderStatus}
+                                data={orders} 
+                                onStatusUpdate={handleStatusUpdate}
+                                onBulkStatusUpdate={handleBulkStatusUpdate}
                                 dateRange={dateRange}
                             />
                         </TabsContent>
 
                         <TabsContent value="not-booked" className="mt-2">
                             <OrdersTable 
-                                data={getMockFilteredOrders("not-booked")} 
-                                onStatusUpdate={updateOrderStatus}
-                                onBulkStatusUpdate={bulkUpdateOrderStatus}
+                                data={orders.filter(o => o.status === "not-booked")} 
+                                onStatusUpdate={handleStatusUpdate}
+                                onBulkStatusUpdate={handleBulkStatusUpdate}
                                 dateRange={dateRange}
                             />
                         </TabsContent>
 
                         <TabsContent value="processing" className="mt-2">
                             <OrdersTable 
-                                data={getMockFilteredOrders("processing")} 
-                                onStatusUpdate={updateOrderStatus}
-                                onBulkStatusUpdate={bulkUpdateOrderStatus}
+                                data={orders.filter(o => o.status === "processing")} 
+                                onStatusUpdate={handleStatusUpdate}
+                                onBulkStatusUpdate={handleBulkStatusUpdate}
                                 dateRange={dateRange}
                             />
                         </TabsContent>
 
                         <TabsContent value="booked" className="mt-2">
                             <OrdersTable 
-                                data={getMockFilteredOrders("booked")} 
-                                onStatusUpdate={updateOrderStatus}
-                                onBulkStatusUpdate={bulkUpdateOrderStatus}
+                                data={orders.filter(o => o.status === "booked")} 
+                                onStatusUpdate={handleStatusUpdate}
+                                onBulkStatusUpdate={handleBulkStatusUpdate}
                                 dateRange={dateRange}
                             />
                         </TabsContent>
 
                         <TabsContent value="cancelled" className="mt-2">
                             <OrdersTable 
-                                data={getMockFilteredOrders("cancelled")} 
-                                onStatusUpdate={updateOrderStatus}
-                                onBulkStatusUpdate={bulkUpdateOrderStatus}
+                                data={orders.filter(o => o.status === "cancelled")} 
+                                onStatusUpdate={handleStatusUpdate}
+                                onBulkStatusUpdate={handleBulkStatusUpdate}
                                 dateRange={dateRange}
                             />
                         </TabsContent>
 
                         <TabsContent value="shipment-cancelled" className="mt-2">
                             <OrdersTable 
-                                data={getMockFilteredOrders("shipment-cancelled")} 
-                                onStatusUpdate={updateOrderStatus}
-                                onBulkStatusUpdate={bulkUpdateOrderStatus}
+                                data={orders.filter(o => o.status === "shipment-cancelled")} 
+                                onStatusUpdate={handleStatusUpdate}
+                                onBulkStatusUpdate={handleBulkStatusUpdate}
                                 dateRange={dateRange}
                             />
                         </TabsContent>
 
                         <TabsContent value="error" className="mt-2">
                             <OrdersTable 
-                                data={getMockFilteredOrders("error")} 
-                                onStatusUpdate={updateOrderStatus}
-                                onBulkStatusUpdate={bulkUpdateOrderStatus}
+                                data={orders.filter(o => o.status === "error")} 
+                                onStatusUpdate={handleStatusUpdate}
+                                onBulkStatusUpdate={handleBulkStatusUpdate}
                                 dateRange={dateRange}
                             />
                         </TabsContent>

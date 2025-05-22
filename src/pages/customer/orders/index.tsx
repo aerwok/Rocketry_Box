@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Search, ArrowUp, ArrowDown, ArrowUpDown, Loader2, AlertCircle, RefreshCw, FilterX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 import {
     Select,
     SelectContent,
@@ -25,217 +26,6 @@ interface Order {
     edd: string;
     pdfUrl: string;
 }
-// TODO: Show buttons for awb number and print label which will dowload pdf and for awb number show button to track order modal popup
-const orders: Order[] = [
-    {
-        date: "18/12/2024",
-        awb: "1023213433",
-        consigne: "Shivam Gupta",
-        product: "Book",
-        courier: "Blur dirt air",
-        amount: 200,
-        label: "Print",
-        status: "Booked",
-        edd: "23/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "17/12/2024",
-        awb: "1023213434",
-        consigne: "Rahul Kumar",
-        product: "Electronics",
-        courier: "Blur dirt air",
-        amount: 1500,
-        label: "Print",
-        status: "Booked",
-        edd: "22/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "16/12/2024",
-        awb: "1023213435",
-        consigne: "Priya Sharma",
-        product: "Clothing",
-        courier: "Blur dirt air",
-        amount: 800,
-        label: "Print",
-        status: "Delivered",
-        edd: "21/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "15/12/2024",
-        awb: "1023213436",
-        consigne: "Amit Patel",
-        product: "Mobile",
-        courier: "Blur dirt air",
-        amount: 12000,
-        label: "Print",
-        status: "In Transit",
-        edd: "20/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "14/12/2024",
-        awb: "1023213437",
-        consigne: "Neha Singh",
-        product: "Laptop",
-        courier: "Blur dirt air",
-        amount: 45000,
-        label: "Print",
-        status: "Delivered",
-        edd: "19/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "13/12/2024",
-        awb: "1023213438",
-        consigne: "Rajesh Kumar",
-        product: "Furniture",
-        courier: "Blur dirt air",
-        amount: 25000,
-        label: "Print",
-        status: "Processing",
-        edd: "18/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "12/12/2024",
-        awb: "1023213439",
-        consigne: "Meera Reddy",
-        product: "Cosmetics",
-        courier: "Blur dirt air",
-        amount: 1800,
-        label: "Print",
-        status: "Delivered",
-        edd: "17/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "11/12/2024",
-        awb: "1023213440",
-        consigne: "Vikram Singh",
-        product: "Sports Equipment",
-        courier: "Blur dirt air",
-        amount: 3500,
-        label: "Print",
-        status: "In Transit",
-        edd: "16/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "10/12/2024",
-        awb: "1023213441",
-        consigne: "Anita Desai",
-        product: "Kitchen Appliance",
-        courier: "Blur dirt air",
-        amount: 5000,
-        label: "Print",
-        status: "Booked",
-        edd: "15/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "09/12/2024",
-        awb: "1023213442",
-        consigne: "Suresh Menon",
-        product: "Camera",
-        courier: "Blur dirt air",
-        amount: 28000,
-        label: "Print",
-        status: "Delivered",
-        edd: "14/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "08/12/2024",
-        awb: "1023213443",
-        consigne: "Kavita Sharma",
-        product: "Watch",
-        courier: "Blur dirt air",
-        amount: 15000,
-        label: "Print",
-        status: "Processing",
-        edd: "13/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-    {
-        date: "07/12/2024",
-        awb: "1023213444",
-        consigne: "Deepak Verma",
-        product: "Headphones",
-        courier: "Blur dirt air",
-        amount: 2000,
-        label: "Print",
-        status: "Booked",
-        edd: "12/12/2024",
-        pdfUrl: "/docs/text.pdf",
-    },
-];
-
-// API functions for production use
-// --------------------------------------
-async function fetchOrders(page: number, limit: number, searchQuery: string, sortField: string, sortDirection: string, statusFilter: string | null): Promise<{orders: Order[], total: number}> {
-  try {
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      query: searchQuery,
-      sortField: sortField || '',
-      sortDirection: sortDirection || ''
-    });
-    
-    // Add status filter if present
-    if (statusFilter) {
-      queryParams.append('status', statusFilter);
-    }
-    
-    const response = await fetch(`/api/customer/orders?${queryParams}`);
-    if (!response.ok) throw new Error('Failed to fetch orders');
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-    throw error;
-  }
-}
-
-async function fetchStatusCounts(): Promise<Record<string, number>> {
-  try {
-    const response = await fetch('/api/customer/orders/status-counts');
-    if (!response.ok) throw new Error('Failed to fetch status counts');
-    
-    const data = await response.json();
-    return data.counts;
-  } catch (error) {
-    console.error('Error fetching status counts:', error);
-    // Return empty counts as fallback
-    return {
-      All: 0,
-      Booked: 0,
-      Processing: 0,
-      "In Transit": 0,
-      "Out for Delivery": 0,
-      Delivered: 0,
-      Returned: 0
-    };
-  }
-}
-
-async function downloadOrderLabel(awb: string): Promise<Blob> {
-  try {
-    const response = await fetch(`/api/customer/orders/${awb}/label`);
-    if (!response.ok) throw new Error('Failed to download label');
-    
-    const blob = await response.blob();
-    return blob;
-  } catch (error) {
-    console.error('Error downloading label:', error);
-    throw error;
-  }
-}
-// --------------------------------------
 
 const ITEMS_PER_PAGE = 10;
 
@@ -256,7 +46,15 @@ const CustomerOrdersPage = () => {
     const [orderData, setOrderData] = useState<Order[]>([]);
     const [totalOrders, setTotalOrders] = useState(0);
     const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
-    const [apiStatusCounts, setApiStatusCounts] = useState<Record<string, number> | null>(null);
+    const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
+        All: 0,
+        Booked: 0,
+        Processing: 0,
+        "In Transit": 0,
+        "Out for Delivery": 0,
+        Delivered: 0,
+        Returned: 0
+    });
 
     // Update statusFilter when URL param changes
     useEffect(() => {
@@ -270,72 +68,21 @@ const CustomerOrdersPage = () => {
                 setLoading(true);
                 setError(null);
                 
-                // For production, use actual API calls
-                if (process.env.NODE_ENV === 'production') {
-                    try {
-                        // Get status counts for the dropdown
-                        const counts = await fetchStatusCounts();
-                        setApiStatusCounts(counts);
-                        
-                        // Fetch orders with all parameters
-                        const data = await fetchOrders(
-                            currentPage, 
-                            ITEMS_PER_PAGE, 
-                            searchQuery, 
-                            sortConfig.key || '', 
-                            sortConfig.direction || '',
-                            statusFilter
-                        );
-                        
-                        setOrderData(data.orders);
-                        setTotalOrders(data.total);
-                        return;
-                    } catch (error) {
-                        console.error("API error:", error);
-                        throw new Error("Failed to fetch data from server");
-                    }
+                const response = await ServiceFactory.customer.orders.getAll({
+                    page: currentPage,
+                    limit: ITEMS_PER_PAGE,
+                    search: searchQuery,
+                    sortField: sortConfig.key || '',
+                    sortDirection: sortConfig.direction || '',
+                    status: statusFilter || undefined
+                });
+
+                if (response.success) {
+                    setOrderData(response.data.orders);
+                    setTotalOrders(response.data.total);
+                } else {
+                    throw new Error(response.message || 'Failed to fetch orders');
                 }
-                
-                // Development fallback using mock data
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 800));
-                
-                // Filter orders based on search query and status
-                let filteredOrders = orders.filter(order =>
-                    (order.awb.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    order.consigne.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    order.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    order.courier.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    order.status.toLowerCase().includes(searchQuery.toLowerCase()))
-                );
-                
-                // Apply status filter if present
-                if (statusFilter) {
-                    filteredOrders = filteredOrders.filter(order =>
-                        order.status === statusFilter
-                    );
-                }
-                
-                // Sort orders based on sort config
-                let sortedOrders = [...filteredOrders];
-                if (sortConfig.key && sortConfig.direction) {
-                    sortedOrders.sort((a, b) => {
-                        if (a[sortConfig.key as keyof typeof a] < b[sortConfig.key as keyof typeof b]) {
-                            return sortConfig.direction === 'asc' ? -1 : 1;
-                        }
-                        if (a[sortConfig.key as keyof typeof a] > b[sortConfig.key as keyof typeof b]) {
-                            return sortConfig.direction === 'asc' ? 1 : -1;
-                        }
-                        return 0;
-                    });
-                }
-                
-                // Calculate pagination
-                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-                const paginatedOrders = sortedOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-                
-                setOrderData(paginatedOrders);
-                setTotalOrders(filteredOrders.length);
             } catch (err) {
                 console.error("Error fetching orders:", err);
                 setError("Failed to load orders. Please try again.");
@@ -347,21 +94,20 @@ const CustomerOrdersPage = () => {
         fetchData();
     }, [currentPage, searchQuery, sortConfig, statusFilter]);
 
-    // Fetch status counts separately for real-time updates
+    // Fetch status counts
     useEffect(() => {
-        const getApiStatusCounts = async () => {
-            if (process.env.NODE_ENV === 'production') {
-                try {
-                    const counts = await fetchStatusCounts();
-                    setApiStatusCounts(counts);
-                } catch (error) {
-                    console.error("Error fetching status counts:", error);
+        const fetchStatusCounts = async () => {
+            try {
+                const response = await ServiceFactory.customer.orders.getStatusCounts();
+                if (response.success) {
+                    setStatusCounts(response.data);
                 }
+            } catch (error) {
+                console.error("Error fetching status counts:", error);
             }
         };
         
-        getApiStatusCounts();
-        // Only fetch when status filter changes
+        fetchStatusCounts();
     }, [statusFilter]);
 
     const handleStatusChange = (value: string) => {
@@ -397,15 +143,13 @@ const CustomerOrdersPage = () => {
         return sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
     };
 
-    const handleDownloadPDF = async (pdfUrl: string, awb: string) => {
+    const handleDownloadPDF = async (awb: string) => {
         try {
             setDownloadingLabel(awb);
             
-            // In production, use actual API
-            if (process.env.NODE_ENV === 'production') {
-                const blob = await downloadOrderLabel(awb);
-                
-                // Create a download link and trigger it
+            const response = await ServiceFactory.customer.orders.downloadLabel(awb);
+            if (response.success) {
+                const blob = response.data;
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -416,14 +160,9 @@ const CustomerOrdersPage = () => {
                 document.body.removeChild(a);
                 
                 toast.success("Label downloaded successfully");
-                return;
+            } else {
+                throw new Error(response.message || 'Failed to download label');
             }
-            
-            // For development, we'll just simulate a delay and open mock PDF
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            window.open(pdfUrl, '_blank');
-            
-            toast.success("Label downloaded successfully");
         } catch (err) {
             console.error("Error downloading label:", err);
             toast.error("Failed to download label. Please try again.");
@@ -439,27 +178,6 @@ const CustomerOrdersPage = () => {
 
     // Calculate total pages
     const totalPages = Math.ceil(totalOrders / ITEMS_PER_PAGE);
-
-    const getStatusCounts = () => {
-        // Use API counts in production if available
-        if (process.env.NODE_ENV === 'production' && apiStatusCounts) {
-            return apiStatusCounts;
-        }
-        
-        // Fallback to calculated counts from mock data for development
-        const counts = {
-            All: orders.length,
-            Booked: orders.filter(order => order.status === "Booked").length,
-            Processing: orders.filter(order => order.status === "Processing").length,
-            "In Transit": orders.filter(order => order.status === "In Transit").length,
-            "Out for Delivery": orders.filter(order => order.status === "Out for Delivery").length,
-            Delivered: orders.filter(order => order.status === "Delivered").length,
-            Returned: orders.filter(order => order.status === "Returned").length,
-        };
-        return counts;
-    };
-
-    const statusCounts = getStatusCounts();
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -494,7 +212,7 @@ const CustomerOrdersPage = () => {
                                     <SelectValue placeholder="Filter by status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="All">All Orders</SelectItem>
+                                    <SelectItem value="All">All Orders ({statusCounts.All})</SelectItem>
                                     <SelectItem value="Booked">Booked ({statusCounts.Booked})</SelectItem>
                                     <SelectItem value="Processing">Processing ({statusCounts.Processing})</SelectItem>
                                     <SelectItem value="In Transit">In Transit ({statusCounts["In Transit"]})</SelectItem>
@@ -617,7 +335,7 @@ const CustomerOrdersPage = () => {
                                         <TableCell>
                                             <button 
                                                 className="text-main hover:underline"
-                                                onClick={() => handleDownloadPDF(order.pdfUrl, order.awb)}
+                                                onClick={() => handleDownloadPDF(order.awb)}
                                                 disabled={downloadingLabel === order.awb}
                                             >
                                                 {downloadingLabel === order.awb ? (

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import RateTable from "./rate-table";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 const formSchema = z.object({
     pickupPincode: z.string().min(6, "Pincode must be 6 digits").max(6),
@@ -46,33 +47,6 @@ const formSchema = z.object({
 
 type RateCardInput = z.infer<typeof formSchema>;
 
-// Helper function to calculate the zone based on pincodes
-const determineZone = (pickupPincode: string, deliveryPincode: string): string => {
-    // This is a simplified example - in a real app you would likely:
-    // 1. Call an API or use a database lookup for pincode zone determination
-    // 2. Check metro cities, state boundaries, etc.
-    
-    // For demo purposes, let's simplify
-    if (pickupPincode.substring(0, 3) === deliveryPincode.substring(0, 3)) {
-        return "withinCity";
-    } else if (pickupPincode.substring(0, 2) === deliveryPincode.substring(0, 2)) {
-        return "withinState";
-    } else {
-        // Check for metro cities - this would be more comprehensive in a real app
-        const metroCodes = ["110", "400", "600", "700", "500", "560"];
-        const isPickupMetro = metroCodes.some(code => pickupPincode.startsWith(code));
-        const isDeliveryMetro = metroCodes.some(code => deliveryPincode.startsWith(code));
-        
-        if (isPickupMetro && isDeliveryMetro) {
-            return "metroToMetro";
-        } else if (["190", "180", "191", "192", "193", "194", "700", "781", "782", "783", "784", "785", "786", "787", "788", "791", "792", "793", "794", "795", "796", "797", "798", "799"].some(code => deliveryPincode.startsWith(code))) {
-            return "northEastJK";
-        }
-        
-        return "restOfIndia";
-    }
-};
-
 // Interface for courier rates
 interface CourierRate {
     name: string;
@@ -88,106 +62,9 @@ interface CalculationResult {
     rates: CourierRate[];
 }
 
-// Default courier data
-const defaultCouriers = [
-    {
-        name: "Delhivery Surface",
-        rates: {
-            withinCity: 32,
-            withinState: 34,
-            metroToMetro: 46,
-            restOfIndia: 49,
-            northEastJK: 68
-        },
-        codCharge: 35,
-        codPercent: 1.75
-    },
-    {
-        name: "DTDC Surface",
-        rates: {
-            withinCity: 30,
-            withinState: 30,
-            metroToMetro: 35,
-            restOfIndia: 39,
-            northEastJK: 52
-        },
-        codCharge: 27,
-        codPercent: 1.25
-    },
-    {
-        name: "BlueDart Express",
-        rates: {
-            withinCity: 37,
-            withinState: 45,
-            metroToMetro: 48,
-            restOfIndia: 49,
-            northEastJK: 64
-        },
-        codCharge: 35,
-        codPercent: 1.5
-    },
-    {
-        name: "Ekart Surface",
-        rates: {
-            withinCity: 32,
-            withinState: 34,
-            metroToMetro: 39,
-            restOfIndia: 41,
-            northEastJK: 46
-        },
-        codCharge: 30,
-        codPercent: 1.2
-    },
-    {
-        name: "Xpressbees Surface",
-        rates: {
-            withinCity: 27,
-            withinState: 27,
-            metroToMetro: 34,
-            restOfIndia: 40,
-            northEastJK: 47
-        },
-        codCharge: 27,
-        codPercent: 1.18
-    }
-];
-
-// Function to fetch seller-specific rates
-const fetchSellerRates = async () => {
-    try {
-        // In a real implementation, this would call your backend API
-        // Example: const response = await fetch('/api/seller/rates');
-        
-        // For demonstration, we'll simulate a response after a delay
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                // Check if we have a seller ID in local storage
-                const sellerId = localStorage.getItem('seller_id') || 'default';
-                
-                // Check if there are custom rates for this seller in localStorage
-                // This simulates how an admin might push new rates for a specific seller
-                const customRatesJSON = localStorage.getItem(`seller_rates_${sellerId}`);
-                
-                if (customRatesJSON) {
-                    const customRates = JSON.parse(customRatesJSON);
-                    resolve(customRates);
-                } else {
-                    // Return default rates if no custom rates exist
-                    resolve(defaultCouriers);
-                }
-            }, 300);
-        });
-    } catch (error) {
-        console.error("Error fetching seller rates:", error);
-        // Return default rates as fallback
-        return defaultCouriers;
-    }
-};
-
 const RateCard = () => {
     const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
     const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
-    const [couriers, setCouriers] = useState(defaultCouriers);
     const [isLoading, setIsLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
@@ -196,23 +73,21 @@ const RateCard = () => {
         const loadRates = async () => {
             setIsLoading(true);
             try {
-                const data = await fetchSellerRates() as typeof defaultCouriers;
-                setCouriers(data);
-                
-                // Check for timestamp of last update
-                const sellerId = localStorage.getItem('seller_id') || 'default';
-                const timestamp = localStorage.getItem(`seller_rates_${sellerId}_updated`);
-                if (timestamp) {
-                    setLastUpdated(new Date(timestamp).toLocaleString());
-                }
-                
-                // Show toast if rates were recently updated (in the last hour)
-                if (timestamp && (Date.now() - new Date(timestamp).getTime() < 60 * 60 * 1000)) {
-                    toast.info("Your rate card has been updated by the admin");
+                const response = await ServiceFactory.seller.billing.getRateCard();
+                if (response.success) {
+                    setLastUpdated(response.data.lastUpdated);
+                    
+                    // Show toast if rates were recently updated (in the last hour)
+                    if (response.data.lastUpdated && 
+                        (Date.now() - new Date(response.data.lastUpdated).getTime() < 60 * 60 * 1000)) {
+                        toast.info("Your rate card has been updated by the admin");
+                    }
+                } else {
+                    throw new Error(response.message || 'Failed to load rate card');
                 }
             } catch (error) {
                 console.error("Failed to load rate data:", error);
-                toast.error("Failed to load your rate card. Using default rates.");
+                toast.error("Failed to load your rate card. Please try again.");
             } finally {
                 setIsLoading(false);
             }
@@ -241,59 +116,44 @@ const RateCard = () => {
         },
     });
 
-    const onSubmit = (data: RateCardInput) => {
-        // Determine shipping zone
-        const zone = determineZone(data.pickupPincode, data.deliveryPincode);
-        
-        // Calculate volumetric weight (L x W x H / 5000)
-        const volWeight = (
-            parseFloat(data.packageLength) * 
-            parseFloat(data.packageWidth) * 
-            parseFloat(data.packageHeight)
-        ) / 5000;
-        
-        // Use the greater of actual or volumetric weight
-        const chargableWeight = Math.max(parseFloat(data.packageWeight), volWeight);
-        
-        // Calculate rates for all couriers
-        const courierRates = couriers.map(courier => {
-            // Get base rate based on zone
-            const baseRate = courier.rates[zone as keyof typeof courier.rates];
+    const onSubmit = async (data: RateCardInput) => {
+        try {
+            setIsLoading(true);
             
-            // Calculate COD charge if applicable
-            let codCharge = 0;
-            if (data.paymentType === "COD") {
-                const codPercent = courier.codPercent;
-                const percentAmount = (parseFloat(data.purchaseAmount) * codPercent) / 100;
-                codCharge = Math.max(courier.codCharge, percentAmount);
+            // Calculate volumetric weight (L x W x H / 5000)
+            const volWeight = (
+                parseFloat(data.packageLength) * 
+                parseFloat(data.packageWidth) * 
+                parseFloat(data.packageHeight)
+            ) / 5000;
+            
+            // Use the greater of actual or volumetric weight
+            const chargableWeight = Math.max(parseFloat(data.packageWeight), volWeight);
+            
+            const response = await ServiceFactory.seller.billing.calculateRates({
+                pickupPincode: data.pickupPincode,
+                deliveryPincode: data.deliveryPincode,
+                paymentType: data.paymentType,
+                purchaseAmount: parseFloat(data.purchaseAmount),
+                weight: chargableWeight
+            });
+
+            if (response.success) {
+                setCalculationResult({
+                    zone: response.data.zone,
+                    weight: `${chargableWeight.toFixed(2)} kg`,
+                    rates: response.data.rates
+                });
+                setShowConfirmation(true);
+            } else {
+                throw new Error(response.message || 'Failed to calculate rates');
             }
-            
-            // Calculate GST (18%)
-            const gst = (baseRate + codCharge) * 0.18;
-            
-            // Total amount
-            const total = baseRate + codCharge + gst;
-            
-            return {
-                name: courier.name,
-                baseCharge: baseRate,
-                codCharge: codCharge,
-                gst: gst,
-                total: total
-            };
-        });
-        
-        // Sort by total price (lowest first)
-        courierRates.sort((a, b) => a.total - b.total);
-        
-        // Set the calculation result
-        setCalculationResult({
-            zone: zone,
-            weight: `${chargableWeight.toFixed(2)} kg`,
-            rates: courierRates
-        });
-        
-        setShowConfirmation(true);
+        } catch (error) {
+            console.error("Error calculating rates:", error);
+            toast.error("Failed to calculate shipping rates. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ratingSchema, type RatingFormData } from "@/lib/validations/rating";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface OrderDetails {
     orderNo: string;
@@ -67,14 +68,35 @@ interface OrderDetails {
 
 const OrderDetailsPage = () => {
     const { id } = useParams();
+    const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     
-    // Use the id to fetch order details
+    // Fetch order details
     useEffect(() => {
-        if (id) {
-            // Fetch order details using the id
-            console.log(`Fetching order details for ID: ${id}`);
-            // TODO: Implement actual API call to fetch order details
-        }
+        const fetchOrderDetails = async () => {
+            if (!id) return;
+            
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const response = await ServiceFactory.customer.orders.getByAwb(id);
+                if (response.success) {
+                    setOrderDetails(response.data);
+                } else {
+                    throw new Error(response.message || 'Failed to fetch order details');
+                }
+            } catch (err) {
+                console.error('Error fetching order details:', err);
+                setError(err instanceof Error ? err.message : 'Failed to fetch order details');
+                toast.error('Failed to fetch order details');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOrderDetails();
     }, [id]);
 
     const [selectedRating, setSelectedRating] = useState<number | null>(null);
@@ -94,17 +116,19 @@ const OrderDetailsPage = () => {
     };
 
     const onSubmit = async (data: RatingFormData) => {
+        if (!id) return;
+        
         try {
             setIsSubmitting(true);
-            // TODO: Replace with your actual API call
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
-            console.log("Submitted data:", data);
-
-            toast.success("Thank you for your feedback!");
-
-            // Reset form
-            form.reset();
-            setSelectedRating(null);
+            const response = await ServiceFactory.customer.orders.submitRating(id, data);
+            
+            if (response.success) {
+                toast.success("Thank you for your feedback!");
+                form.reset();
+                setSelectedRating(null);
+            } else {
+                throw new Error(response.message || 'Failed to submit rating');
+            }
         } catch (error) {
             toast.error("Failed to submit rating. Please try again.");
         } finally {
@@ -112,97 +136,13 @@ const OrderDetailsPage = () => {
         }
     };
 
-    const orderDetails: OrderDetails = {
-        orderNo: "1740047589959",
-        orderPlaced: "20-02-2025",
-        paymentType: "COD",
-        status: "IN TRANSIT",
-        estimatedDelivery: "Tuesday, February 25",
-        currentLocation: {
-            lat: 19.0760,
-            lng: 72.8777
-        },
-        trackingEvents: [
-            {
-                date: "22 FEB",
-                time: "09:39 AM",
-                activity: "SHIPMENT OUTSCANNED TO NETWORK",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "21 FEB",
-                time: "02:00 AM",
-                activity: "COMM FLIGHT,VEH/TRAIN; DELAYED/CANCELLED",
-                location: "BIAL HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "11:30 PM",
-                activity: "SHIPMENT RECEIVED AT FACILITY",
-                location: "MUMBAI HUB",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "09:15 PM",
-                activity: "SHIPMENT PICKED UP",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            },
-            {
-                date: "20 FEB",
-                time: "03:45 PM",
-                activity: "SHIPMENT CREATED",
-                location: "PUNE WAREHOUSE",
-                status: "completed"
-            }
-        ],
-        weight: "324.00 Kg",
-        dimensions: {
-            length: 50,
-            width: 43,
-            height: 34
-        },
-        volumetricWeight: "0 Kg",
-        chargedWeight: "0 Kg",
-        customerDetails: {
-            name: "John Doe",
-            address1: "123 Main Street",
-            address2: "Apartment 4B",
-            city: "PUNE",
-            state: "MAHARASHTRA",
-            pincode: "412105",
-            country: "India",
-            phone: "9348543598"
-        },
-        warehouseDetails: {
-            name: "Main Warehouse",
-            address1: "456 Storage Lane",
-            city: "Noida",
-            state: "UTTAR PRADESH",
-            pincode: "201307",
-            country: "India",
-            phone: "9000000000"
-        },
-        products: [
-            {
-                name: "Premium Laptop",
-                sku: "LAP001",
-                quantity: 1,
-                price: 50.00,
-                image: "/product-image.jpg"
-            },
-            {
-                name: "Wireless Mouse",
-                sku: "MOU001",
-                quantity: 1,
-                price: 1799.00,
-                image: "/mouse-image.jpg"
-            }
-        ]
-    };
+    if (loading) {
+        return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    }
+
+    if (error || !orderDetails) {
+        return <div className="text-red-500 p-4">Error: {error || 'Order not found'}</div>;
+    }
 
     return (
         <div className="container mx-auto px-4 py-8 w-full">
@@ -243,7 +183,7 @@ const OrderDetailsPage = () => {
                         </div>
                         <div className="space-y-2">
                             <div className="text-7xl font-bold tracking-tighter">
-                                25
+                                {new Date(orderDetails.estimatedDelivery).getDate()}
                             </div>
                             <div className="text-xl">
                                 {orderDetails.estimatedDelivery}
@@ -305,7 +245,7 @@ const OrderDetailsPage = () => {
                                             Tracking ID
                                         </div>
                                         <div className="font-medium text-purple-500 cursor-pointer hover:underline">
-                                            81983530123
+                                            {orderDetails.orderNo}
                                         </div>
                                     </div>
                                 </div>
@@ -406,7 +346,7 @@ const OrderDetailsPage = () => {
                                             Order Total
                                         </p>
                                         <p className="text-xl font-semibold">
-                                            ₹1579.15
+                                            ₹{orderDetails.products.reduce((total, product) => total + (product.price * product.quantity), 0).toFixed(2)}
                                         </p>
                                     </div>
                                     <div className="pb-4 border-b border-border/60">
@@ -414,7 +354,7 @@ const OrderDetailsPage = () => {
                                             Payment Method
                                         </p>
                                         <p className="font-medium">
-                                            Prepaid
+                                            {orderDetails.paymentType}
                                         </p>
                                     </div>
                                     <div className="pb-4 border-b border-border/60">

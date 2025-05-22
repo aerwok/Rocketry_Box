@@ -5,12 +5,13 @@ import { toast } from "sonner";
 import { LoadScript, GoogleMap, Marker } from "@react-google-maps/api";
 import {
     ArrowLeftIcon,
-    CopyIcon,
     PackageIcon,
     ShoppingBagIcon,
     PhoneIcon,
     MessageSquareIcon,
-    MailIcon
+    MailIcon,
+    Copy,
+    Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface NDRDetails {
     awb: string;
@@ -32,143 +33,71 @@ interface NDRDetails {
     status: string;
     reason: string;
     action: string;
-    currentLocation: {
-        lat: number;
-        lng: number;
-    };
+    currentLocation: string;
     deliveryAttempts: {
         date: string;
-        time: string;
         status: string;
         reason: string;
-        comments: string;
+        location: string;
     }[];
     customerDetails: {
         name: string;
-        address1: string;
-        address2: string;
-        city: string;
-        state: string;
-        pincode: string;
-        country: string;
         phone: string;
         email: string;
+        address: string;
     };
     products: {
         name: string;
-        sku: string;
         quantity: number;
         price: number;
-        image: string;
     }[];
 }
 
 const NDRDetailsPage = () => {
     const { id } = useParams();
-    const { token } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [ndrDetails, setNdrDetails] = useState<NDRDetails | null>(null);
 
     useEffect(() => {
         const fetchNDRDetails = async () => {
-            if (!id) return;
-            
             try {
                 setLoading(true);
-                setError(null);
-                
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v2/seller/ndr/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch NDR details');
-                }
-
-                const data = await response.json();
-                
-                // Transform API response to match our interface
-                setNdrDetails({
-                    awb: data.data.awb,
-                    orderNo: data.data.order_id,
-                    orderDate: data.data.order_date,
-                    courier: data.data.courier_name,
-                    customer: data.data.customer_name,
-                    attempts: data.data.attempts,
-                    lastAttemptDate: data.data.attempt_history[0]?.date || '-',
-                    status: data.data.status,
-                    reason: data.data.ndr_reason,
-                    action: data.data.recommended_action,
-                    currentLocation: {
-                        lat: data.data.current_location?.lat || 0,
-                        lng: data.data.current_location?.lng || 0
-                    },
-                    deliveryAttempts: data.data.attempt_history.map((attempt: any) => ({
-                        date: attempt.date,
-                        time: attempt.time,
-                        status: attempt.status,
-                        reason: attempt.reason,
-                        comments: attempt.agent_remarks || ''
-                    })),
-                    customerDetails: {
-                        name: data.data.delivery_address.fullName,
-                        address1: data.data.delivery_address.addressLine1,
-                        address2: data.data.delivery_address.addressLine2 || '',
-                        city: data.data.delivery_address.city,
-                        state: data.data.delivery_address.state,
-                        pincode: data.data.delivery_address.pincode,
-                        country: 'India',
-                        phone: data.data.delivery_address.contactNumber,
-                        email: data.data.delivery_address.email || ''
-                    },
-                    products: data.data.products || []
-                });
-            } catch (err) {
-                console.error('Error fetching NDR details:', err);
-                setError(err instanceof Error ? err.message : 'Failed to fetch NDR details');
+                const response = await ServiceFactory.seller.ndr.getNDRDetails(id || '');
+                const data = response.data as unknown as NDRDetails;
+                setNdrDetails(data);
+            } catch (error) {
+                setError('Failed to fetch NDR details');
                 toast.error('Failed to fetch NDR details');
+                console.error('Error fetching NDR details:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchNDRDetails();
-    }, [id, token]);
+        if (id) {
+            fetchNDRDetails();
+        }
+    }, [id]);
 
-    const handleCopy = (text: string) => {
+    const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success('Copied to clipboard');
     };
 
     if (loading) {
         return (
-            <div className="container mx-auto py-4 w-full">
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
-                </div>
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             </div>
         );
     }
 
     if (error || !ndrDetails) {
         return (
-            <div className="container mx-auto py-4 w-full">
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <h3 className="text-lg font-medium text-gray-900">Error loading NDR details</h3>
-                        <p className="mt-1 text-sm text-gray-500">{error || 'NDR details not found'}</p>
-                        <Button 
-                            variant="outline" 
-                            className="mt-4"
-                            onClick={() => window.location.reload()}
-                        >
-                            Try Again
-                        </Button>
-                    </div>
-                </div>
+            <div className="text-center py-12">
+                <h3 className="text-lg font-medium text-gray-900">Error</h3>
+                <p className="mt-1 text-sm text-gray-500">{error || 'NDR details not found'}</p>
             </div>
         );
     }
@@ -224,9 +153,9 @@ const NDRDetailsPage = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-white hover:text-white hover:bg-white/10"
-                                onClick={() => handleCopy(ndrDetails.status)}
+                                onClick={() => copyToClipboard(ndrDetails.status)}
                             >
-                                <CopyIcon className="size-5" />
+                                <Copy className="size-5" />
                             </Button>
                         </div>
                         <div className="space-y-2">
@@ -264,10 +193,10 @@ const NDRDetailsPage = () => {
                                             maxHeight: '300px',
                                             borderRadius: 10,
                                         }}
-                                        center={ndrDetails.currentLocation}
+                                        center={{ lat: 0, lng: 0 }}
                                         zoom={10}
                                     >
-                                        <Marker position={ndrDetails.currentLocation} />
+                                        <Marker position={{ lat: 0, lng: 0 }} />
                                     </GoogleMap>
                                 </LoadScript>
                             </div>
@@ -309,9 +238,6 @@ const NDRDetailsPage = () => {
                                                         <span className="font-medium">
                                                             {attempt.date}
                                                         </span>
-                                                        <span className="text-sm">
-                                                            {attempt.time}
-                                                        </span>
                                                     </div>
 
                                                     {/* Timeline Dot and Line */}
@@ -345,10 +271,10 @@ const NDRDetailsPage = () => {
                                                         </p>
                                                         <div className="text-sm mt-2">
                                                             <span className="font-medium">
-                                                                Comments:{" "}
+                                                                Location:{" "}
                                                             </span>
                                                             <span className="text-muted-foreground">
-                                                                {attempt.comments}
+                                                                {attempt.location}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -393,9 +319,9 @@ const NDRDetailsPage = () => {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-6 w-6"
-                                                    onClick={() => handleCopy(ndrDetails.customerDetails.phone)}
+                                                    onClick={() => copyToClipboard(ndrDetails.customerDetails.phone)}
                                                 >
-                                                    <CopyIcon className="h-4 w-4" />
+                                                    <Copy className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -407,9 +333,9 @@ const NDRDetailsPage = () => {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-6 w-6"
-                                                    onClick={() => handleCopy(ndrDetails.customerDetails.email)}
+                                                    onClick={() => copyToClipboard(ndrDetails.customerDetails.email)}
                                                 >
-                                                    <CopyIcon className="h-4 w-4" />
+                                                    <Copy className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         </div>
@@ -420,16 +346,7 @@ const NDRDetailsPage = () => {
                                         </p>
                                         <div className="space-y-1">
                                             <p className="font-medium">
-                                                {ndrDetails.customerDetails.address1}
-                                            </p>
-                                            <p>
-                                                {ndrDetails.customerDetails.address2}
-                                            </p>
-                                            <p>
-                                                {ndrDetails.customerDetails.city}, {ndrDetails.customerDetails.state} {ndrDetails.customerDetails.pincode}
-                                            </p>
-                                            <p>
-                                                {ndrDetails.customerDetails.country}
+                                                {ndrDetails.customerDetails.address}
                                             </p>
                                         </div>
                                     </div>
@@ -497,19 +414,9 @@ const NDRDetailsPage = () => {
                                                 )}>
                                                     <td className="py-3 px-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="size-10 lg:size-16 flex-shrink-0 rounded-lg border border-border/60 p-2">
-                                                                <img
-                                                                    src={product.image}
-                                                                    alt={product.name}
-                                                                    className="w-full h-full object-contain"
-                                                                />
-                                                            </div>
                                                             <div className="min-w-0">
                                                                 <p className="font-medium line-clamp-1">
                                                                     {product.name}
-                                                                </p>
-                                                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                                                    {product.sku}
                                                                 </p>
                                                             </div>
                                                         </div>

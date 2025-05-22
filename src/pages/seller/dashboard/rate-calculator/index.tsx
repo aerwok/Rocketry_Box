@@ -21,15 +21,16 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 const rateCalculatorSchema = z.object({
     originPincode: z.string().length(6, "Pincode must be 6 digits"),
     destinationPincode: z.string().length(6, "Pincode must be 6 digits"),
-    weight: z.number().min(0.1, "Weight must be at least 0.1 kg"),
-    length: z.number().min(1, "Length must be at least 1 cm"),
-    width: z.number().min(1, "Width must be at least 1 cm"),
-    height: z.number().min(1, "Height must be at least 1 cm"),
-    value: z.number().min(0, "Value must be at least 0"),
+    weight: z.number().min(0.1, "Weight must be at least 0.1 kg").max(50, "Weight cannot exceed 50 kg"),
+    length: z.number().min(1, "Length must be at least 1 cm").max(150, "Length cannot exceed 150 cm"),
+    width: z.number().min(1, "Width must be at least 1 cm").max(150, "Width cannot exceed 150 cm"),
+    height: z.number().min(1, "Height must be at least 1 cm").max(150, "Height cannot exceed 150 cm"),
+    value: z.number().min(0, "Value must be at least 0").max(100000, "Value cannot exceed ₹1,00,000"),
     serviceType: z.enum(["Standard", "Express"]),
 });
 
@@ -69,42 +70,28 @@ const SellerRateCalculatorPage = () => {
     const onSubmit = async (data: RateCalculatorForm) => {
         try {
             setIsLoading(true);
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Mock response data
-            const mockRates: RateResult[] = [
-                {
-                    courier: "RocketryBox",
-                    serviceType: data.serviceType,
-                    deliveryTime: data.serviceType === "Express" ? "1-2 days" : "3-5 days",
-                    baseRate: data.serviceType === "Express" ? 150 : 100,
-                    weightCharge: data.weight * 20,
-                    fuelSurcharge: 50,
-                    codCharge: 30,
-                    gst: 18,
-                    totalCharge: data.serviceType === "Express" ? 250 : 200,
-                    isRecommended: true,
+            const response = await ServiceFactory.shipping.calculateRates({
+                originPincode: data.originPincode,
+                destinationPincode: data.destinationPincode,
+                weight: data.weight,
+                dimensions: {
+                    length: data.length,
+                    width: data.width,
+                    height: data.height
                 },
-                {
-                    courier: "Express Delivery",
-                    serviceType: data.serviceType,
-                    deliveryTime: data.serviceType === "Express" ? "1-2 days" : "3-5 days",
-                    baseRate: data.serviceType === "Express" ? 180 : 120,
-                    weightCharge: data.weight * 25,
-                    fuelSurcharge: 60,
-                    codCharge: 35,
-                    gst: 18,
-                    totalCharge: data.serviceType === "Express" ? 280 : 220,
-                    isRecommended: false,
-                },
-            ];
+                declaredValue: data.value,
+                serviceType: data.serviceType.toLowerCase()
+            });
 
-            setRates(mockRates);
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to calculate rates');
+            }
+
+            setRates(response.data.rates);
             toast.success("Shipping rates calculated successfully!");
         } catch (error) {
             console.error("Error calculating rates:", error);
-            toast.error("Failed to calculate shipping rates. Please try again.");
+            toast.error(error instanceof Error ? error.message : "Failed to calculate shipping rates. Please try again.");
         } finally {
             setIsLoading(false);
         }

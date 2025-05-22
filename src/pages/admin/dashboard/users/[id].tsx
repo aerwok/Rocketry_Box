@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Phone, User, Camera } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import AdminCompanyDetails from "./components/admin-company-details";
 import AdminBankDetails from "./components/admin-bank-details";
@@ -12,6 +12,7 @@ import AdminKycDetails from "./components/admin-kyc-details";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ServiceFactory } from "@/services/service-factory";
 
 // Define the AdminUserTab type for tab navigation
 type AdminUserTab = "profile" | "company" | "bank" | "shop" | "kyc" | "activity" | "agreement";
@@ -23,6 +24,36 @@ type AdminUserTab = "profile" | "company" | "bank" | "shop" | "kyc" | "activity"
 //     { icon: "/icons/opencart.svg", label: "OpenCart Store", placeholder: "Enter OpenCart store URL" },
 // ];
 
+interface UserData {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    status: string;
+    joinDate: string;
+    lastActive: string;
+    type: string;
+    companyName?: string;
+    totalTransactions: string;
+    totalAmountTransacted: string;
+    averageOrderValue: string;
+    rateBand: string;
+    paymentType: string;
+    creditLimit: number;
+    creditPeriod: number;
+}
+
+interface Address {
+    id: number;
+    title: string;
+    street: string;
+    area: string;
+    city: string;
+    state: string;
+    pincode: string;
+    phone: string;
+}
+
 const AdminUserProfilePage = () => {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState<AdminUserTab>("profile");
@@ -30,75 +61,88 @@ const AdminUserProfilePage = () => {
     const [proposedChanges, setProposedChanges] = useState<Record<string, any>>({});
     const [hasProposedChanges, setHasProposedChanges] = useState(false);
     const [showAddressForm, setShowAddressForm] = useState(false);
-    const [addresses, setAddresses] = useState([
-        {
-            id: 1,
-            title: "Address 1",
-            street: "Darjeeling",
-            area: "",
-            city: "Siliguri",
-            state: "WestBengal",
-            pincode: "736049",
-            phone: "1234567890"
-        },
-        {
-            id: 2,
-            title: "Address 2",
-            street: "Saltpar Bajar",
-            area: "Near Twelve Saloon",
-            city: "Siliguri",
-            state: "WestBengal",
-            pincode: "736049",
-            phone: "9876543210"
-        }
-    ]);
-    
-    // Dummy data based on user ID
-    const userData = useMemo(() => {
-        // Check if seller or customer based on ID
-        const isSeller = id?.includes("SELLER");
-        
-        return {
-            name: isSeller ? "John Smith" : "Emma Thompson",
-            email: isSeller ? "john.smith@example.com" : "emma.thompson@example.com",
-            phone: isSeller ? "+91 9876543210" : "+91 8765432109",
-            address: isSeller ? "123 Business Park, Andheri East, Mumbai, Maharashtra 400069" : "456 Residential Complex, Powai, Mumbai, Maharashtra 400076",
-            status: isSeller ? "Active" : "Active",
-            joinDate: "2023-04-15",
-            lastActive: "2023-08-22",
-            type: isSeller ? "Seller" : "Customer",
-            companyName: isSeller ? "Smith Enterprises Ltd." : "",
-            totalTransactions: isSeller ? "156" : "28",
-            totalAmountTransacted: isSeller ? "₹2,34,560" : "₹45,780",
-            averageOrderValue: isSeller ? "₹1,504" : "₹1,635",
-            rateband: "RBX1",
-            paymentType: "wallet",
-            creditLimit: 10000,
-            creditPeriod: 30
+    const [addresses, setAddresses] = useState<Address[]>([]);
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (!id) return;
+            try {
+                setLoading(true);
+                const response = await ServiceFactory.admin.getTeamMember(id);
+                setUserData(response.data);
+                
+                // Fetch addresses if available
+                if (response.data.addresses) {
+                    setAddresses(response.data.addresses);
+                }
+                
+                // Set initial payment type
+                if (response.data.paymentDetails?.paymentMode) {
+                    setPaymentType(response.data.paymentDetails.paymentMode);
+                }
+            } catch (error) {
+                console.error('Failed to fetch user data:', error);
+                toast.error('Failed to load user data');
+            } finally {
+                setLoading(false);
+            }
         };
+        fetchUserData();
     }, [id]);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
+        );
+    }
+
+    if (!userData) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <p className="text-gray-500">User not found</p>
+            </div>
+        );
+    }
+
+    // Now we can safely use userData as it's guaranteed to be non-null
+    const { name, email, phone, address, status, joinDate, lastActive, type, companyName, 
+            totalTransactions, totalAmountTransacted, averageOrderValue } = userData;
 
     // Handler for tab changes
     const handleTabChange = (tab: AdminUserTab) => {
-        // If user is not a seller, only allow profile and activity tabs
         if (!id?.includes("SELLER") && 
             (tab === "company" || tab === "bank" || tab === "shop" || tab === "kyc" || tab === "agreement")) {
             setActiveTab("profile");
             return;
         }
-        
         setActiveTab(tab);
     };
 
     // Handler for saving proposed changes
-    const handleSaveProposed = (message?: string) => {
-        // Save the changes to the proposedChanges state
-        setHasProposedChanges(true);
-        toast.success(message || "Changes saved temporarily. Create an agreement to apply them.");
+    const handleSaveProposed = async (message?: string) => {
+        if (!id || !userData) return;
+        try {
+            await ServiceFactory.admin.updateTeamMember(id, { 
+                ...proposedChanges,
+                paymentDetails: {
+                    paymentMode: paymentType,
+                    ...proposedChanges.paymentDetails
+                }
+            });
+            setHasProposedChanges(true);
+            toast.success(message || "Changes saved temporarily. Create an agreement to apply them.");
+        } catch (error) {
+            console.error('Failed to save changes:', error);
+            toast.error('Failed to save changes');
+        }
     };
 
     // Handler for collecting proposed changes from profile form
-    const handleProfileChanges = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleProfileChanges = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
         const formData = new FormData(e.currentTarget);
@@ -112,17 +156,19 @@ const AdminUserProfilePage = () => {
         changes.status = formData.get('status')?.toString();
         
         // Collect payment and rate band settings
-        changes.paymentType = paymentType;
-        changes.rateBand = formData.get('rateBand')?.toString();
+        changes.paymentDetails = {
+            paymentMode: paymentType,
+            rateBand: formData.get('rateBand')?.toString()
+        };
         
         if (paymentType === 'credit') {
-            changes.creditLimit = Number(formData.get('creditLimit'));
-            changes.creditPeriod = Number(formData.get('creditPeriod'));
+            changes.paymentDetails.creditLimit = Number(formData.get('creditLimit'));
+            changes.paymentDetails.creditPeriod = Number(formData.get('creditPeriod'));
         }
         
         // Save changes to state
         setProposedChanges(changes);
-        handleSaveProposed("Profile changes saved. Create an agreement to apply these changes.");
+        await handleSaveProposed("Profile changes saved. Create an agreement to apply these changes.");
     };
 
     // Handler for creating a new agreement from proposed changes
@@ -143,19 +189,15 @@ const AdminUserProfilePage = () => {
             if (title) title.value = "Updated Terms Agreement";
             
             // Check the appropriate checkboxes based on what changed
-            if (proposedChanges.paymentType === 'credit') {
+            if (proposedChanges.paymentDetails && proposedChanges.paymentDetails.paymentMode !== userData.paymentType) {
                 const paymentTypeCheckbox = document.getElementById('change-payment-type') as HTMLInputElement;
                 if (paymentTypeCheckbox) paymentTypeCheckbox.checked = true;
                 
-                const creditLimitCheckbox = document.getElementById('change-credit-limit') as HTMLInputElement;
-                if (creditLimitCheckbox) {
-                    creditLimitCheckbox.checked = true;
-                    const label = document.querySelector('label[for="change-credit-limit"]');
-                    if (label) label.textContent = `Set Credit Limit: ₹${proposedChanges.creditLimit || 0}`;
-                }
+                const label = document.querySelector('label[for="change-payment-type"]');
+                if (label) label.textContent = `Change payment type from ${userData.paymentType} to ${proposedChanges.paymentDetails.paymentMode}`;
             }
             
-            if (proposedChanges.rateBand && proposedChanges.rateBand !== userData.rateband) {
+            if (proposedChanges.paymentDetails && proposedChanges.paymentDetails.rateBand && proposedChanges.paymentDetails.rateBand !== userData.rateBand) {
                 const rateBandCheckbox = document.getElementById('change-rate-band') as HTMLInputElement;
                 if (rateBandCheckbox) {
                     rateBandCheckbox.checked = true;
@@ -172,8 +214,8 @@ const AdminUserProfilePage = () => {
                 for (const [key, value] of Object.entries(proposedChanges)) {
                     if (key === 'paymentType' && value !== userData.paymentType) {
                         descText += `- Change payment type from ${userData.paymentType} to ${value}\n`;
-                    } else if (key === 'rateBand' && value !== userData.rateband) {
-                        descText += `- Change rate band from ${userData.rateband} to ${value}\n`;
+                    } else if (key === 'rateBand' && value !== userData.rateBand) {
+                        descText += `- Change rate band from ${userData.rateBand} to ${value}\n`;
                     } else if (key === 'creditLimit' && proposedChanges.paymentType === 'credit') {
                         descText += `- Set credit limit to ₹${value}\n`;
                     } else if (key === 'creditPeriod' && proposedChanges.paymentType === 'credit') {
@@ -230,11 +272,11 @@ const AdminUserProfilePage = () => {
                 <div className="bg-white rounded-xl shadow-sm p-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold">User Profile: {userData.name}</h1>
+                            <h1 className="text-2xl font-bold">User Profile: {name}</h1>
                             <p className="text-gray-500">Manage user details and settings</p>
                         </div>
-                                    </div>
-                                </div>
+                    </div>
+                </div>
 
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Left Info Panel */}
@@ -244,23 +286,23 @@ const AdminUserProfilePage = () => {
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center justify-center mb-4">
                                         <div className="size-24 rounded-full bg-violet-100 flex items-center justify-center text-2xl font-bold text-violet-700">
-                                            {userData.name.split(' ').map(n => n[0]).join('')}
+                                            {name.split(' ').map(n => n[0]).join('')}
                                         </div>
-                                        </div>
+                                    </div>
                                     
                                     <div className="text-center mb-4">
-                                        <h2 className="font-bold text-xl">{userData.name}</h2>
-                                        <p className="text-gray-500">{userData.email}</p>
+                                        <h2 className="font-bold text-xl">{name}</h2>
+                                        <p className="text-gray-500">{email}</p>
                                         <div className="mt-2">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                userData.status === "Active" 
+                                                status === "Active" 
                                                     ? "bg-green-100 text-green-800" 
                                                     : "bg-red-100 text-red-800"
                                             }`}>
-                                                {userData.status}
+                                                {status}
                                             </span>
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
-                                                {userData.type}
+                                                {type}
                                             </span>
                                         </div>
                                     </div>
@@ -270,24 +312,24 @@ const AdminUserProfilePage = () => {
                                         <ul className="space-y-2">
                                             <li className="flex justify-between">
                                                 <span className="text-gray-500">Phone:</span>
-                                                <span className="font-medium">{userData.phone}</span>
+                                                <span className="font-medium">{phone}</span>
                                             </li>
                                             <li className="flex justify-between">
                                                 <span className="text-gray-500">Address:</span>
-                                                <span className="font-medium text-right">{userData.address}</span>
+                                                <span className="font-medium text-right">{address}</span>
                                             </li>
                                             <li className="flex justify-between">
                                                 <span className="text-gray-500">Join Date:</span>
-                                                <span className="font-medium">{userData.joinDate}</span>
+                                                <span className="font-medium">{joinDate}</span>
                                             </li>
                                             <li className="flex justify-between">
                                                 <span className="text-gray-500">Last Active:</span>
-                                                <span className="font-medium">{userData.lastActive}</span>
+                                                <span className="font-medium">{lastActive}</span>
                                             </li>
-                                            {userData.companyName && (
+                                            {companyName && (
                                                 <li className="flex justify-between">
                                                     <span className="text-gray-500">Company:</span>
-                                                    <span className="font-medium">{userData.companyName}</span>
+                                                    <span className="font-medium">{companyName}</span>
                                                 </li>
                                             )}
                                         </ul>
@@ -298,25 +340,25 @@ const AdminUserProfilePage = () => {
                                         <ul className="space-y-2">
                                             <li className="flex justify-between">
                                                 <span className="text-gray-500">Total Transactions:</span>
-                                                <span className="font-medium">{userData.totalTransactions}</span>
+                                                <span className="font-medium">{totalTransactions}</span>
                                             </li>
                                             <li className="flex justify-between">
                                                 <span className="text-gray-500">Total Amount:</span>
-                                                <span className="font-medium">{userData.totalAmountTransacted}</span>
+                                                <span className="font-medium">{totalAmountTransacted}</span>
                                             </li>
                                             <li className="flex justify-between">
                                                 <span className="text-gray-500">Avg. Order Value:</span>
-                                                <span className="font-medium">{userData.averageOrderValue}</span>
+                                                <span className="font-medium">{averageOrderValue}</span>
                                             </li>
                                         </ul>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
-                </div>
+                    </div>
 
-                {/* Right Form Section */}
-                <div className="w-full lg:w-[70%]">
+                    {/* Right Form Section */}
+                    <div className="w-full lg:w-[70%]">
                         <Card className="w-full rounded-xl shadow-sm">
                             <CardContent className="p-0">
                                 <Tabs 
@@ -414,7 +456,7 @@ const AdminUserProfilePage = () => {
                                                                     </label>
                                                                     <Input 
                                                                         placeholder="Enter your full name"
-                                                                        defaultValue={userData.name}
+                                                                        defaultValue={name}
                                                                         className="bg-white"
                                                                     />
                                                                 </div>
@@ -426,7 +468,7 @@ const AdminUserProfilePage = () => {
                                                                     </label>
                                                                     <Input 
                                                                         placeholder="Enter your email"
-                                                                        defaultValue={userData.email}
+                                                                        defaultValue={email}
                                                                         className="bg-white"
                                                                     />
                                                                 </div>
@@ -438,7 +480,7 @@ const AdminUserProfilePage = () => {
                                                                     </label>
                                                                     <Input 
                                                                         placeholder="Enter your phone number"
-                                                                        defaultValue={userData.phone}
+                                                                        defaultValue={phone}
                                                                         className="bg-white"
                                                                     />
                                                                 </div>
@@ -506,7 +548,7 @@ const AdminUserProfilePage = () => {
                                                                     <span className="text-sm text-gray-500">Full Name</span>
                                                                     <Input 
                                                                         name="name"
-                                                                        defaultValue={userData.name} 
+                                                                        defaultValue={name} 
                                                                         className="bg-[#F8F7FF]" 
                                                                     />
                                                                 </div>
@@ -514,7 +556,7 @@ const AdminUserProfilePage = () => {
                                                                     <span className="text-sm text-gray-500">Email Address</span>
                                                                     <Input 
                                                                         name="email"
-                                                                        defaultValue={userData.email} 
+                                                                        defaultValue={email} 
                                                                         className="bg-[#F8F7FF]" 
                                                                     />
                                                                 </div>
@@ -522,7 +564,7 @@ const AdminUserProfilePage = () => {
                                                                     <span className="text-sm text-gray-500">Phone Number</span>
                                                                     <Input 
                                                                         name="phone"
-                                                                        defaultValue={userData.phone} 
+                                                                        defaultValue={phone} 
                                                                         className="bg-[#F8F7FF]" 
                                                                     />
                                                                 </div>
@@ -544,7 +586,7 @@ const AdminUserProfilePage = () => {
                                                                 <div className="flex flex-col space-y-1">
                                                                     <span className="text-sm text-gray-500">Account Type</span>
                                                                     <Input 
-                                                                        defaultValue={userData.type} 
+                                                                        defaultValue={type} 
                                                                         className="bg-[#F8F7FF] text-gray-500" 
                                                                         disabled 
                                                                     />
@@ -552,7 +594,7 @@ const AdminUserProfilePage = () => {
                                                                 <div className="flex flex-col space-y-1">
                                                                     <span className="text-sm text-gray-500">Join Date</span>
                                                                     <Input 
-                                                                        defaultValue={userData.joinDate} 
+                                                                        defaultValue={joinDate} 
                                                                         className="bg-[#F8F7FF] text-gray-500" 
                                                                         disabled 
                                                                     />

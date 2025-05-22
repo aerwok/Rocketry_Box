@@ -13,6 +13,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
+import { ServiceFactory } from "@/services/service-factory";
+import { useEffect } from "react";
 
 interface AdminBankDetailsProps {
     onSave: (message?: string) => void;
@@ -21,24 +23,42 @@ interface AdminBankDetailsProps {
 const AdminBankDetails = ({ onSave }: AdminBankDetailsProps) => {
     const { id } = useParams();
     
-    // Prefill with dummy data based on user ID
-    const isSeller = id?.includes("SELLER");
-    
     const form = useForm<BankDetailsInput>({
         resolver: zodResolver(bankDetailsSchema),
         defaultValues: {
-            bankName: isSeller ? "HDFC Bank" : "State Bank of India",
-            accountName: isSeller ? "Smith Enterprises Ltd." : "Emma Thompson",
-            accountNumber: isSeller ? "10045678901234" : "30045678901234",
-            branchName: isSeller ? "Andheri Branch" : "Powai Branch",
-            ifscCode: isSeller ? "HDFC0001234" : "SBIN0001234",
+            bankName: "",
+            accountName: "",
+            accountNumber: "",
+            branchName: "",
+            ifscCode: "",
             cancelledChequeImage: undefined
         },
     });
 
-    const onSubmit = (data: BankDetailsInput) => {
-        console.log(data);
-        onSave("Bank details saved successfully");
+    useEffect(() => {
+        const fetchBankDetails = async () => {
+            if (!id) return;
+            try {
+                const response = await ServiceFactory.admin.getTeamMember(id);
+                const bankDetails = response.data.bankDetails;
+                if (bankDetails) {
+                    form.reset(bankDetails);
+                }
+            } catch (error) {
+                console.error('Failed to fetch bank details:', error);
+            }
+        };
+        fetchBankDetails();
+    }, [id, form]);
+
+    const onSubmit = async (data: BankDetailsInput) => {
+        if (!id) return;
+        try {
+            await ServiceFactory.admin.updateTeamMember(id, { bankDetails: data });
+            onSave("Bank details saved successfully");
+        } catch (error) {
+            console.error('Failed to save bank details:', error);
+        }
     };
 
     return (

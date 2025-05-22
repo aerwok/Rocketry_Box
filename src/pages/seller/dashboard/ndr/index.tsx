@@ -13,7 +13,6 @@ import { ArrowUpDown, Search, MoreVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import BulkNDRUploadModal from "@/components/seller/ndr/bulk-ndr-upload-modal";
-import ExcelJS from "exceljs";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ReturnOrderModal from "@/components/seller/return-order-modal";
 import ReattemptOrderModal from "@/components/seller/reattempt-order-modal";
+import { ServiceFactory } from "@/services/service-factory";
+import { toast } from "sonner";
 
 interface NDRData {
     awb: string;
@@ -46,7 +47,6 @@ interface NDRData {
 }
 
 const NDRTable = ({ data, showActions = false }: { data: NDRData[], showActions?: boolean }) => {
-
     const [sortConfig, setSortConfig] = useState<{
         key: keyof NDRData;
         direction: 'asc' | 'desc';
@@ -203,614 +203,190 @@ const NDRTable = ({ data, showActions = false }: { data: NDRData[], showActions?
     );
 };
 
-const mapToNDRData = (data: any[]): NDRData[] => {
-    return data.map(item => ({
-        awb: item.awb,
-        orderDate: item.orderDate || item.order_date,
-        courier: item.courier || item.courier_name,
-        customer: item.customer || item.customer_name,
-        attempts: item.attempts || 0,
-        lastAttemptDate: item.lastAttemptDate || item.last_attempt_date || "-",
-        status: item.status,
-        reason: item.reason || item.ndr_reason,
-        action: item.action || item.recommended_action || "",
-        address: item.address || item.delivery_address,
-    }));
-};
-
-// Mock data for testing - keep this when integrating with backend
-const mockNDRData = {
-    all: [
-        {
-            awb: "123456789",
-            order_date: "2024-03-15",
-            courier_name: "Blue Dart",
-            customer_name: "John Doe",
-            attempts: 2,
-            last_attempt_date: "2024-03-18",
-            status: "Action Required",
-            ndr_reason: "Customer not available",
-            recommended_action: "Call customer",
-            id: "ndr_123",
-            delivery_address: {
-                fullName: "John Doe",
-                contactNumber: "9876543210",
-                addressLine1: "123 Main Street",
-                addressLine2: "Apartment 4B",
-                pincode: "110001",
-                city: "New Delhi",
-                state: "Delhi"
-            }
-        },
-        {
-            awb: "987654321",
-            order_date: "2024-03-14",
-            courier_name: "DTDC",
-            customer_name: "Jane Smith",
-            attempts: 1,
-            last_attempt_date: "2024-03-17",
-            status: "Action Requested",
-            ndr_reason: "Address not found",
-            recommended_action: "Verify address",
-            id: "ndr_456",
-            delivery_address: {
-                fullName: "Jane Smith",
-                contactNumber: "8765432109",
-                addressLine1: "456 Oak Avenue",
-                pincode: "400001",
-                city: "Mumbai",
-                state: "Maharashtra"
-            }
-        },
-    ],
-    "action-required": [
-        {
-            awb: "123456789",
-            order_date: "2024-03-15",
-            courier_name: "Blue Dart",
-            customer_name: "John Doe",
-            attempts: 2,
-            last_attempt_date: "2024-03-18",
-            status: "Action Required",
-            ndr_reason: "Customer not available",
-            recommended_action: "Call customer",
-            id: "ndr_123",
-            delivery_address: {
-                fullName: "John Doe",
-                contactNumber: "9876543210",
-                addressLine1: "123 Main Street",
-                addressLine2: "Apartment 4B",
-                pincode: "110001",
-                city: "New Delhi",
-                state: "Delhi"
-            }
-        },
-        {
-            awb: "456789123",
-            order_date: "2024-03-16",
-            courier_name: "FedEx",
-            customer_name: "Alice Johnson",
-            attempts: 3,
-            last_attempt_date: "2024-03-19",
-            status: "Action Required",
-            ndr_reason: "Wrong address",
-            recommended_action: "Update address",
-            id: "ndr_789",
-            delivery_address: {
-                fullName: "Alice Johnson",
-                contactNumber: "7654321098",
-                addressLine1: "789 Pine Street",
-                pincode: "500001",
-                city: "Hyderabad",
-                state: "Telangana"
-            }
-        },
-    ],
-    "action-requested": [
-        {
-            awb: "987654321",
-            order_date: "2024-03-14",
-            courier_name: "DTDC",
-            customer_name: "Jane Smith",
-            attempts: 1,
-            last_attempt_date: "2024-03-17",
-            status: "Action Requested",
-            ndr_reason: "Address not found",
-            recommended_action: "Verify address",
-            id: "ndr_456",
-            delivery_address: {
-                fullName: "Jane Smith",
-                contactNumber: "8765432109",
-                addressLine1: "456 Oak Avenue",
-                pincode: "400001",
-                city: "Mumbai",
-                state: "Maharashtra"
-            }
-        },
-        {
-            awb: "654321987",
-            order_date: "2024-03-13",
-            courier_name: "DHL",
-            customer_name: "Bob Wilson",
-            attempts: 2,
-            last_attempt_date: "2024-03-16",
-            status: "Action Requested",
-            ndr_reason: "Phone not reachable",
-            recommended_action: "Update phone",
-            id: "ndr_321",
-            delivery_address: {
-                fullName: "Bob Wilson",
-                contactNumber: "6543210987",
-                addressLine1: "321 Elm Street",
-                landmark: "Near City Park",
-                pincode: "600001",
-                city: "Chennai",
-                state: "Tamil Nadu"
-            }
-        },
-    ],
-    "in-transit": [
-        {
-            awb: "246813579",
-            order_date: "2024-03-20",
-            courier_name: "Delhivery",
-            customer_name: "Michael Brown",
-            attempts: 0,
-            last_attempt_date: "-",
-            status: "In Transit",
-            ndr_reason: "Package in transit",
-            recommended_action: "Monitor status",
-            id: "ndr_246"
-        },
-        {
-            awb: "135792468",
-            order_date: "2024-03-19",
-            courier_name: "Ekart",
-            customer_name: "Sarah Davis",
-            attempts: 0,
-            last_attempt_date: "-",
-            status: "In Transit",
-            ndr_reason: "Out for delivery",
-            recommended_action: "Track package",
-            id: "ndr_135"
-        },
-        {
-            awb: "975310864",
-            order_date: "2024-03-18",
-            courier_name: "Blue Dart",
-            customer_name: "David Miller",
-            attempts: 0,
-            last_attempt_date: "-",
-            status: "In Transit",
-            ndr_reason: "Hub transfer",
-            recommended_action: "Monitor status",
-            id: "ndr_975"
-        },
-    ],
-    "ofd": [
-        {
-            awb: "864209753",
-            order_date: "2024-03-21",
-            courier_name: "FedEx",
-            customer_name: "Emma Wilson",
-            attempts: 1,
-            last_attempt_date: "2024-03-21",
-            status: "Out for Delivery",
-            ndr_reason: "First attempt",
-            recommended_action: "Delivery expected",
-            id: "ndr_864"
-        },
-        {
-            awb: "753951852",
-            order_date: "2024-03-21",
-            courier_name: "DHL",
-            customer_name: "Chris Taylor",
-            attempts: 1,
-            last_attempt_date: "2024-03-21",
-            status: "Out for Delivery",
-            ndr_reason: "Second attempt",
-            recommended_action: "Delivery expected",
-            id: "ndr_753"
-        },
-        {
-            awb: "159357852",
-            order_date: "2024-03-21",
-            courier_name: "DTDC",
-            customer_name: "Linda Anderson",
-            attempts: 2,
-            last_attempt_date: "2024-03-21",
-            status: "Out for Delivery",
-            ndr_reason: "Final attempt",
-            recommended_action: "Priority delivery",
-            id: "ndr_159"
-        },
-    ],
-    "delivered": [
-        {
-            awb: "951753852",
-            order_date: "2024-03-17",
-            courier_name: "Blue Dart",
-            customer_name: "Peter Parker",
-            attempts: 1,
-            last_attempt_date: "2024-03-20",
-            status: "Delivered",
-            ndr_reason: "Successfully delivered",
-            recommended_action: "Completed",
-            id: "ndr_951"
-        },
-        {
-            awb: "357159852",
-            order_date: "2024-03-16",
-            courier_name: "Delhivery",
-            customer_name: "Mary Jane",
-            attempts: 2,
-            last_attempt_date: "2024-03-19",
-            status: "Delivered",
-            ndr_reason: "Successfully delivered",
-            recommended_action: "Completed",
-            id: "ndr_357"
-        },
-        {
-            awb: "258147369",
-            order_date: "2024-03-15",
-            courier_name: "Ekart",
-            customer_name: "Harry Osborn",
-            attempts: 1,
-            last_attempt_date: "2024-03-18",
-            status: "Delivered",
-            ndr_reason: "Successfully delivered",
-            recommended_action: "Completed",
-            id: "ndr_258"
-        },
-        {
-            awb: "741852963",
-            order_date: "2024-03-14",
-            courier_name: "FedEx",
-            customer_name: "Gwen Stacy",
-            attempts: 3,
-            last_attempt_date: "2024-03-17",
-            status: "Delivered",
-            ndr_reason: "Successfully delivered",
-            recommended_action: "Completed",
-            id: "ndr_741"
-        },
-    ]
-};
-
-// API service functions for backend integration
-const fetchNDRData = async (status?: string) => {
-    // When ready for backend integration, uncomment this code and remove the mock data
-    try {
-        // Toggle between API and mock data with USE_MOCK_DATA
-        const USE_MOCK_DATA = true;
-        
-        if (USE_MOCK_DATA) {
-            // Return mock data with a slight delay to simulate network request
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    if (status && status !== 'all') {
-                        resolve(mockNDRData[status as keyof typeof mockNDRData] || []);
-                    } else {
-                        resolve(mockNDRData.all);
-                    }
-                }, 300);
-            });
-        }
-        
-        // Real API call
-        const endpoint = status && status !== 'all' 
-            ? `/api/v1/seller/ndr?status=${status}` 
-            : '/api/v1/seller/ndr';
-            
-        const response = await fetch(endpoint, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('seller_token')}`
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch NDR data');
-        }
-        
-        const data = await response.json();
-        return data.data || [];
-    } catch (error) {
-        console.error('Error fetching NDR data:', error);
-        throw error;
-    }
-};
-
 const SellerNDRPage = () => {
-
-    const [searchQuery, setSearchQuery] = useState<string>("");
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
-    const [activeTab, setActiveTab] = useState<string>("all");
-    const [ndrData, setNdrData] = useState<Record<string, any[]>>({
+    const [activeTab, setActiveTab] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [ndrData, setNdrData] = useState<{
+        all: NDRData[];
+        actionRequired: NDRData[];
+        actionRequested: NDRData[];
+        open: NDRData[];
+        closed: NDRData[];
+    }>({
         all: [],
-        "action-required": [],
-        "action-requested": [],
-        "in-transit": [],
-        "ofd": [],
-        "delivered": []
+        actionRequired: [],
+        actionRequested: [],
+        open: [],
+        closed: []
     });
-    const [loading, setLoading] = useState<Record<string, boolean>>({
-        all: false,
-        "action-required": false,
-        "action-requested": false,
-        "in-transit": false,
-        "ofd": false,
-        "delivered": false
-    });
-    const [error, setError] = useState<Record<string, string | null>>({
-        all: null,
-        "action-required": null,
-        "action-requested": null,
-        "in-transit": null,
-        "ofd": null,
-        "delivered": null
-    });
-    
-    // Listen for navbar search events
-    useEffect(() => {
-        const handleNavbarSearch = (event: CustomEvent<{query: string}>) => {
-            setSearchQuery(event.detail.query);
-        };
-        
-        // Add event listener for custom navbar search event
-        window.addEventListener('navbarSearch', handleNavbarSearch as EventListener);
-        
-        // Cleanup
-        return () => {
-            window.removeEventListener('navbarSearch', handleNavbarSearch as EventListener);
-        };
-    }, []);
+    const [loading, setLoading] = useState(true);
 
-    // Function to load NDR data for a specific tab
-    const loadNDRData = async (tabId: string) => {
-        if (ndrData[tabId].length > 0 && !error[tabId]) {
-            return; // Data already loaded
-        }
-        
-        setLoading(prev => ({ ...prev, [tabId]: true }));
-        setError(prev => ({ ...prev, [tabId]: null }));
-        
+    const fetchNDRData = async (status?: string) => {
         try {
-            const data = await fetchNDRData(tabId);
-            setNdrData(prev => ({ ...prev, [tabId]: data as any[] }));
-        } catch (err) {
-            setError(prev => ({ 
-                ...prev, 
-                [tabId]: err instanceof Error ? err.message : 'An error occurred' 
-            }));
+            setLoading(true);
+            const response = await ServiceFactory.seller.ndr.getNDRs(status as any);
+            const data = response.data as unknown as NDRData[];
+            if (status) {
+                setNdrData(prev => ({
+                    ...prev,
+                    [status]: data
+                }));
+            } else {
+                setNdrData(prev => ({
+                    ...prev,
+                    all: data
+                }));
+            }
+        } catch (error) {
+            toast.error('Failed to fetch NDR data');
+            console.error('Error fetching NDR data:', error);
         } finally {
-            setLoading(prev => ({ ...prev, [tabId]: false }));
+            setLoading(false);
         }
     };
-    
-    // Load initial data when component mounts
+
     useEffect(() => {
-        loadNDRData('all');
+        fetchNDRData();
     }, []);
-    
-    // Load data when tab changes
+
     const handleTabChange = (value: string) => {
         setActiveTab(value);
-        loadNDRData(value);
+        if (value !== 'all' && ndrData[value as keyof typeof ndrData].length === 0) {
+            fetchNDRData(value);
+        }
     };
-    
-    const filterDataBySearch = (data: any[]) => {
-        if (!searchQuery.trim()) return data;
-        
-        const query = searchQuery.toLowerCase().trim();
-        return data.filter(item => 
-            (item.awb?.toLowerCase() || '').includes(query) ||
-            (item.customer?.toLowerCase() || item.customer_name?.toLowerCase() || '').includes(query) ||
-            (item.courier?.toLowerCase() || item.courier_name?.toLowerCase() || '').includes(query) ||
-            (item.reason?.toLowerCase() || item.ndr_reason?.toLowerCase() || '').includes(query)
-        );
+
+    const handleUpload = async (file: File) => {
+        try {
+            await ServiceFactory.seller.ndr.uploadBulkNDR(file);
+            toast.success('NDR data uploaded successfully');
+            fetchNDRData();
+        } catch (error) {
+            toast.error('Failed to upload NDR data');
+            console.error('Error uploading NDR data:', error);
+        }
     };
 
     const handleDownloadNDR = async () => {
-        // Generate a unique ID (you might want to use a proper ID generation method)
-        const uniqueId = Date.now();
-
-        // Create a workbook
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('NDR Data');
-
-        // Add headers
-        worksheet.columns = [
-            { header: 'AWB', key: 'awb' },
-            { header: 'Order Date', key: 'order_date' },
-            { header: 'Courier', key: 'courier_name' },
-            { header: 'Customer', key: 'customer_name' },
-            { header: 'Attempts', key: 'attempts' },
-            { header: 'Last Attempt Date', key: 'last_attempt_date' },
-            { header: 'Status', key: 'status' },
-            { header: 'Reason', key: 'ndr_reason' },
-            { header: 'Action', key: 'recommended_action' },
-        ];
-
         try {
-            // When integrating with backend, fetch data from API instead of using mock
-            // const data = await fetchNDRData(activeTab);
-            const data = ndrData[activeTab];
-            
-            // Add data
-            worksheet.addRows(data);
-            
-            // Generate and download file
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const response = await ServiceFactory.seller.ndr.downloadNDR('xlsx');
+            const blob = response.data;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `ndr-export-${uniqueId}.xlsx`;
+            a.download = `ndr-report-${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success('NDR report downloaded successfully');
         } catch (error) {
-            console.error('Error exporting NDR data:', error);
-            // Here you would typically show a toast or alert to the user
+            toast.error('Failed to download NDR report');
+            console.error('Error downloading NDR report:', error);
         }
     };
 
-    // Helper to render tab content with loading and error states
-    const renderTabContent = (tabId: string, showActions = false) => {
-        if (loading[tabId]) {
-            return (
-                <div className="w-full py-12 text-center">
-                    <div className="inline-block animate-spin h-8 w-8 border-4 border-violet-200 rounded-full border-t-violet-600"></div>
-                    <p className="mt-4 text-gray-600">Loading NDR data...</p>
-                </div>
-            );
-        }
-        
-        if (error[tabId]) {
-            return (
-                <div className="w-full py-12 text-center">
-                    <div className="bg-red-100 text-red-800 p-4 rounded-md inline-flex flex-col items-center">
-                        <p className="font-medium">Failed to load NDR data</p>
-                        <p className="text-sm mt-1">{error[tabId]}</p>
-                        <Button 
-                            variant="outline" 
-                            className="mt-3"
-                            onClick={() => loadNDRData(tabId)}
-                        >
-                            Retry
-                        </Button>
-                    </div>
-                </div>
-            );
-        }
-        
-        return (
-            <NDRTable 
-                data={mapToNDRData(filterDataBySearch(ndrData[tabId]))} 
-                showActions={showActions} 
-            />
+    const filterDataBySearch = (data: NDRData[]) => {
+        if (!searchQuery) return data;
+        const query = searchQuery.toLowerCase();
+        return data.filter(item =>
+            item.awb.toLowerCase().includes(query) ||
+            item.customer.toLowerCase().includes(query) ||
+            item.courier.toLowerCase().includes(query) ||
+            item.reason.toLowerCase().includes(query)
         );
     };
 
+    const renderTabContent = (tabId: string, showActions = false) => {
+        const data = filterDataBySearch(ndrData[tabId as keyof typeof ndrData] || []);
+        return <NDRTable data={data} showActions={showActions} />;
+    };
+
     return (
-        <div className="space-y-8 overflow-hidden">
-            <h1 className="text-xl lg:text-2xl font-semibold">
-                NDR
-            </h1>
-
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <div className="w-[calc(100vw-5rem)] lg:w-full -mr-4 lg:mr-0">
-                    <div className="w-full overflow-x-auto scrollbar-hide">
-                        <TabsList className="w-max min-w-full p-0 h-12 z-0 bg-white rounded-none relative">
-                            <div className="absolute bottom-0 w-full h-px -z-10 bg-violet-200"></div>
-                            <TabsTrigger
-                                value="all"
-                                className="flex-1 h-full data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-black whitespace-nowrap px-4"
-                            >
-                                All
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="action-required"
-                                className="flex-1 h-full data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-black whitespace-nowrap px-4"
-                            >
-                                Action Required
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="action-requested"
-                                className="flex-1 h-full data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-black whitespace-nowrap px-4"
-                            >
-                                Action Requested
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="in-transit"
-                                className="flex-1 h-full data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-black whitespace-nowrap px-4"
-                            >
-                                In Transit
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="ofd"
-                                className="flex-1 h-full data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-black whitespace-nowrap px-4"
-                            >
-                                OFD
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="delivered"
-                                className="flex-1 h-full data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-black whitespace-nowrap px-4"
-                            >
-                                Delivered
-                            </TabsTrigger>
-                        </TabsList>
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Non-Delivery Reports</h1>
+                <div className="flex gap-4">
+                    <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <input
+                            type="text"
+                            placeholder="Search NDRs..."
+                            className="pl-8 pr-4 py-2 border rounded-md w-64"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
+                    <Button onClick={() => setIsUploadModalOpen(true)}>Upload NDR</Button>
+                    <Button variant="outline" onClick={handleDownloadNDR}>Download Report</Button>
                 </div>
+            </div>
 
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 py-4 w-full">
-                    <div className="flex-1">
-                        {searchQuery.trim() && (
-                            <div className="bg-violet-100 text-violet-800 px-3 py-1.5 rounded-md inline-flex items-center gap-2">
-                                <Search className="h-4 w-4" />
-                                <span className="text-sm">
-                                    Showing results for "{searchQuery}"
-                                    <button 
-                                        className="ml-2 underline text-violet-600 hover:text-violet-900"
-                                        onClick={() => setSearchQuery("")}
-                                    >
-                                        Clear
-                                    </button>
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="purple"
-                            className="text-xs md:text-sm"
-                            onClick={handleDownloadNDR}
-                            disabled={loading[activeTab] || !!error[activeTab] || ndrData[activeTab].length === 0}
-                        >
-                            NDR REPORT
-                        </Button>
-                        <Button
-                            variant="purple"
-                            className="text-xs md:text-sm"
-                            onClick={() => setIsUploadModalOpen(true)}
-                        >
-                            UPLOAD NDR
-                        </Button>
-                    </div>
-                </div>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+                <TabsList>
+                    <TabsTrigger value="all">All NDRs</TabsTrigger>
+                    <TabsTrigger value="action-required">Action Required</TabsTrigger>
+                    <TabsTrigger value="action-requested">Action Requested</TabsTrigger>
+                    <TabsTrigger value="open">Open</TabsTrigger>
+                    <TabsTrigger value="closed">Closed</TabsTrigger>
+                </TabsList>
 
-                <div className="w-[calc(100vw-4rem)] lg:w-full -mr-4 lg:mr-0">
-                    <div className="w-full overflow-x-auto">
-                        <TabsContent value="all" className="mt-2 min-w-full">
-                            {renderTabContent('all')}
-                        </TabsContent>
+                <TabsContent value="all" className="mt-4">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                        </div>
+                    ) : (
+                        renderTabContent("all")
+                    )}
+                </TabsContent>
 
-                        <TabsContent value="action-required" className="mt-2 min-w-full">
-                            {renderTabContent('action-required', true)}
-                        </TabsContent>
+                <TabsContent value="action-required" className="mt-4">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                        </div>
+                    ) : (
+                        renderTabContent("action-required", true)
+                    )}
+                </TabsContent>
 
-                        <TabsContent value="action-requested" className="mt-2 min-w-full">
-                            {renderTabContent('action-requested')}
-                        </TabsContent>
+                <TabsContent value="action-requested" className="mt-4">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                        </div>
+                    ) : (
+                        renderTabContent("action-requested", true)
+                    )}
+                </TabsContent>
 
-                        <TabsContent value="in-transit" className="mt-2 min-w-full">
-                            {renderTabContent('in-transit')}
-                        </TabsContent>
+                <TabsContent value="open" className="mt-4">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                        </div>
+                    ) : (
+                        renderTabContent("open", true)
+                    )}
+                </TabsContent>
 
-                        <TabsContent value="ofd" className="mt-2 min-w-full">
-                            {renderTabContent('ofd')}
-                        </TabsContent>
-
-                        <TabsContent value="delivered" className="mt-2 min-w-full">
-                            {renderTabContent('delivered')}
-                        </TabsContent>
-                    </div>
-                </div>
+                <TabsContent value="closed" className="mt-4">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                        </div>
+                    ) : (
+                        renderTabContent("closed")
+                    )}
+                </TabsContent>
             </Tabs>
 
             <BulkNDRUploadModal
                 open={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
+                onUpload={handleUpload}
             />
         </div>
     );

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formSchema, type ProfileFormValues } from "@/lib/validations/profile";
 import AddressModal from "@/components/customer/address-modal";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface Address {
     id: string;
@@ -19,115 +20,6 @@ interface Address {
     pincode: string;
     phone: string;
 }
-
-// API functions for future implementation
-// --------------------------------------
-// async function fetchProfileData(): Promise<{
-//   fullName: string;
-//   email: string;
-//   phone: string;
-//   profileImage?: string;
-//   addresses: Address[];
-// }> {
-//   try {
-//     const response = await fetch('/api/customer/profile');
-//     if (!response.ok) throw new Error('Failed to fetch profile data');
-//     
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error('Error fetching profile data:', error);
-//     throw error;
-//   }
-// }
-//
-// async function updateProfileData(profileData: ProfileFormValues): Promise<void> {
-//   try {
-//     const response = await fetch('/api/customer/profile', {
-//       method: 'PATCH',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify(profileData)
-//     });
-//     
-//     if (!response.ok) throw new Error('Failed to update profile');
-//   } catch (error) {
-//     console.error('Error updating profile:', error);
-//     throw error;
-//   }
-// }
-//
-// async function uploadProfileImage(file: File): Promise<string> {
-//   try {
-//     const formData = new FormData();
-//     formData.append('profileImage', file);
-//     
-//     const response = await fetch('/api/customer/profile/image', {
-//       method: 'POST',
-//       body: formData
-//     });
-//     
-//     if (!response.ok) throw new Error('Failed to upload profile image');
-//     
-//     const data = await response.json();
-//     return data.imageUrl;
-//   } catch (error) {
-//     console.error('Error uploading profile image:', error);
-//     throw error;
-//   }
-// }
-//
-// async function addAddress(address: Omit<Address, "id">): Promise<Address> {
-//   try {
-//     const response = await fetch('/api/customer/addresses', {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify(address)
-//     });
-//     
-//     if (!response.ok) throw new Error('Failed to add address');
-//     
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error('Error adding address:', error);
-//     throw error;
-//   }
-// }
-//
-// async function deleteAddress(addressId: string): Promise<void> {
-//   try {
-//     const response = await fetch(`/api/customer/addresses/${addressId}`, {
-//       method: 'DELETE'
-//     });
-//     
-//     if (!response.ok) throw new Error('Failed to delete address');
-//   } catch (error) {
-//     console.error('Error deleting address:', error);
-//     throw error;
-//   }
-// }
-// --------------------------------------
-
-// Dummy addresses for development
-const DUMMY_ADDRESSES: Address[] = [
-    {
-        id: "1",
-        address1: "Darjeling",
-        city: "Siliguri",
-        state: "WestBengal",
-        pincode: "736049",
-        phone: "1234567890"
-    },
-    {
-        id: "2",
-        address1: "Salbari Bajar",
-        address2: "Near Twelve Saloon",
-        city: "Siliguri",
-        state: "WestBengal",
-        pincode: "736049",
-        phone: "9876543210"
-    }
-];
 
 const CustomerProfilePage = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,26 +49,18 @@ const CustomerProfilePage = () => {
                 setLoading(true);
                 setError(null);
                 
-                // When API is ready, this would be:
-                // const data = await fetchProfileData();
-                // form.reset({
-                //   fullName: data.fullName,
-                //   email: data.email,
-                //   phone: data.phone,
-                // });
-                // setProfileImage(data.profileImage || null);
-                // setAddresses(data.addresses);
-                
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 800));
-                
-                // Use dummy data for development
-                form.reset({
-                    fullName: "John Doe",
-                    email: "john.doe@example.com",
-                    phone: "1234567890",
-                });
-                setAddresses(DUMMY_ADDRESSES);
+                const response = await ServiceFactory.customer.profile.get();
+                if (response.success) {
+                    form.reset({
+                        fullName: response.data.fullName,
+                        email: response.data.email,
+                        phone: response.data.phone,
+                    });
+                    setProfileImage(response.data.profileImage || null);
+                    setAddresses(response.data.addresses);
+                } else {
+                    throw new Error(response.message || 'Failed to fetch profile data');
+                }
             } catch (err) {
                 console.error("Error fetching profile:", err);
                 setError("Failed to load profile. Please try again.");
@@ -193,14 +77,12 @@ const CustomerProfilePage = () => {
             setSaving(true);
             setError(null);
             
-            // When API is ready, this would be:
-            // await updateProfileData(data);
-            
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            console.log("Profile data submitted:", data);
-            toast.success("Profile updated successfully");
+            const response = await ServiceFactory.customer.profile.update(data);
+            if (response.success) {
+                toast.success("Profile updated successfully");
+            } else {
+                throw new Error(response.message || 'Failed to update profile');
+            }
         } catch (err) {
             console.error("Error updating profile:", err);
             setError("Failed to update profile. Please try again.");
@@ -222,21 +104,13 @@ const CustomerProfilePage = () => {
             setUploadingImage(true);
             setError(null);
             
-            // When API is ready, this would be:
-            // const imageUrl = await uploadProfileImage(file);
-            // setProfileImage(imageUrl);
-            
-            // For development, just show the selected image
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-            
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            toast.success("Profile picture updated successfully");
+            const response = await ServiceFactory.customer.profile.uploadImage(file);
+            if (response.success) {
+                setProfileImage(response.data.imageUrl);
+                toast.success("Profile picture updated successfully");
+            } else {
+                throw new Error(response.message || 'Failed to upload profile picture');
+            }
         } catch (err) {
             console.error("Error uploading image:", err);
             toast.error("Failed to upload profile picture");
@@ -249,22 +123,14 @@ const CustomerProfilePage = () => {
         try {
             setError(null);
             
-            // When API is ready, this would be:
-            // const newAddress = await addAddress(data);
-            // setAddresses(prev => [...prev, newAddress]);
-            
-            // For development, generate a random ID
-            const newAddress: Address = {
-                ...data,
-                id: (addresses.length + 1).toString(),
-            };
-            
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            setAddresses([...addresses, newAddress]);
-            setIsAddressModalOpen(false);
-            toast.success("Address added successfully");
+            const response = await ServiceFactory.customer.profile.addAddress(data);
+            if (response.success) {
+                setAddresses(prev => [...prev, response.data]);
+                setIsAddressModalOpen(false);
+                toast.success("Address added successfully");
+            } else {
+                throw new Error(response.message || 'Failed to add address');
+            }
         } catch (err) {
             console.error("Error adding address:", err);
             toast.error("Failed to add address");
@@ -276,14 +142,13 @@ const CustomerProfilePage = () => {
             setDeletingAddressId(id);
             setError(null);
             
-            // When API is ready, this would be:
-            // await deleteAddress(id);
-            
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            setAddresses(addresses.filter(address => address.id !== id));
-            toast.success("Address deleted successfully");
+            const response = await ServiceFactory.customer.profile.deleteAddress(id);
+            if (response.success) {
+                setAddresses(addresses.filter(address => address.id !== id));
+                toast.success("Address deleted successfully");
+            } else {
+                throw new Error(response.message || 'Failed to delete address');
+            }
         } catch (err) {
             console.error("Error deleting address:", err);
             toast.error("Failed to delete address");

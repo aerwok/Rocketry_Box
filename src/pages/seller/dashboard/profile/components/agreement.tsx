@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { ArrowUpDown } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AgreementModal from "./agreement-modal";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface AgreementVersion {
     version: string;
@@ -13,39 +14,55 @@ interface AgreementVersion {
     publishedOn: string;
     ipAddress: string;
     status: "Accepted" | "Pending" | "Rejected";
+    content?: {
+        serviceProvider: {
+            name: string;
+            address: string;
+            email: string;
+        };
+        merchant: {
+            name: string;
+            address: string;
+            email: string;
+        };
+        merchantBusiness: string;
+        serviceProviderBusiness: string[];
+    };
 }
 
 interface AgreementProps {
     onSave: () => void;
 }
 
-const initialAgreementVersions: AgreementVersion[] = [
-    {
-        version: "Seller Agreement 1.0",
-        docLink: "View",
-        acceptanceDate: "22 February, 2024",
-        publishedOn: "4 October, 2024",
-        ipAddress: "106.216.122.179",
-        status: "Accepted"
-    },
-    {
-        version: "Seller Agreement 2.0",
-        docLink: "View",
-        acceptanceDate: "15 March, 2024",
-        publishedOn: "1 March, 2024",
-        ipAddress: "106.216.123.180",
-        status: "Pending"
-    }
-];
-
 const Agreement = ({ onSave }: AgreementProps) => {
-    const [agreementVersions, setAgreementVersions] = useState<AgreementVersion[]>(initialAgreementVersions);
+    const [agreementVersions, setAgreementVersions] = useState<AgreementVersion[]>([]);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedVersion, setSelectedVersion] = useState<AgreementVersion | null>(null);
     const [sortConfig, setSortConfig] = useState<{
         key: keyof AgreementVersion;
         direction: 'asc' | 'desc';
     } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        fetchAgreements();
+    }, []);
+
+    const fetchAgreements = async () => {
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.profile.getAgreements();
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to fetch agreements');
+            }
+            setAgreementVersions(response.data);
+        } catch (error) {
+            console.error('Error fetching agreements:', error);
+            toast.error('Failed to fetch agreements');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleView = (agreement: AgreementVersion) => {
         setSelectedVersion(agreement);
@@ -54,8 +71,11 @@ const Agreement = ({ onSave }: AgreementProps) => {
 
     const handleAccept = async (agreement: AgreementVersion) => {
         try {
-            // TODO: Implement API call to accept agreement
-            // Update local state
+            const response = await ServiceFactory.seller.profile.acceptAgreement(agreement.version);
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to accept agreement');
+            }
+            
             setAgreementVersions(prevVersions => 
                 prevVersions.map(version => 
                     version.version === agreement.version 
@@ -66,14 +86,18 @@ const Agreement = ({ onSave }: AgreementProps) => {
             toast.success("Agreement accepted successfully");
             onSave();
         } catch (error) {
+            console.error('Error accepting agreement:', error);
             toast.error("Failed to accept agreement");
         }
     };
 
     const handleReject = async (agreement: AgreementVersion) => {
         try {
-            // TODO: Implement API call to reject agreement
-            // Update local state
+            const response = await ServiceFactory.seller.profile.rejectAgreement(agreement.version);
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to reject agreement');
+            }
+            
             setAgreementVersions(prevVersions => 
                 prevVersions.map(version => 
                     version.version === agreement.version 
@@ -84,6 +108,7 @@ const Agreement = ({ onSave }: AgreementProps) => {
             toast.success("Agreement rejected");
             onSave();
         } catch (error) {
+            console.error('Error rejecting agreement:', error);
             toast.error("Failed to reject agreement");
         }
     };
@@ -99,27 +124,43 @@ const Agreement = ({ onSave }: AgreementProps) => {
         if (!sortConfig) return 0;
 
         const { key, direction } = sortConfig;
-        if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-        if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+        const aValue = a[key] ?? '';
+        const bValue = b[key] ?? '';
+        
+        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
         return 0;
     });
 
-    const handleDownload = async () => {
+    const handleDownload = async (version: string) => {
         try {
-            const response = await fetch('/docs/text.pdf');
-            const blob = await response.blob();
+            const response = await ServiceFactory.seller.profile.downloadAgreement(version);
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to download agreement');
+            }
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'agreement.pdf';
+            link.download = `agreement-${version}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Error downloading PDF:', error);
+            console.error('Error downloading agreement:', error);
+            toast.error('Failed to download agreement');
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 overflow-hidden">
@@ -200,7 +241,7 @@ const Agreement = ({ onSave }: AgreementProps) => {
                                                 <Button
                                                     variant="secondary"
                                                     size="sm"
-                                                    onClick={handleDownload}
+                                                    onClick={() => handleDownload(agreement.version)}
                                                 >
                                                     Download
                                                 </Button>

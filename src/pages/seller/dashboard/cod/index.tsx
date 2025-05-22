@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/table";
 import { ArrowUpDown, Building2, Download, Search } from "lucide-react";
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { toast } from "sonner";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface RemittanceData {
     remittanceId: string;
@@ -32,33 +32,16 @@ interface RemittanceSummary {
     nextRemittance: string;
 }
 
-// Fallback data in case API fails
-const fallbackRemittanceData: RemittanceData[] = [
-    {
-        remittanceId: "REM23785",
-        status: "Completed",
-        paymentDate: "2024-06-15",
-        remittanceAmount: "₹45,720.00",
-        freightDeduction: "₹1,371.60",
-        convenienceFee: "₹457.20",
-        total: "₹43,891.20",
-        paymentRef: "UTIB224536789"
-    },
-    // ... other fallback data items
-];
-
-const fallbackSummary: RemittanceSummary = {
-    totalCOD: "₹ 3,56,280.00",
-    remittedTillDate: "₹ 2,00,429.60",
-    lastRemittance: "₹ 43,891.20",
-    totalRemittanceDue: "₹ 1,15,420.80",
-    nextRemittance: "₹ 36,720.00"
-};
-
 const SellerCODPage = () => {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [remittanceData, setRemittanceData] = useState<RemittanceData[]>([]);
-    const [summary, setSummary] = useState<RemittanceSummary>(fallbackSummary);
+    const [summary, setSummary] = useState<RemittanceSummary>({
+        totalCOD: "₹0",
+        remittedTillDate: "₹0",
+        lastRemittance: "₹0",
+        totalRemittanceDue: "₹0",
+        nextRemittance: "₹0"
+    });
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [sortConfig, setSortConfig] = useState<{
@@ -70,37 +53,27 @@ const SellerCODPage = () => {
         const fetchRemittanceData = async () => {
             try {
                 setLoading(true);
+                setError(null);
                 
                 // Fetch summary data
-                const summaryResponse = await axios.get('/api/v2/seller/cod/summary', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-                
-                if (summaryResponse.data && summaryResponse.data.data) {
-                    setSummary(summaryResponse.data.data);
+                const summaryResponse = await ServiceFactory.seller.cod.getSummary();
+                if (summaryResponse.success) {
+                    setSummary(summaryResponse.data);
+                } else {
+                    throw new Error(summaryResponse.message || 'Failed to fetch summary');
                 }
                 
                 // Fetch remittance history
-                const historyResponse = await axios.get('/api/v2/seller/cod/remittance-history', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-                
-                if (historyResponse.data && historyResponse.data.data && historyResponse.data.data.remittances) {
-                    setRemittanceData(historyResponse.data.data.remittances);
+                const historyResponse = await ServiceFactory.seller.cod.getRemittanceHistory();
+                if (historyResponse.success) {
+                    setRemittanceData(historyResponse.data.remittances);
+                } else {
+                    throw new Error(historyResponse.message || 'Failed to fetch remittance history');
                 }
-                
-                setError(null);
             } catch (err) {
                 console.error('Error fetching COD data:', err);
-                setError('Failed to load COD remittance data. Using fallback data.');
-                toast.error('Failed to fetch remittance data. Showing sample data instead.');
-                
-                // Use fallback data if API fails
-                setRemittanceData(fallbackRemittanceData);
+                setError('Failed to load COD remittance data');
+                toast.error('Failed to fetch remittance data');
             } finally {
                 setLoading(false);
             }
@@ -139,22 +112,19 @@ const SellerCODPage = () => {
 
     const handleDownloadRemittance = async (remittanceId: string) => {
         try {
-            const response = await axios.get(`/api/v2/seller/cod/export`, {
-                params: { remittanceId, format: 'xlsx' },
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                responseType: 'blob'
-            });
-            
-            // Create a download link and trigger download
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `remittance-${remittanceId}.xlsx`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            const response = await ServiceFactory.seller.cod.downloadRemittance(remittanceId);
+            if (response.success) {
+                // Create a download link and trigger download
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `remittance-${remittanceId}.xlsx`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            } else {
+                throw new Error(response.message || 'Failed to download remittance');
+            }
         } catch (err) {
             console.error('Error downloading remittance details:', err);
             toast.error('Failed to download remittance details');

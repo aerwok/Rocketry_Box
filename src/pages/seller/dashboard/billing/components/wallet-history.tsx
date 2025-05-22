@@ -20,7 +20,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import axios from "axios";
+import { ServiceFactory } from "@/services/service-factory";
+import { toast } from "sonner";
 
 interface WalletTransaction {
     id: number;
@@ -36,80 +37,19 @@ interface WalletTransaction {
     remark: string;
 }
 
+interface WalletSummary {
+    totalRecharge: number;
+    totalUsed: number;
+    lastRecharge: string;
+    codToWallet: number;
+    closingBalance: string;
+}
+
 // Type definition for DateRange
 interface DateRange {
     start: Date | null;
     end: Date | null;
 }
-
-// Sample transaction data
-const transactionData: WalletTransaction[] = [
-    {
-        id: 1,
-        date: "2023-11-15",
-        referenceNumber: "REF123456",
-        orderId: "ORD987654",
-        type: "Recharge",
-        amount: "₹5000",
-        codCharge: "₹0",
-        igst: "₹0",
-        subTotal: "₹5000",
-        closingBalance: "₹5000",
-        remark: "Wallet recharge"
-    },
-    {
-        id: 2,
-        date: "2023-11-17",
-        referenceNumber: "REF789012",
-        orderId: "ORD456789",
-        type: "Debit",
-        amount: "₹850",
-        codCharge: "₹50",
-        igst: "₹45",
-        subTotal: "₹945",
-        closingBalance: "₹4055",
-        remark: "Shipping charges"
-    },
-    {
-        id: 3,
-        date: "2023-11-20",
-        referenceNumber: "REF345678",
-        orderId: "ORD123456",
-        type: "COD Credit",
-        amount: "₹1200",
-        codCharge: "₹0",
-        igst: "₹0",
-        subTotal: "₹1200",
-        closingBalance: "₹5255",
-        remark: "COD amount credited"
-    },
-    {
-        id: 4,
-        date: "2023-11-25",
-        referenceNumber: "REF901234",
-        orderId: "ORD567890",
-        type: "Debit",
-        amount: "₹725",
-        codCharge: "₹35",
-        igst: "₹38",
-        subTotal: "₹798",
-        closingBalance: "₹4457",
-        remark: "Express shipping"
-    },
-    {
-        id: 5,
-        date: "2023-12-01",
-        referenceNumber: "REF567890",
-        orderId: "ORD234567",
-        type: "Recharge",
-        amount: "₹3000",
-        codCharge: "₹0",
-        igst: "₹0",
-        subTotal: "₹3000",
-        closingBalance: "₹7457",
-        remark: "Account topup"
-    }
-];
 
 const WalletHistory = () => {
     const [sortConfig, setSortConfig] = useState<{
@@ -136,14 +76,67 @@ const WalletHistory = () => {
     const dateDropdownRef = useRef<HTMLDivElement>(null);
     const calendarRef = useRef<HTMLDivElement>(null);
 
-    // Add API-related state
+    // API-related state
     const [isLoading, setIsLoading] = useState(false);
-    const [isApiMode, setIsApiMode] = useState(false);
+    const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+    const [summary, setSummary] = useState<WalletSummary>({
+        totalRecharge: 0,
+        totalUsed: 0,
+        lastRecharge: "₹0",
+        codToWallet: 0,
+        closingBalance: "₹0"
+    });
     const [totalTransactions, setTotalTransactions] = useState(0);
-    const [apiError, setApiError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    // Add filtered data state - will be populated from API in real mode
-    const [filteredData, setFilteredData] = useState<WalletTransaction[]>([...transactionData]);
+    // Fetch wallet transactions
+    const fetchTransactions = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await ServiceFactory.seller.billing.getWalletTransactions({
+                page: currentPage,
+                limit: rowsPerPage,
+                ...filters,
+                sortBy: sortConfig?.key,
+                sortDirection: sortConfig?.direction
+            });
+
+            if (response.success) {
+                setTransactions(response.data.transactions);
+                setTotalTransactions(response.data.total);
+            } else {
+                throw new Error(response.message || 'Failed to fetch transactions');
+            }
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+            setError('Failed to fetch transactions. Please try again.');
+            toast.error('Failed to fetch transactions');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Fetch wallet summary
+    const fetchWalletSummary = async () => {
+        try {
+            const response = await ServiceFactory.seller.billing.getWalletSummary();
+            if (response.success) {
+                setSummary(response.data);
+            } else {
+                throw new Error(response.message || 'Failed to fetch wallet summary');
+            }
+        } catch (error) {
+            console.error('Error fetching wallet summary:', error);
+            toast.error('Failed to fetch wallet summary');
+        }
+    };
+
+    // Fetch data when component mounts or when relevant state changes
+    useEffect(() => {
+        fetchTransactions();
+        fetchWalletSummary();
+    }, [currentPage, rowsPerPage, filters, sortConfig]);
 
     const handleSort = (key: keyof WalletTransaction) => {
         setSortConfig(current => ({
@@ -152,32 +145,10 @@ const WalletHistory = () => {
         }));
     };
 
-    // Calculate summary values from the transaction data
-    const totalRecharge = transactionData
-        .filter(t => t.type === "Recharge")
-        .reduce((sum, t) => sum + parseInt(t.amount.replace("₹", "").replace(",", "")), 0);
-    
-    const totalUsed = transactionData
-        .filter(t => t.type === "Debit")
-        .reduce((sum, t) => sum + parseInt(t.amount.replace("₹", "").replace(",", "")), 0);
-    
-    const lastRecharge = transactionData
-        .filter(t => t.type === "Recharge")
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.amount || "₹0";
-    
-    const codToWallet = transactionData
-        .filter(t => t.type === "COD Credit")
-        .reduce((sum, t) => sum + parseInt(t.amount.replace("₹", "").replace(",", "")), 0);
-    
-    const closingBalance = transactionData.length > 0 
-        ? transactionData[transactionData.length - 1].closingBalance 
-        : "₹0";
-
     // Function to handle Excel export
     const exportToExcel = () => {
-        // Create a worksheet with the transaction data
         const worksheet = XLSX.utils.json_to_sheet(
-            filteredData.map(t => ({
+            transactions.map(t => ({
                 ID: t.id,
                 Date: t.date,
                 "Reference Number": t.referenceNumber,
@@ -236,117 +207,7 @@ const WalletHistory = () => {
 
     // Apply filters to data
     const applyFilters = () => {
-        if (isApiMode) {
-            // In API mode, filters are sent to the backend
-            fetchWalletTransactions();
-            return;
-        }
-
-        // Existing client-side filtering logic for mock data
-        let result = [...transactionData];
-        
-        // Filter by date (handling various date formats)
-        if (filters.date) {
-            if (filters.date === "Today") {
-                const today = new Date().toISOString().split('T')[0];
-                result = result.filter(item => item.date === today);
-            } else if (filters.date === "Yesterday") {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
-                result = result.filter(item => item.date === yesterdayStr);
-            } else if (filters.date === "Last 7 Days") {
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                result = result.filter(item => new Date(item.date) >= sevenDaysAgo);
-            } else if (filters.date === "Last 30 Days") {
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                result = result.filter(item => new Date(item.date) >= thirtyDaysAgo);
-            } else if (filters.date === "Last Month") {
-                const today = new Date();
-                const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-                result = result.filter(item => {
-                    const itemDate = new Date(item.date);
-                    return itemDate >= lastMonth && itemDate <= lastMonthEnd;
-                });
-            } else if (filters.date === "Current Month") {
-                const today = new Date();
-                const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-                result = result.filter(item => {
-                    const itemDate = new Date(item.date);
-                    return itemDate >= currentMonthStart;
-                });
-            } else if (filters.date === "Lifetime") {
-                // Include all dates
-            } else if (filters.date.includes(" to ")) {
-                // Date range
-                const [start, end] = filters.date.split(" to ");
-                result = result.filter(item => {
-                    const itemDate = new Date(item.date);
-                    return itemDate >= new Date(start) && itemDate <= new Date(end);
-                });
-            } else {
-                // Exact date match
-                result = result.filter(item => item.date.includes(filters.date));
-            }
-        }
-        
-        // Filter by reference number
-        if (filters.referenceNumber) {
-            result = result.filter(item => 
-                item.referenceNumber.toLowerCase().includes(filters.referenceNumber.toLowerCase())
-            );
-        }
-        
-        // Filter by order ID
-        if (filters.orderId) {
-            result = result.filter(item => 
-                item.orderId.toLowerCase().includes(filters.orderId.toLowerCase())
-            );
-        }
-        
-        // Filter by payment type
-        if (filters.paymentType && filters.paymentType !== "all") {
-            if (filters.paymentType === "Debit") {
-                result = result.filter(item => item.type === "Debit");
-            } else if (filters.paymentType === "Recharge") {
-                result = result.filter(item => item.type === "Recharge");
-            } else if (filters.paymentType === "COD Recharge") {
-                result = result.filter(item => item.type === "COD Credit");
-            }
-        }
-        
-        // Filter by credit/debit
-        if (filters.creditDebit && filters.creditDebit !== "Credit Debit") {
-            if (filters.creditDebit === "CR") {
-                result = result.filter(item => item.type === "Recharge" || item.type === "COD Credit");
-            } else if (filters.creditDebit === "DR") {
-                result = result.filter(item => item.type === "Debit");
-            }
-        }
-        
-        // Filter by amount
-        if (filters.amount) {
-            const amountValue = filters.amount.replace("₹", "").replace(",", "");
-            result = result.filter(item => 
-                item.amount.replace("₹", "").replace(",", "").includes(amountValue)
-            );
-        }
-        
-        // Filter by remark
-        if (filters.remark) {
-            result = result.filter(item => 
-                item.remark.toLowerCase().includes(filters.remark.toLowerCase())
-            );
-        }
-        
-        // Update filtered data
-        setFilteredData(result);
-        
-        // Reset to first page when filters are applied
-        setCurrentPage(1);
+        fetchTransactions();
     };
 
     // Clear all filters
@@ -360,11 +221,11 @@ const WalletHistory = () => {
             amount: "",
             remark: ""
         });
-        setFilteredData([...transactionData]);
+        fetchTransactions();
     };
 
     // Apply sorting to filtered data
-    const sortedData = [...filteredData].sort((a, b) => {
+    const sortedData = [...transactions].sort((a, b) => {
         if (!sortConfig) return 0;
 
         const { key, direction } = sortConfig;
@@ -372,11 +233,6 @@ const WalletHistory = () => {
         if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
         return 0;
     });
-
-    // Apply filtering when filters change
-    useEffect(() => {
-        applyFilters();
-    }, [filters]);
 
     // Handle clicking outside of date dropdown to close it
     useEffect(() => {
@@ -598,107 +454,23 @@ const WalletHistory = () => {
         XLSX.writeFile(workbook, "Wallet_History.xlsx");
     };
 
-    // API Functions
-    // 1. Fetch wallet transactions with filters
-    const fetchWalletTransactions = async () => {
-        if (!isApiMode) return; // Skip API call if in mock mode
-        
-        setIsLoading(true);
-        setApiError(null);
-        
-        try {
-            // Build query parameters from filters
-            const queryParams = new URLSearchParams();
-            queryParams.append('page', currentPage.toString());
-            queryParams.append('limit', rowsPerPage.toString());
-            
-            // Add filter parameters if they exist
-            if (filters.date) queryParams.append('date', filters.date);
-            if (filters.referenceNumber) queryParams.append('referenceNumber', filters.referenceNumber);
-            if (filters.orderId) queryParams.append('orderId', filters.orderId);
-            if (filters.paymentType && filters.paymentType !== 'all') 
-                queryParams.append('paymentType', filters.paymentType);
-            if (filters.creditDebit && filters.creditDebit !== 'Credit Debit') 
-                queryParams.append('creditDebit', filters.creditDebit);
-            if (filters.amount) queryParams.append('amount', filters.amount);
-            if (filters.remark) queryParams.append('remark', filters.remark);
-            
-            // Add sorting if available
-            if (sortConfig) {
-                queryParams.append('sortBy', sortConfig.key);
-                queryParams.append('sortDirection', sortConfig.direction);
-            }
-            
-            // Make API request
-            const response = await axios.get(`/api/wallet/transactions?${queryParams.toString()}`);
-            
-            // Update state with API response
-            setFilteredData(response.data.transactions);
-            setTotalTransactions(response.data.totalCount);
-            
-        } catch (error) {
-            console.error('Error fetching wallet transactions:', error);
-            setApiError('Failed to fetch wallet transactions. Please try again later.');
-            // Fallback to mock data on error
-            setFilteredData([...transactionData]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    // 2. Fetch wallet summary data (for cards at the top)
-    const fetchWalletSummary = async () => {
-        if (!isApiMode) return; // Skip API call if in mock mode
-        
-        try {
-            // Make the API call without storing the response since it's not used yet
-            await axios.get('/api/wallet/summary');
-            
-            // In a real implementation, you would update these values from the API response
-            // For example:
-            // const response = await axios.get('/api/wallet/summary');
-            // setTotalRecharge(response.data.totalRecharge);
-            // Instead of calculating them from transactionData
-            
-        } catch (error) {
-            console.error('Error fetching wallet summary:', error);
-            // Continue using calculated values from mock data
-        }
-    };
-    
-    // Toggle between API mode and mock data mode
-    const toggleDataMode = () => {
-        setIsApiMode(!isApiMode);
-    };
-
-    // Fetch data when relevant state changes
-    useEffect(() => {
-        if (isApiMode) {
-            fetchWalletTransactions();
-            fetchWalletSummary();
-        } else {
-            // Apply client-side filtering when in mock mode
-            applyFilters();
-        }
-    }, [isApiMode, currentPage, rowsPerPage, sortConfig, filters]);
-
     return (
         <div className="space-y-6">
             {/* Data Mode Toggle - for testing purposes only */}
             <div className="flex justify-end">
                 <Button 
                     variant="outline" 
-                    onClick={toggleDataMode} 
+                    onClick={fetchTransactions} 
                     className="text-xs"
                 >
-                    {isApiMode ? "Switch to Mock Data" : "Switch to API Data"}
+                    Reload
                 </Button>
             </div>
 
             {/* API Error Message */}
-            {apiError && (
+            {error && (
                 <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-                    {apiError}
+                    {error}
                 </div>
             )}
 
@@ -727,7 +499,7 @@ const WalletHistory = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <span className="text-xl font-semibold">₹{totalRecharge}</span>
+                        <span className="text-xl font-semibold">₹{summary.totalRecharge}</span>
                     </div>
                 </div>
 
@@ -747,7 +519,7 @@ const WalletHistory = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <span className="text-xl font-semibold">₹{totalUsed}</span>
+                        <span className="text-xl font-semibold">₹{summary.totalUsed}</span>
                     </div>
                 </div>
 
@@ -767,7 +539,7 @@ const WalletHistory = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <span className="text-xl font-semibold">{lastRecharge}</span>
+                        <span className="text-xl font-semibold">{summary.lastRecharge}</span>
                     </div>
                 </div>
 
@@ -787,7 +559,7 @@ const WalletHistory = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <span className="text-xl font-semibold">₹{codToWallet}</span>
+                        <span className="text-xl font-semibold">₹{summary.codToWallet}</span>
                     </div>
                 </div>
 
@@ -801,13 +573,13 @@ const WalletHistory = () => {
                         </button>
                     </div>
                     <h3 className="uppercase text-xs font-semibold text-gray-500 mb-2">CLOSING BALANCE</h3>
-                            <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <div className="text-gray-400">
                             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <span className="text-xl font-semibold">{closingBalance}</span>
+                        <span className="text-xl font-semibold">{summary.closingBalance}</span>
                     </div>
                 </div>
             </div>
@@ -1069,7 +841,7 @@ const WalletHistory = () => {
                             onChange={handleFilterChange}
                             className="w-full"
                         />
-            </div>
+                    </div>
                     <div className="flex gap-2 mt-4">
                         <Button 
                             onClick={applyFilters}
@@ -1104,7 +876,7 @@ const WalletHistory = () => {
             {/* Transactions table */}
             <div className="bg-white rounded-lg border overflow-hidden">
                 <div className="overflow-x-auto">
-                        <Table>
+                    <Table>
                         <TableHeader className="bg-gray-50 border-b">
                             <TableRow>
                                 <TableHead className="text-center w-12">#</TableHead>
@@ -1112,65 +884,62 @@ const WalletHistory = () => {
                                     DATE {sortConfig?.key === 'date' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
-                                    </TableHead>
+                                </TableHead>
                                 <TableHead>REFERENCE NUMBER</TableHead>
                                 <TableHead>ORDER ID</TableHead>
                                 <TableHead className="cursor-pointer" onClick={() => handleSort('type')}>
                                     TYPE {sortConfig?.key === 'type' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
-                                    </TableHead>
+                                </TableHead>
                                 <TableHead className="cursor-pointer" onClick={() => handleSort('amount')}>
                                     AMOUNT {sortConfig?.key === 'amount' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
-                                    </TableHead>
+                                </TableHead>
                                 <TableHead>COD CHARGE</TableHead>
                                 <TableHead>IGST</TableHead>
                                 <TableHead>SUB-TOTAL</TableHead>
                                 <TableHead>CLOSING BALANCE</TableHead>
                                 <TableHead>REMARK</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {isLoading ? (
                                 <TableRow>
                                     <TableCell colSpan={11} className="text-center py-6 text-gray-500">
                                         Loading transactions...
-                                        </TableCell>
+                                    </TableCell>
                                 </TableRow>
-                            ) : sortedData.length === 0 ? (
+                            ) : transactions.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={11} className="text-center py-6 text-gray-500">
                                         No transactions found
-                                        </TableCell>
-                                    </TableRow>
+                                    </TableCell>
+                                </TableRow>
                             ) : (
-                                // Using pagination to show only the current page of transactions
-                                sortedData
-                                    .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
-                                    .map((transaction, index) => (
-                                        <TableRow key={transaction.id}>
-                                            <TableCell className="text-center">{(currentPage - 1) * rowsPerPage + index + 1}</TableCell>
-                                            <TableCell>{transaction.date}</TableCell>
-                                            <TableCell>{transaction.referenceNumber}</TableCell>
-                                            <TableCell>{transaction.orderId}</TableCell>
-                                            <TableCell>{transaction.type}</TableCell>
-                                            <TableCell>{transaction.amount}</TableCell>
-                                            <TableCell>{transaction.codCharge}</TableCell>
-                                            <TableCell>{transaction.igst}</TableCell>
-                                            <TableCell>{transaction.subTotal}</TableCell>
-                                            <TableCell>{transaction.closingBalance}</TableCell>
-                                            <TableCell>{transaction.remark}</TableCell>
-                                        </TableRow>
-                                    ))
+                                transactions.map((transaction, index) => (
+                                    <TableRow key={transaction.id}>
+                                        <TableCell className="text-center">{(currentPage - 1) * rowsPerPage + index + 1}</TableCell>
+                                        <TableCell>{transaction.date}</TableCell>
+                                        <TableCell>{transaction.referenceNumber}</TableCell>
+                                        <TableCell>{transaction.orderId}</TableCell>
+                                        <TableCell>{transaction.type}</TableCell>
+                                        <TableCell>{transaction.amount}</TableCell>
+                                        <TableCell>{transaction.codCharge}</TableCell>
+                                        <TableCell>{transaction.igst}</TableCell>
+                                        <TableCell>{transaction.subTotal}</TableCell>
+                                        <TableCell>{transaction.closingBalance}</TableCell>
+                                        <TableCell>{transaction.remark}</TableCell>
+                                    </TableRow>
+                                ))
                             )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
-            {/* Pagination controls - updated for API mode */}
+            {/* Pagination controls */}
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Rows/Page:</span>
@@ -1179,7 +948,7 @@ const WalletHistory = () => {
                         value={rowsPerPage}
                         onChange={(e) => {
                             setRowsPerPage(parseInt(e.target.value));
-                            setCurrentPage(1); // Reset to first page when changing rows per page
+                            setCurrentPage(1);
                         }}
                     >
                         <option value="50">50</option>
@@ -1207,7 +976,7 @@ const WalletHistory = () => {
                     >
                         Previous
                     </Button>
-                    {[...Array(Math.min(4, Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage)))].map((_, i) => (
+                    {[...Array(Math.min(4, Math.ceil(totalTransactions / rowsPerPage)))].map((_, i) => (
                         <Button 
                             key={i}
                             variant="outline" 
@@ -1225,8 +994,8 @@ const WalletHistory = () => {
                         variant="outline" 
                         size="sm" 
                         className="px-2"
-                        disabled={currentPage === Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage) || sortedData.length === 0}
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage)))}
+                        disabled={currentPage === Math.ceil(totalTransactions / rowsPerPage) || transactions.length === 0}
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTransactions / rowsPerPage)))}
                     >
                         Next
                     </Button>
@@ -1234,8 +1003,8 @@ const WalletHistory = () => {
                         variant="outline" 
                         size="sm" 
                         className="px-2"
-                        disabled={currentPage === Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage) || sortedData.length === 0}
-                        onClick={() => setCurrentPage(Math.ceil((isApiMode ? totalTransactions : sortedData.length) / rowsPerPage))}
+                        disabled={currentPage === Math.ceil(totalTransactions / rowsPerPage) || transactions.length === 0}
+                        onClick={() => setCurrentPage(Math.ceil(totalTransactions / rowsPerPage))}
                     >
                         Last
                     </Button>

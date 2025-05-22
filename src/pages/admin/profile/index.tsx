@@ -15,6 +15,9 @@ import {
     Lock,
     Clock
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ApiService } from "@/services/api.service";
+import { toast } from "sonner";
 
 // Define interface for orders
 interface Order {
@@ -48,36 +51,33 @@ interface AdminUser {
     recentOrders: Order[];
 }
 
-// Current logged-in user (for demo purposes)
-const currentUser: AdminUser = {
-    id: "ADMIN001",
-    employeeId: "EMP-001",
-    fullName: "John Doe",
-    email: "john.doe@rocketrybox.com",
-    phone: "+91 9876543210",
-    address: "123 Main Street, Bangalore, Karnataka, India",
-    status: "Active",
-    joinDate: "February 15, 2023",
-    lastActive: "Today, 10:30 AM",
-    department: "User Management",
-    role: "Admin",
-    isSuperAdmin: true,
-    remarks: "Lead administrator responsible for platform oversight",
-    profileImage: "/images/avatars/john.jpg",
-    transactions: {
-        total: 157,
-        successful: 152,
-        failed: 5
-    },
-    recentOrders: [
-        { id: "ORD-9876", date: "June 12, 2023", status: "Completed", amount: "₹5,200" },
-        { id: "ORD-9754", date: "June 8, 2023", status: "Completed", amount: "₹3,600" },
-        { id: "ORD-9621", date: "May 29, 2023", status: "Cancelled", amount: "₹1,800" }
-    ]
-};
-
 const MyProfilePage = () => {
-    const userData = currentUser;
+    const [userData, setUserData] = useState<AdminUser | null>(null);
+    const [loading, setLoading] = useState(true);
+    const apiService = new ApiService();
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await apiService.get<AdminUser>('/admin/profile');
+                setUserData(response.data);
+            } catch (error) {
+                toast.error('Failed to fetch profile data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (!userData) {
+        return <div>Failed to load profile data</div>;
+    }
 
     return (
         <div className="space-y-6">

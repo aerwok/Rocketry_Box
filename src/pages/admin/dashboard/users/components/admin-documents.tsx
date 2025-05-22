@@ -12,7 +12,7 @@ import { DocumentsInput, documentsSchema } from "@/lib/validations/admin-user";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRightIcon, FileIcon, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Select,
     SelectContent,
@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useParams } from "react-router-dom";
+import { ServiceFactory } from "@/services/service-factory";
 
 interface AdminDocumentsProps {
     onSave: () => void;
@@ -28,42 +29,60 @@ interface AdminDocumentsProps {
 
 const AdminDocuments = ({ onSave }: AdminDocumentsProps) => {
     const { id } = useParams();
-    const isSeller = id?.includes("SELLER");
     
     // States to track document visibility
     const [showPanUpload, setShowPanUpload] = useState(false);
     const [showGstUpload, setShowGstUpload] = useState(false);
     const [showIdentityUpload, setShowIdentityUpload] = useState(false);
     
-    // Simulate existing documents (in a real app, these would be loaded from an API)
-    const [panDocument] = useState({
-        name: "pan_card.jpg",
-        url: "https://example.com/documents/pan_card.jpg"
-    });
-    
-    const [gstDocument] = useState({
-        name: "gst_certificate.pdf",
-        url: "https://example.com/documents/gst_certificate.pdf"
-    });
-    
-    const [identityDocument] = useState({
-        name: "driving_license.jpg",
-        url: "https://example.com/documents/driving_license.jpg"
-    });
+    const [panDocument, setPanDocument] = useState<{ name: string; url: string } | null>(null);
+    const [gstDocument, setGstDocument] = useState<{ name: string; url: string } | null>(null);
+    const [identityDocument, setIdentityDocument] = useState<{ name: string; url: string } | null>(null);
     
     const form = useForm<DocumentsInput>({
         resolver: zodResolver(documentsSchema),
         defaultValues: {
-            panNumber: isSeller ? "ABCPX1234X" : "DEFPX5678X",
-            gstNumber: isSeller ? "29AADCB2230M1ZP" : "",
-            documentType: "driving",
-            documentNumber: isSeller ? "KA01 20201234567" : "MH02 20205678901",
+            panNumber: "",
+            gstNumber: "",
+            documentType: "",
+            documentNumber: "",
         },
     });
 
-    const onSubmit = (data: DocumentsInput) => {
-        console.log(data);
-        onSave();
+    useEffect(() => {
+        const fetchDocuments = async () => {
+            if (!id) return;
+            try {
+                const response = await ServiceFactory.admin.getTeamMember(id);
+                const documents = response.data.documents;
+                if (documents) {
+                    form.reset(documents);
+                    setPanDocument(documents.panDocument);
+                    setGstDocument(documents.gstDocument);
+                    setIdentityDocument(documents.identityDocument);
+                }
+            } catch (error) {
+                console.error('Failed to fetch documents:', error);
+            }
+        };
+        fetchDocuments();
+    }, [id, form]);
+
+    const onSubmit = async (data: DocumentsInput) => {
+        if (!id) return;
+        try {
+            await ServiceFactory.admin.updateTeamMember(id, { 
+                documents: {
+                    ...data,
+                    panDocument,
+                    gstDocument,
+                    identityDocument
+                }
+            });
+            onSave();
+        } catch (error) {
+            console.error('Failed to save documents:', error);
+        }
     };
 
     return (
@@ -128,7 +147,7 @@ const AdminDocuments = ({ onSave }: AdminDocumentsProps) => {
                                                 <div className="flex items-center gap-2 flex-1">
                                                     <FileIcon className="h-8 w-8 text-blue-500" />
                                                     <div>
-                                                        <p className="text-sm font-medium">{panDocument.name}</p>
+                                                        <p className="text-sm font-medium">{panDocument?.name}</p>
                                                         <p className="text-xs text-gray-500">Click to view</p>
                                                     </div>
                                                 </div>
@@ -202,12 +221,12 @@ const AdminDocuments = ({ onSave }: AdminDocumentsProps) => {
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-3 p-3 border rounded-md bg-[#F8F7FF]">
-                                                {field.value || gstDocument ? (
+                                                {field.value || gstDocument?.name ? (
                                                     <>
                                                         <div className="flex items-center gap-2 flex-1">
                                                             <FileIcon className="h-8 w-8 text-blue-500" />
                                                             <div>
-                                                                <p className="text-sm font-medium">{gstDocument.name}</p>
+                                                                <p className="text-sm font-medium">{gstDocument?.name}</p>
                                                                 <p className="text-xs text-gray-500">Click to view</p>
                                                             </div>
                                                         </div>
@@ -322,7 +341,7 @@ const AdminDocuments = ({ onSave }: AdminDocumentsProps) => {
                                                 <div className="flex items-center gap-2 flex-1">
                                                     <FileIcon className="h-8 w-8 text-blue-500" />
                                                     <div>
-                                                        <p className="text-sm font-medium">{identityDocument.name}</p>
+                                                        <p className="text-sm font-medium">{identityDocument?.name}</p>
                                                         <p className="text-xs text-gray-500">Click to view</p>
                                                     </div>
                                                 </div>

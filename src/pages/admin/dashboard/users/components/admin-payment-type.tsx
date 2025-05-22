@@ -18,14 +18,26 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { ServiceFactory } from "@/services/service-factory";
+import { useEffect, useState } from "react";
 
 interface AdminPaymentTypeProps {
     onSave: (message?: string) => void;
 }
 
+interface RateBand {
+    id: string;
+    name: string;
+    code: string;
+}
+
 const AdminPaymentType = ({ onSave }: AdminPaymentTypeProps) => {
     const navigate = useNavigate();
+    const { id } = useParams();
+    const [rateBands, setRateBands] = useState<RateBand[]>([]);
+    const [loading, setLoading] = useState(false);
+
     const form = useForm<PaymentTypeInput>({
         resolver: zodResolver(paymentTypeSchema),
         defaultValues: {
@@ -34,14 +46,51 @@ const AdminPaymentType = ({ onSave }: AdminPaymentTypeProps) => {
         },
     });
 
-    const onSubmit = (data: PaymentTypeInput) => {
-        console.log(data);
-        onSave("Payment type saved successfully");
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!id) return;
+            try {
+                setLoading(true);
+                // Fetch user's payment type
+                const userResponse = await ServiceFactory.admin.getTeamMember(id);
+                const paymentDetails = userResponse.data.paymentDetails;
+                if (paymentDetails) {
+                    form.reset(paymentDetails);
+                }
+
+                // Fetch rate bands
+                const rateBandsResponse = await ServiceFactory.admin.getRateBands();
+                setRateBands(rateBandsResponse.data as RateBand[]);
+            } catch (error) {
+                console.error('Failed to fetch payment data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [id, form]);
+
+    const onSubmit = async (data: PaymentTypeInput) => {
+        if (!id) return;
+        try {
+            await ServiceFactory.admin.updateTeamMember(id, { paymentDetails: data });
+            onSave("Payment type saved successfully");
+        } catch (error) {
+            console.error('Failed to save payment type:', error);
+        }
     };
 
     const handleCreateRateBand = () => {
         navigate("/admin/dashboard/settings/rate-band/create");
     };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full">
@@ -89,9 +138,11 @@ const AdminPaymentType = ({ onSave }: AdminPaymentTypeProps) => {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="RBX1">RBX1</SelectItem>
-                                                    <SelectItem value="RBX2">RBX2</SelectItem>
-                                                    <SelectItem value="RBX3">RBX3</SelectItem>
+                                                    {rateBands.map((band) => (
+                                                        <SelectItem key={band.id} value={band.code}>
+                                                            {band.name}
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                             <Button

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
     ArrowLeftIcon,
@@ -7,7 +7,8 @@ import {
     Edit,
     Printer,
     X,
-    RefreshCw
+    RefreshCw,
+    Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,11 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ServiceFactory } from "@/services/service-factory";
 
 // Order details interface
 interface OrderDetails {
     orderId: string;
-        date: string;
+    date: string;
     totalAmount: string;
     payment: "COD" | "Prepaid";
     channel: "MANUAL" | "EXCEL" | "SHOPIFY" | "WOOCOMMERCE" | "AMAZON" | "FLIPKART" | "OPENCART" | "API";
@@ -55,55 +57,32 @@ const SellerOrderDetailsPage = () => {
     const [trackingNumber, setTrackingNumber] = useState("");
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState("");
+    const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock order details data
-    const [orderDetails] = useState<OrderDetails>({
-        orderId: id || "ORD-2024-001",
-        date: "2024-02-20",
-        totalAmount: "₹97497.00",
-        payment: "COD",
-        channel: "MANUAL",
-        shipmentType: "Forward",
-        weight: "2.5 kg",
-        category: "Gaming",
-        status: "not-booked",
-        customerDetails: {
-            name: "Rahul Sharma",
-            address: "Flat 303, Tower B, Green Valley Apartments\nSector 62, Noida\nNOIDA, UTTAR PRADESH 201309\nIndia",
-            phone: "9876543210"
-        },
-        warehouseDetails: {
-            name: "RocketryBox Warehouse",
-            address: "Plot No. 123, Industrial Area\nPUNE, MAHARASHTRA 411014\nIndia",
-            phone: "020-12345678"
-        },
-        products: [
-            {
-                name: "Gaming Laptop",
-                sku: "LAP-GAM-001",
-                quantity: 1,
-                price: 89999.00,
-                total: 89999.00,
-                image: "/images/gaming-laptop.jpg"
-            },
-            {
-                name: "Gaming Mouse",
-                sku: "MOU-GAM-001",
-                quantity: 2,
-                price: 2499.00,
-                total: 4998.00,
-                image: "/images/gaming-mouse.jpg"
-            },
-            {
-                name: "Gaming Headset",
-                sku: "HEA-GAM-001",
-                quantity: 1,
-                price: 4999.00,
-                total: 4999.00,
-                image: "/images/gaming-headset.jpg"
+    useEffect(() => {
+        fetchOrderDetails();
+    }, [id]);
+
+    const fetchOrderDetails = async () => {
+        if (!id) return;
+
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.getDetails(id);
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to fetch order details');
             }
-        ]
-    });
+
+            setOrderDetails(response.data);
+        } catch (error) {
+            console.error('Error fetching order details:', error);
+            toast.error('Failed to fetch order details');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -116,360 +95,404 @@ const SellerOrderDetailsPage = () => {
     };
 
     const handleDuplicate = () => {
+        if (!orderDetails) return;
+        
         navigate('/seller/dashboard/new-order', {
             state: { duplicateFrom: orderDetails }
         });
         toast.success("Order duplicated. Create a new order with the same details.");
     };
 
-    const handlePrintLabel = () => {
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 2000)),
-            {
-                loading: 'Generating shipping label...',
-                success: () => {
-                    // Create a simple text content for the PDF (in a real app, this would be actual PDF content)
-                    const textContent = `
-                    SHIPPING LABEL
-                    ------------------
-                    Order ID: ${orderDetails.orderId}
-                    Date: ${orderDetails.date}
-                    
-                    Customer:
-                    ${orderDetails.customerDetails.name}
-                    ${orderDetails.customerDetails.address}
-                    Phone: ${orderDetails.customerDetails.phone}
-                    
-                    Warehouse:
-                    ${orderDetails.warehouseDetails.name}
-                    ${orderDetails.warehouseDetails.address}
-                    
-                    Weight: ${orderDetails.weight}
-                    Shipment Type: ${orderDetails.shipmentType}
-                    
-                    Products:
-                    ${orderDetails.products.map(p => `${p.quantity}x ${p.name} (${p.sku})`).join('\n')}
-                    `;
-                    
-                    // Create a blob with the text content
-                    const blob = new Blob([textContent], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    // Create a download link and trigger the download
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', `shipping-label-${orderDetails.orderId}.txt`);
-                    document.body.appendChild(link);
-                    link.click();
-                    
-                    // Clean up
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    return 'Shipping label downloaded successfully';
-                },
-                error: 'Failed to generate shipping label'
+    const handlePrintLabel = async () => {
+        if (!id) return;
+
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.shipping.printLabel(id);
+            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to generate shipping label');
             }
-        );
+
+            const blob = response.data;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `shipping-label-${id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast.success('Shipping label downloaded successfully');
+        } catch (error) {
+            console.error('Error downloading shipping label:', error);
+            toast.error('Failed to download shipping label');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handlePrintInvoice = () => {
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 2000)),
-            {
-                loading: 'Generating invoice...',
-                success: () => {
-                    // Calculate total
-                    const subtotal = orderDetails.products.reduce((sum, product) => sum + product.total, 0);
-                    const tax = subtotal * 0.18; // Assuming 18% tax
-                    const total = subtotal + tax;
-                    
-                    // Create a simple text content for the PDF (in a real app, this would be actual PDF content)
-                    const textContent = `
-                    INVOICE
-                    ------------------
-                    Invoice #: INV-${orderDetails.orderId}
-                    Date: ${orderDetails.date}
-                    
-                    Billed To:
-                    ${orderDetails.customerDetails.name}
-                    ${orderDetails.customerDetails.address}
-                    Phone: ${orderDetails.customerDetails.phone}
-                    
-                    Products:
-                    ${orderDetails.products.map(p => 
-                        `${p.quantity}x ${p.name} (${p.sku}) - ₹${p.price.toFixed(2)}/item - ₹${p.total.toFixed(2)}`
-                    ).join('\n')}
-                    
-                    Subtotal: ₹${subtotal.toFixed(2)}
-                    Tax (18%): ₹${tax.toFixed(2)}
-                    Total: ₹${total.toFixed(2)}
-                    
-                    Payment Method: ${orderDetails.payment}
-                    
-                    Thank you for your business!
-                    `;
-                    
-                    // Create a blob with the text content
-                    const blob = new Blob([textContent], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    // Create a download link and trigger the download
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', `invoice-${orderDetails.orderId}.txt`);
-                    document.body.appendChild(link);
-                    link.click();
-                    
-                    // Clean up
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    return 'Invoice downloaded successfully';
-                },
-                error: 'Failed to generate invoice'
+    const handlePrintInvoice = async () => {
+        if (!id) return;
+
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.shipping.printInvoice(id);
+            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to generate invoice');
             }
-        );
+
+            const blob = response.data;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `invoice-${id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast.success('Invoice downloaded successfully');
+        } catch (error) {
+            console.error('Error downloading invoice:', error);
+            toast.error('Failed to download invoice');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleCancelOrder = () => {
         setIsCancelDialogOpen(true);
     };
 
-    const confirmCancelOrder = () => {
-        if (!cancelReason.trim()) {
+    const confirmCancelOrder = async () => {
+        if (!id || !cancelReason.trim()) {
             toast.error("Please provide a reason for cancellation");
             return;
         }
 
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 2000)),
-            {
-                loading: 'Cancelling order...',
-                success: () => {
-                    setIsCancelDialogOpen(false);
-                    setCancelReason("");
-                    navigate("/seller/dashboard/orders");
-                    return 'Order cancelled successfully';
-                },
-                error: 'Failed to cancel order'
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.cancel(id, cancelReason);
+            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to cancel order');
             }
-        );
+
+            toast.success('Order cancelled successfully');
+            setIsCancelDialogOpen(false);
+            fetchOrderDetails();
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            toast.error('Failed to cancel order');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleMarkAsShipped = () => {
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 2000)),
-            {
-                loading: 'Updating order status...',
-                success: 'Order marked as shipped',
-                error: 'Failed to update order status'
+    const handleMarkAsShipped = async () => {
+        if (!id) return;
+
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.updateStatus(id, 'booked');
+            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to mark order as shipped');
             }
-        );
+
+            toast.success('Order marked as shipped successfully');
+            fetchOrderDetails();
+        } catch (error) {
+            console.error('Error marking order as shipped:', error);
+            toast.error('Failed to mark order as shipped');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleUpdateTracking = () => {
         setIsUpdateTrackingOpen(true);
     };
 
-    const confirmUpdateTracking = () => {
-        if (!trackingNumber.trim()) {
-            toast.error("Please provide a tracking number");
+    const confirmUpdateTracking = async () => {
+        if (!id || !trackingNumber.trim()) {
+            toast.error("Please enter a tracking number");
             return;
         }
 
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 2000)),
-            {
-                loading: 'Updating tracking number...',
-                success: () => {
-                    setIsUpdateTrackingOpen(false);
-                    setTrackingNumber("");
-                    return 'Tracking number updated successfully';
-                },
-                error: 'Failed to update tracking number'
+        try {
+            setIsLoading(true);
+            const response = await ServiceFactory.seller.order.updateTracking(id, trackingNumber);
+            
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to update tracking number');
             }
-        );
+
+            toast.success('Tracking number updated successfully');
+            setIsUpdateTrackingOpen(false);
+            fetchOrderDetails();
+        } catch (error) {
+            console.error('Error updating tracking number:', error);
+            toast.error('Failed to update tracking number');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    return (
-        <div className="container py-4 max-w-7xl mx-auto">
-            {/* Header with back button and actions */}
-            <div className="flex items-center mb-4">
-                <Link to="/seller/dashboard/orders" className="mr-4">
-                    <ArrowLeftIcon className="h-5 w-5" />
-                </Link>
-                <h1 className="text-lg font-semibold">Order Details</h1>
+    if (isLoading && !orderDetails) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+        );
+    }
 
-                <div className="flex ml-auto space-x-2">
-                    <Button variant="outline" size="sm" onClick={handleEdit}>
-                        <Edit className="h-4 w-4 mr-2" />
+    if (!orderDetails) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen">
+                <h2 className="text-2xl font-semibold mb-4">Order not found</h2>
+                <Button onClick={() => navigate('/seller/dashboard/orders')}>
+                    Back to Orders
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full flex flex-col gap-y-6">
+            {/* Header Section */}
+            <div className="flex items-center justify-between w-full bg-white p-4 rounded-lg shadow-sm">
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate('/seller/dashboard/orders')}
+                    >
+                        <ArrowLeftIcon className="h-4 w-4" />
+                    </Button>
+                    <h1 className="text-xl lg:text-2xl font-semibold text-gray-800">
+                        Order Details
+                    </h1>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleEdit}
+                        disabled={isLoading}
+                    >
+                        <Edit className="w-4 h-4 mr-2" />
                         Edit
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleDuplicate}>
-                        <Copy className="h-4 w-4 mr-2" />
+                    <Button
+                        variant="outline"
+                        onClick={handleDuplicate}
+                        disabled={isLoading}
+                    >
+                        <Copy className="w-4 h-4 mr-2" />
                         Duplicate
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrintLabel}>
-                        <Printer className="h-4 w-4 mr-2" />
-                        Print Label
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrintInvoice}>
-                        <Printer className="h-4 w-4 mr-2" />
+                    <Button
+                        variant="outline"
+                        onClick={handlePrintInvoice}
+                        disabled={isLoading}
+                    >
+                        <Printer className="w-4 h-4 mr-2" />
                         Print Invoice
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={handleCancelOrder}>
-                        <X className="h-4 w-4 mr-2" />
-                        Cancel Order
+                    <Button
+                        variant="outline"
+                        onClick={handlePrintLabel}
+                        disabled={isLoading}
+                    >
+                        <Printer className="w-4 h-4 mr-2" />
+                        Print Label
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleMarkAsShipped}>
-                        Mark as Shipped
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleUpdateTracking}>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Update Tracking
-                        </Button>
                 </div>
-                </div>
+            </div>
 
-            {/* Order information section */}
-            <Card className="mb-4">
-                <CardContent className="p-6">
-                    <h2 className="text-lg font-semibold mb-4">Order Information</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div>
-                            <div className="text-sm text-gray-500">Order ID</div>
-                            <div className="flex items-center">
+            {/* Order Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-sm text-gray-500">Order ID</Label>
+                            <div className="flex items-center gap-2">
                                 <span className="font-medium">{orderDetails.orderId}</span>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2" onClick={() => handleCopy(orderDetails.orderId)}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleCopy(orderDetails.orderId)}
+                                >
                                     <Copy className="h-4 w-4" />
-                            </Button>
+                                </Button>
                             </div>
                         </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Order Date</div>
-                            <div className="font-medium">{orderDetails.date}</div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-sm text-gray-500">Date</Label>
+                            <span className="font-medium">{new Date(orderDetails.date).toLocaleDateString()}</span>
                         </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Total Amount</div>
-                            <div className="font-medium">{orderDetails.totalAmount}</div>
-                            </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Payment Type</div>
-                            <div className="font-medium">{orderDetails.payment}</div>
-                            </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Order Channel</div>
-                            <div className="font-medium">{orderDetails.channel}</div>
-                            </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Shipment Type</div>
-                            <div className="font-medium">{orderDetails.shipmentType}</div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-sm text-gray-500">Total Amount</Label>
+                            <span className="font-medium">{orderDetails.totalAmount}</span>
                         </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Weight</div>
-                            <div className="font-medium">{orderDetails.weight}</div>
-                            </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Status</div>
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
-                                {orderDetails.status}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-sm text-gray-500">Status</Label>
+                            <Badge
+                                variant={
+                                    orderDetails.status === 'booked' ? 'default' :
+                                    orderDetails.status === 'processing' ? 'secondary' :
+                                    orderDetails.status === 'cancelled' || orderDetails.status === 'shipment-cancelled' ? 'destructive' :
+                                    'outline'
+                                }
+                            >
+                                {orderDetails.status.charAt(0).toUpperCase() + orderDetails.status.slice(1).replace('-', ' ')}
                             </Badge>
-                            </div>
-                        <div>
-                            <div className="text-sm text-gray-500">Category</div>
-                            <div className="font-medium">{orderDetails.category}</div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            </div>
 
-            {/* Customer and Warehouse details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* Customer details */}
+            {/* Customer and Warehouse Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
-                    <CardContent className="p-6">
-                        <h2 className="text-lg font-semibold mb-4">Customer Details</h2>
-                        <div className="space-y-3">
+                    <CardContent className="p-4">
+                        <h3 className="text-lg font-semibold mb-4">Customer Information</h3>
+                        <div className="space-y-4">
                             <div>
-                                <div className="text-sm text-gray-500">Name</div>
-                                <div className="font-medium">{orderDetails.customerDetails.name}</div>
+                                <Label className="text-sm text-gray-500">Name</Label>
+                                <p className="font-medium">{orderDetails.customerDetails.name}</p>
                             </div>
                             <div>
-                                <div className="text-sm text-gray-500">Address</div>
-                                <div className="whitespace-pre-line">{orderDetails.customerDetails.address}</div>
-                                        </div>
+                                <Label className="text-sm text-gray-500">Address</Label>
+                                <p className="font-medium whitespace-pre-line">{orderDetails.customerDetails.address}</p>
+                            </div>
                             <div>
-                                <div className="text-sm text-gray-500">Phone</div>
-                                <div className="font-medium">{orderDetails.customerDetails.phone}</div>
-                                        </div>
-                                    </div>
-                    </CardContent>
-                </Card>
-
-                {/* Warehouse details */}
-                <Card>
-                    <CardContent className="p-6">
-                        <h2 className="text-lg font-semibold mb-4">Warehouse Details</h2>
-                        <div className="space-y-3">
-                            <div>
-                                <div className="text-sm text-gray-500">Name</div>
-                                <div className="font-medium">{orderDetails.warehouseDetails.name}</div>
+                                <Label className="text-sm text-gray-500">Phone</Label>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-medium">{orderDetails.customerDetails.phone}</p>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleCopy(orderDetails.customerDetails.phone)}
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
                                 </div>
-                            <div>
-                                <div className="text-sm text-gray-500">Address</div>
-                                <div className="whitespace-pre-line">{orderDetails.warehouseDetails.address}</div>
-                                                    </div>
-                            <div>
-                                <div className="text-sm text-gray-500">Phone</div>
-                                <div className="font-medium">{orderDetails.warehouseDetails.phone}</div>
-                                                            </div>
-                                                        </div>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
-                                                    </div>
 
-            {/* Products table */}
+                <Card>
+                    <CardContent className="p-4">
+                        <h3 className="text-lg font-semibold mb-4">Warehouse Information</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-sm text-gray-500">Name</Label>
+                                <p className="font-medium">{orderDetails.warehouseDetails.name}</p>
+                            </div>
+                            <div>
+                                <Label className="text-sm text-gray-500">Address</Label>
+                                <p className="font-medium whitespace-pre-line">{orderDetails.warehouseDetails.address}</p>
+                            </div>
+                            <div>
+                                <Label className="text-sm text-gray-500">Phone</Label>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-medium">{orderDetails.warehouseDetails.phone}</p>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleCopy(orderDetails.warehouseDetails.phone)}
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Products Table */}
             <Card>
-                <CardContent className="p-6">
-                    <h2 className="text-lg font-semibold mb-4">Products</h2>
+                <CardContent className="p-4">
+                    <h3 className="text-lg font-semibold mb-4">Products</h3>
                     <Table>
-                        <TableHeader className="bg-gray-50">
+                        <TableHeader>
                             <TableRow>
-                                <TableHead className="w-12">PRODUCT</TableHead>
+                                <TableHead>Product</TableHead>
                                 <TableHead>SKU</TableHead>
-                                <TableHead className="text-center">QUANTITY</TableHead>
-                                <TableHead className="text-right">PRICE</TableHead>
-                                <TableHead className="text-right">TOTAL</TableHead>
+                                <TableHead>Quantity</TableHead>
+                                <TableHead>Price</TableHead>
+                                <TableHead>Total</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {orderDetails.products.map((product, index) => (
                                 <TableRow key={index}>
-                                    <TableCell className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                                            <img src={product.image} alt={product.name} className="h-8 w-8 object-contain" />
-                                                        </div>
-                                        <span className="font-medium">{product.name}</span>
-                                    </TableCell>
+                                    <TableCell>{product.name}</TableCell>
                                     <TableCell>{product.sku}</TableCell>
-                                    <TableCell className="text-center">{product.quantity}</TableCell>
-                                    <TableCell className="text-right">₹{product.price.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">₹{product.total.toFixed(2)}</TableCell>
+                                    <TableCell>{product.quantity}</TableCell>
+                                    <TableCell>₹{product.price.toFixed(2)}</TableCell>
+                                    <TableCell>₹{product.total.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
-                    <div className="flex justify-end mt-6">
-                        <div className="w-64">
-                            <div className="flex justify-between font-medium text-lg">
-                                <span>Total Amount:</span>
-                                <span>{orderDetails.totalAmount}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                    </Card>
+                </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-4">
+                {orderDetails.status === 'not-booked' && (
+                    <Button
+                        variant="default"
+                        onClick={handleMarkAsShipped}
+                        disabled={isLoading}
+                    >
+                        <Truck className="w-4 h-4 mr-2" />
+                        Mark as Shipped
+                    </Button>
+                )}
+                {orderDetails.status === 'booked' && (
+                    <Button
+                        variant="outline"
+                        onClick={handleUpdateTracking}
+                        disabled={isLoading}
+                    >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Update Tracking
+                    </Button>
+                )}
+                {orderDetails.status !== 'cancelled' && orderDetails.status !== 'shipment-cancelled' && (
+                    <Button
+                        variant="destructive"
+                        onClick={handleCancelOrder}
+                        disabled={isLoading}
+                    >
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel Order
+                    </Button>
+                )}
+            </div>
 
             {/* Update Tracking Dialog */}
             <Dialog open={isUpdateTrackingOpen} onOpenChange={setIsUpdateTrackingOpen}>
@@ -477,21 +500,22 @@ const SellerOrderDetailsPage = () => {
                     <DialogHeader>
                         <DialogTitle>Update Tracking Number</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4">
-                        <Label htmlFor="tracking-number">Tracking Number</Label>
-                        <Input
-                            id="tracking-number"
-                            value={trackingNumber}
-                            onChange={(e) => setTrackingNumber(e.target.value)}
-                            placeholder="Enter tracking number"
-                            className="mt-2"
-                                                                />
-                                                            </div>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="tracking">Tracking Number</Label>
+                            <Input
+                                id="tracking"
+                                value={trackingNumber}
+                                onChange={(e) => setTrackingNumber(e.target.value)}
+                                placeholder="Enter tracking number"
+                            />
+                        </div>
+                    </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsUpdateTrackingOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={confirmUpdateTracking}>
+                        <Button onClick={confirmUpdateTracking} disabled={isLoading}>
                             Update
                         </Button>
                     </DialogFooter>
@@ -504,23 +528,24 @@ const SellerOrderDetailsPage = () => {
                     <DialogHeader>
                         <DialogTitle>Cancel Order</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4">
-                        <Label htmlFor="cancel-reason">Reason for Cancellation</Label>
-                        <Input
-                            id="cancel-reason"
-                            value={cancelReason}
-                            onChange={(e) => setCancelReason(e.target.value)}
-                            placeholder="Enter reason for cancellation"
-                            className="mt-2"
-                        />
-                                                            </div>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="reason">Reason for Cancellation</Label>
+                            <Input
+                                id="reason"
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                placeholder="Enter reason for cancellation"
+                            />
+                        </div>
+                    </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
-                            Go Back
-                            </Button>
-                        <Button variant="destructive" onClick={confirmCancelOrder}>
-                                Cancel Order
-                            </Button>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmCancelOrder} disabled={isLoading}>
+                            Confirm Cancellation
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -3,9 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { calculateShippingRate, determineZone } from "@/lib/shipping-calculator";
 import { useState, useEffect } from "react";
-//import { RateData } from "@/types/shipping";
-// import { useQuery } from "@tanstack/react-query";
-import { mockRateCards } from "@/services/mock/rate-cards";
+import { useQuery } from "@tanstack/react-query";
+import { RateData } from "@/types/shipping";
 
 interface ShippingOptionsModalProps {
     open: boolean;
@@ -21,7 +20,7 @@ interface ShippingOptionsModalProps {
             total: number;
         };
     }) => void;
-    isCOD?: boolean; // Add isCOD as an optional prop
+    isCOD?: boolean;
 }
 
 export function ShippingOptionsModal({
@@ -29,9 +28,9 @@ export function ShippingOptionsModal({
     onOpenChange,
     singleOrderId,
     onSubmit,
-    isCOD = false // Default to false if not provided
+    isCOD = false
 }: ShippingOptionsModalProps) {
-    const [warehouse, setWarehouse] = useState("400001"); // Mumbai pincode
+    const [warehouse, setWarehouse] = useState("400001");
     const [rtoWarehouse, setRtoWarehouse] = useState("400001");
     const [showAddress, setShowAddress] = useState(false);
     const [selectedCourier, setSelectedCourier] = useState("");
@@ -39,12 +38,10 @@ export function ShippingOptionsModal({
     const [courierRates, setCourierRates] = useState<any[]>([]);
     const [currentZone, setCurrentZone] = useState("");
     
-    // Sample destination pincode (should come from order details)
-    const destinationPincode = "110001"; // Delhi pincode
-    const weight = 0.5; // Sample weight in kg
+    const destinationPincode = "110001";
+    const weight = 0.5;
 
-    // Comment out React Query code for now
-    /* const { data: rateData, isLoading } = useQuery<RateData[]>({
+    const { data: rateData, isLoading } = useQuery<RateData[]>({
         queryKey: ['rateCards'],
         queryFn: async () => {
             const response = await fetch('/api/rate-cards');
@@ -53,17 +50,17 @@ export function ShippingOptionsModal({
             }
             return response.json();
         }
-    }); */
+    });
 
     useEffect(() => {
         const calculateRates = async () => {
-            // Determine zone
+            if (!rateData) return;
+
             const zone = determineZone(warehouse, destinationPincode);
             setCurrentZone(zone);
 
-            // Calculate rates using mock data
             const rates = await Promise.all(
-                mockRateCards.map(async rateCard => {
+                rateData.map(async rateCard => {
                     try {
                         const rates = await calculateShippingRate(
                             warehouse,
@@ -71,7 +68,7 @@ export function ShippingOptionsModal({
                             weight,
                             rateCard.mode,
                             isCOD,
-                            mockRateCards
+                            rateData
                         );
 
                         return {
@@ -91,13 +88,12 @@ export function ShippingOptionsModal({
                 })
             );
 
-            // Filter out any failed calculations
             const validRates = rates.filter(rate => rate !== null);
             setCourierRates(validRates);
         };
 
         calculateRates();
-    }, [warehouse, destinationPincode, weight, isCOD]);
+    }, [warehouse, destinationPincode, weight, isCOD, rateData]);
 
     const handleCourierSelect = (rate: any) => {
         setSelectedCourier(rate.courier);
@@ -126,8 +122,7 @@ export function ShippingOptionsModal({
         }
     };
 
-    // Comment out loading state since we're using mock data
-    /* if (isLoading) {
+    if (isLoading) {
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-4xl">
@@ -137,7 +132,7 @@ export function ShippingOptionsModal({
                 </DialogContent>
             </Dialog>
         );
-    } */
+    }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

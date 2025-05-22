@@ -16,10 +16,18 @@ import type { CustomerRegisterInput } from "@/lib/validations/customer";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { AuthService } from "@/services/auth.service";
 
 const RegisterForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [mobileOtpSent, setMobileOtpSent] = useState(false);
+    const [emailOtpSent, setEmailOtpSent] = useState(false);
+    const navigate = useNavigate();
+    const authService = new AuthService();
 
     const form = useForm<CustomerRegisterInput>({
         resolver: zodResolver(customerRegisterSchema),
@@ -40,9 +48,104 @@ const RegisterForm = () => {
         },
     });
 
+    const sendMobileOtp = useMutation({
+        mutationFn: async (mobile: string) => {
+            try {
+                console.log('Sending mobile OTP request for:', mobile);
+                const response = await fetch('http://localhost:8000/api/customer/auth/send-mobile-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ mobile }),
+                    credentials: 'include',
+                });
+                
+                console.log('Response status:', response.status);
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+                
+                if (!response.ok) {
+                    let errorMessage;
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
+                    } catch (e) {
+                        errorMessage = `HTTP error! status: ${response.status}, response: ${responseText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const data = JSON.parse(responseText);
+                return data;
+            } catch (error: any) {
+                console.error('Mobile OTP request error:', {
+                    error,
+                    message: error?.message || 'Unknown error',
+                    stack: error?.stack
+                });
+                throw error;
+            }
+        },
+        onSuccess: () => {
+            setMobileOtpSent(true);
+            toast.success('Mobile OTP sent successfully');
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to send mobile OTP');
+            console.error('Mobile OTP error:', error);
+        },
+    });
+
+    const sendEmailOtp = useMutation({
+        mutationFn: async (email: string) => {
+            try {
+                const response = await fetch('/api/customer/auth/send-email-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email }),
+                    credentials: 'include',
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Email OTP request error:', error);
+                throw error;
+            }
+        },
+        onSuccess: () => {
+            setEmailOtpSent(true);
+            toast.success('Email OTP sent successfully');
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || 'Failed to send email OTP');
+            console.error('Email OTP error:', error);
+        },
+    });
+
+    const registerMutation = useMutation({
+        mutationFn: async (data: CustomerRegisterInput) => {
+            return await authService.register({ ...data, role: 'customer' });
+        },
+        onSuccess: () => {
+            toast.success("Registration successful! Please login.");
+            navigate("/customer/login");
+        },
+        onError: (error: any) => {
+            toast.error(error?.message || "Registration failed");
+        },
+    });
+
     const onSubmit = (data: CustomerRegisterInput) => {
-        console.log(data);
-        // TODO: Handle form submission
+        registerMutation.mutate(data);
     };
 
     return (
@@ -81,12 +184,49 @@ const RegisterForm = () => {
                                         Mobile Number
                                     </FormLabel>
                                     <FormControl>
-                                        <Input
-                                            placeholder="Enter mobile number"
-                                            className="bg-[#99BCDDB5]"
-                                            maxLength={10}
+                                        <div className="flex gap-2">
+                                            <Input
+                                                placeholder="Enter mobile number"
+                                                className="bg-[#99BCDDB5]"
+                                                maxLength={10}
+                                                {...field}
+                                            />
+                                            <Button
+                                                type="button"
+                                                onClick={() => sendMobileOtp.mutate(field.value)}
+                                                disabled={!field.value || field.value.length !== 10 || mobileOtpSent}
+                                                className="whitespace-nowrap"
+                                            >
+                                                {mobileOtpSent ? 'OTP Sent' : 'Send OTP'}
+                                            </Button>
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Always show Mobile OTP Field */}
+                        <FormField
+                            control={form.control}
+                            name="mobileOtp"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Mobile OTP</FormLabel>
+                                    <FormControl>
+                                        <InputOTP
+                                            maxLength={6}
                                             {...field}
-                                        />
+                                        >
+                                            <InputOTPGroup className="gap-2">
+                                                <InputOTPSlot index={0} />
+                                                <InputOTPSlot index={1} />
+                                                <InputOTPSlot index={2} />
+                                                <InputOTPSlot index={3} />
+                                                <InputOTPSlot index={4} />
+                                                <InputOTPSlot index={5} />
+                                            </InputOTPGroup>
+                                        </InputOTP>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -102,12 +242,48 @@ const RegisterForm = () => {
                                         Email
                                     </FormLabel>
                                     <FormControl>
-                                        <Input
-                                            placeholder="Enter email address"
-                                            type="email"
-                                            className="bg-[#99BCDDB5]"
+                                        <div className="flex gap-2">
+                                            <Input
+                                                placeholder="Enter email address"
+                                                className="bg-[#99BCDDB5]"
+                                                {...field}
+                                            />
+                                            <Button
+                                                type="button"
+                                                onClick={() => sendEmailOtp.mutate(field.value)}
+                                                disabled={!field.value || emailOtpSent}
+                                                className="whitespace-nowrap"
+                                            >
+                                                {emailOtpSent ? 'OTP Sent' : 'Send OTP'}
+                                            </Button>
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Always show Email OTP Field */}
+                        <FormField
+                            control={form.control}
+                            name="emailOtp"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email OTP</FormLabel>
+                                    <FormControl>
+                                        <InputOTP
+                                            maxLength={6}
                                             {...field}
-                                        />
+                                        >
+                                            <InputOTPGroup className="gap-2">
+                                                <InputOTPSlot index={0} />
+                                                <InputOTPSlot index={1} />
+                                                <InputOTPSlot index={2} />
+                                                <InputOTPSlot index={3} />
+                                                <InputOTPSlot index={4} />
+                                                <InputOTPSlot index={5} />
+                                            </InputOTPGroup>
+                                        </InputOTP>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -118,171 +294,76 @@ const RegisterForm = () => {
                     <div className="space-y-4">
                         <FormField
                             control={form.control}
-                            name="mobileOtp"
+                            name="password"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>
-                                        Mobile OTP
+                                        Password
                                     </FormLabel>
                                     <FormControl>
-                                        <InputOTP
-                                            maxLength={6}
-                                            {...field}
-                                        >
-                                            <InputOTPGroup className="gap-2">
-                                                <InputOTPSlot
-                                                    index={0}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={1}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={2}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={3}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={4}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={5}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                            </InputOTPGroup>
-                                        </InputOTP>
+                                        <div className="relative">
+                                            <Input
+                                                {...field}
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="Enter your password"
+                                                className="bg-[#99BCDDB5] pr-10"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            >
+                                                {showPassword ? (
+                                                    <EyeOff className="h-4 w-4" />
+                                                ) : (
+                                                    <Eye className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        </div>
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-xs" />
                                 </FormItem>
                             )}
                         />
 
                         <FormField
                             control={form.control}
-                            name="emailOtp"
+                            name="confirmPassword"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>
-                                        Email OTP
+                                        Confirm Password
                                     </FormLabel>
                                     <FormControl>
-                                        <InputOTP
-                                            maxLength={6}
-                                            {...field}
-                                        >
-                                            <InputOTPGroup className="gap-2">
-                                                <InputOTPSlot
-                                                    index={0}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={1}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={2}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={3}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={4}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                                <InputOTPSlot
-                                                    index={5}
-                                                    className="bg-[#99BCDDB5] rounded-md w-8 h-8"
-                                                />
-                                            </InputOTPGroup>
-                                        </InputOTP>
+                                        <div className="relative">
+                                            <Input
+                                                {...field}
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                placeholder="Confirm your password"
+                                                className="bg-[#99BCDDB5] pr-10"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            >
+                                                {showConfirmPassword ? (
+                                                    <EyeOff className="h-4 w-4" />
+                                                ) : (
+                                                    <Eye className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        </div>
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-xs" />
                                 </FormItem>
                             )}
                         />
                     </div>
-                </div>
-
-                {/* Password Fields */}
-                <div className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>
-                                    Password
-                                </FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <Input
-                                            {...field}
-                                            type={showPassword ? "text" : "password"}
-                                            placeholder="Enter your password"
-                                            className="bg-[#99BCDDB5] pr-10"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff className="h-4 w-4" />
-                                            ) : (
-                                                <Eye className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                    </div>
-                                </FormControl>
-                                <FormMessage className="text-xs" />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>
-                                    Confirm Password
-                                </FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <Input
-                                            {...field}
-                                            type={showConfirmPassword ? "text" : "password"}
-                                            placeholder="Confirm your password"
-                                            className="bg-[#99BCDDB5] pr-10"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        >
-                                            {showConfirmPassword ? (
-                                                <EyeOff className="h-4 w-4" />
-                                            ) : (
-                                                <Eye className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                    </div>
-                                </FormControl>
-                                <FormMessage className="text-xs" />
-                            </FormItem>
-                        )}
-                    />
                 </div>
 
                 {/* Address Fields in Two Columns */}

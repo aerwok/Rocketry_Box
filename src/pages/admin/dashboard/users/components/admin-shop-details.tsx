@@ -15,6 +15,8 @@ import { Upload, LinkIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ServiceFactory } from "@/services/service-factory";
+import { useEffect } from "react";
 
 interface AdminShopDetailsProps {
     onSave: (message?: string) => void;
@@ -23,29 +25,49 @@ interface AdminShopDetailsProps {
 const AdminShopDetails = ({ onSave }: AdminShopDetailsProps) => {
     const { id } = useParams();
     
-    // Only applicable for sellers, so using seller-specific dummy data
     const form = useForm<ShopDetailsInput>({
         resolver: zodResolver(shopDetailsSchema),
         defaultValues: {
-            shopName: "Smith Electronics",
-            shopDescription: "We sell high-quality electronics products at competitive prices. Specializing in mobile phones, laptops, and audio equipment.",
-            gstNumber: "29AADCB2230M1ZP",
+            shopName: "",
+            shopDescription: "",
+            gstNumber: "",
             gstCertificate: undefined,
-            shopAddress: "123 Tech Plaza, Andheri East",
-            city: "Mumbai",
-            state: "Maharashtra",
-            pincode: "400069",
-            shopCategory: "electronics",
-            websiteUrl: "https://www.smithelectronics.com",
-            amazonStoreUrl: "https://www.amazon.in/seller/smithelectronics",
-            shopifyStoreUrl: "https://smithelectronics.myshopify.com",
+            shopAddress: "",
+            city: "",
+            state: "",
+            pincode: "",
+            shopCategory: "",
+            websiteUrl: "",
+            amazonStoreUrl: "",
+            shopifyStoreUrl: "",
             openCartStoreUrl: ""
         },
     });
 
-    const onSubmit = (data: ShopDetailsInput) => {
-        console.log(data);
-        onSave("Shop details saved successfully");
+    useEffect(() => {
+        const fetchShopDetails = async () => {
+            if (!id) return;
+            try {
+                const response = await ServiceFactory.admin.getTeamMember(id);
+                const shopDetails = response.data.shopDetails;
+                if (shopDetails) {
+                    form.reset(shopDetails);
+                }
+            } catch (error) {
+                console.error('Failed to fetch shop details:', error);
+            }
+        };
+        fetchShopDetails();
+    }, [id, form]);
+
+    const onSubmit = async (data: ShopDetailsInput) => {
+        if (!id) return;
+        try {
+            await ServiceFactory.admin.updateTeamMember(id, { shopDetails: data });
+            onSave("Shop details saved successfully");
+        } catch (error) {
+            console.error('Failed to save shop details:', error);
+        }
     };
 
     // Check if user is a seller based on ID

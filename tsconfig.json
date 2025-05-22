@@ -30,6 +30,6 @@
     "skipDefaultLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"],
+  "include": ["src", "cypress", "**/*.ts", "cypress.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
